@@ -103,7 +103,7 @@ export default function DesktopSidebar() {
         </div>
       </nav>
 
-      <div className="shrink-0 px-5 pb-2.5 pt-1.5">
+      <div className="sidebar-tier-card shrink-0 px-5 pb-2.5 pt-1.5">
         <div className="rounded-lg border border-green-300/20 bg-green-400/[0.075] p-2 shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">

@@ -26,6 +26,14 @@ type AdminActionBody = {
   accountStatus?: unknown;
   transferFrozen?: unknown;
   verificationStatus?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
+  fullName?: unknown;
+  phone?: unknown;
+  country?: unknown;
+  avatarUrl?: unknown;
+  accountType?: unknown;
+  currency?: unknown;
 };
 
 const STARTING_BALANCE = 0;
@@ -144,6 +152,19 @@ function getFirstNameFromUser(user: User | null, fullName: string) {
   );
 }
 
+function getLastNameFromUser(user: User | null, fullName: string, firstName: string) {
+  const metadataLastName = readText(user?.user_metadata?.last_name);
+  if (metadataLastName) return metadataLastName;
+
+  const parts = fullName.split(" ").filter(Boolean);
+  if (parts.length <= 1) return "";
+  if (parts[0]?.toLowerCase() === firstName.toLowerCase()) {
+    return parts.slice(1).join(" ");
+  }
+
+  return parts.slice(1).join(" ");
+}
+
 function getCustomerId(userId: string | undefined, username: string) {
   if (userId) return `ARX-${userId.slice(0, 8).toUpperCase()}`;
   return `ARX-${username.replace(/\W/g, "").slice(0, 8).toUpperCase() || "USER"}`;
@@ -156,6 +177,7 @@ function getProfileBalance(profile: ProfileRecord | null | undefined) {
 function buildAdminUser(user: User | null, profile?: ProfileRecord | null) {
   const username = getUsernameFromUser(user) || readText(profile?.username);
   const fullName = getFullNameFromUser(user, username);
+  const firstName = getFirstNameFromUser(user, fullName);
   const profileBalance = getProfileBalance(profile);
   const metadataBalance = readFiniteNumber(user?.user_metadata?.balance);
 
@@ -164,9 +186,13 @@ function buildAdminUser(user: User | null, profile?: ProfileRecord | null) {
     username,
     email: readText(user?.email) || username,
     fullName,
-    firstName: getFirstNameFromUser(user, fullName),
+    firstName,
+    lastName: getLastNameFromUser(user, fullName, firstName),
     phone: readText(user?.user_metadata?.phone) || "Not provided",
     country: readText(user?.user_metadata?.country) || "Not provided",
+    avatarUrl: readMetadataText(user, "avatar_url"),
+    accountType: readMetadataText(user, "account_type") || "personal",
+    currency: readMetadataText(user, "currency") || "USD",
     customerId: getCustomerId(user?.id, username),
     balance:
       metadataBalance ??
@@ -332,9 +358,9 @@ async function updateTargetMetadata(
 ) {
   if (!hasServiceRole || !user) return;
 
-  const currentMetadata =
+  const currentMetadata: Record<string, unknown> =
     user.user_metadata && typeof user.user_metadata === "object"
-      ? user.user_metadata
+      ? (user.user_metadata as Record<string, unknown>)
       : {};
 
   await dbClient.auth.admin.updateUserById(user.id, {
@@ -363,9 +389,9 @@ async function updateTargetControls(
     return { error: jsonError("Service role key is required for account controls", 403) };
   }
 
-  const currentMetadata =
+  const currentMetadata: Record<string, unknown> =
     user.user_metadata && typeof user.user_metadata === "object"
-      ? user.user_metadata
+      ? (user.user_metadata as Record<string, unknown>)
       : {};
 
   await dbClient.auth.admin.updateUserById(user.id, {
@@ -384,6 +410,71 @@ async function updateTargetControls(
   } = await dbClient.auth.admin.getUserById(user.id);
 
   return { user: updatedUser ?? user };
+}
+
+async function updateTargetProfileDetails(
+  dbClient: SupabaseClient,
+  hasServiceRole: boolean,
+  user: User | null,
+  body: AdminActionBody,
+  fallback: ReturnType<typeof buildAdminUser>
+) {
+  if (!hasServiceRole || !user) {
+    return { error: jsonError("Service role key is required for profile edits", 403) };
+  }
+
+  const currentMetadata: Record<string, unknown> =
+    user.user_metadata && typeof user.user_metadata === "object"
+      ? (user.user_metadata as Record<string, unknown>)
+      : {};
+
+  const firstName = readText(body.firstName) || readText(currentMetadata.first_name);
+  const lastName = readText(body.lastName) || readText(currentMetadata.last_name);
+  const fullName =
+    readText(body.fullName) ||
+    `${firstName} ${lastName}`.trim() ||
+    fallback.fullName;
+  const phone = readText(body.phone) || readText(currentMetadata.phone);
+  const country = readText(body.country) || readText(currentMetadata.country);
+  const avatarUrl = readText(body.avatarUrl) || readText(currentMetadata.avatar_url);
+  const accountType =
+    readText(body.accountType) || readText(currentMetadata.account_type) || fallback.accountType;
+  const currency =
+    readText(body.currency).toUpperCase() ||
+    readText(currentMetadata.currency).toUpperCase() ||
+    fallback.currency;
+
+  if (!fullName) {
+    return { error: jsonError("Enter an account name", 400) };
+  }
+
+  const { error } = await dbClient.auth.admin.updateUserById(user.id, {
+    user_metadata: {
+      ...currentMetadata,
+      username: getUsernameFromUser(user),
+      first_name: firstName || fullName.split(" ").filter(Boolean)[0] || "",
+      last_name: lastName,
+      full_name: fullName,
+      phone,
+      country,
+      avatar_url: avatarUrl,
+      account_type: accountType,
+      currency,
+      admin_updated_at: new Date().toISOString(),
+    },
+  });
+
+  if (error) return { error: jsonError(error.message, 500) };
+
+  const {
+    data: { user: updatedUser },
+  } = await dbClient.auth.admin.getUserById(user.id);
+  const resolvedUsername = getUsernameFromUser(updatedUser ?? user) || fallback.username;
+  const profile = await getProfileByUsername(dbClient, resolvedUsername);
+
+  return {
+    user: buildAdminUser(updatedUser ?? user, profile ?? { username: resolvedUsername }),
+  };
 }
 
 async function updateTargetProfileBalance(
@@ -538,6 +629,26 @@ export async function POST(request: NextRequest) {
 
   if (!target.username) {
     return jsonError("Target user not found", 404);
+  }
+
+  if (action === "updateProfile") {
+    const result = await updateTargetProfileDetails(
+      admin.dbClient,
+      admin.hasServiceRole,
+      targetUser,
+      body,
+      target
+    );
+
+    if ("error" in result) return result.error;
+
+    await insertNotification(
+      admin.dbClient,
+      result.user.username,
+      "Aurex Admin updated account profile details."
+    ).catch(() => {});
+
+    return NextResponse.json({ ok: true, user: result.user });
   }
 
   if (action === "updateMetrics") {

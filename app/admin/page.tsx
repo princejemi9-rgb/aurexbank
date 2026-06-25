@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import AdminGate from "../../src/components/auth/AdminGate";
 import DesktopSidebar from "../../src/components/layout/DesktopSidebar";
@@ -27,8 +35,12 @@ type AdminBankUser = {
   email: string;
   fullName: string;
   firstName: string;
+  lastName: string;
   phone: string;
   country: string;
+  avatarUrl: string;
+  accountType: string;
+  currency: string;
   customerId: string;
   balance: number;
   reserve: number;
@@ -61,6 +73,8 @@ const alertTypes: BankAlert["type"][] = [
   "Transfer",
   "Savings",
 ];
+const MAX_AVATAR_UPLOAD_SIZE = 5 * 1024 * 1024;
+const AVATAR_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
 
 function money(value: number) {
   return value.toLocaleString("en-US", {
@@ -72,6 +86,17 @@ function money(value: number) {
 function readNumber(value: FormDataEntryValue | null) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function readFormText(value: FormDataEntryValue | null) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isAllowedAvatarUpload(file: File) {
+  if (file.type.startsWith("image/")) return true;
+
+  const lowerName = file.name.toLowerCase();
+  return AVATAR_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
 }
 
 function formatRequestTime(value: string) {
@@ -190,7 +215,7 @@ function transferRequestDetails(request: TransferVerificationRequest) {
 }
 
 export default function AdminPage() {
-  const { currentProfile, refreshBanking } = useBanking();
+  const { currentProfile, refreshBanking, alerts } = useBanking();
   const transferVerificationRequests = useSyncExternalStore(
     subscribeTransferVerificationRequests,
     getTransferVerificationSnapshot,
@@ -205,6 +230,13 @@ export default function AdminPage() {
         new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime()
     )
     .slice(0, 1);
+  const remoteTransferCodeAlerts = useMemo(
+    () =>
+      alerts
+        .filter((alert) => alert.desc.toLowerCase().startsWith("transfer code request"))
+        .slice(0, 3),
+    [alerts]
+  );
 
   const [users, setUsers] = useState<AdminBankUser[]>([]);
   const [selectedUsername, setSelectedUsername] = useState("");
@@ -235,6 +267,8 @@ export default function AdminPage() {
     notice.startsWith("Enter ") ||
     notice.startsWith("Unable ") ||
     notice.startsWith("Missing ") ||
+    notice.startsWith("Upload ") ||
+    notice.startsWith("Profile photo ") ||
     notice.startsWith("Admin access") ||
     notice.startsWith("Service role");
 
@@ -476,6 +510,110 @@ export default function AdminPage() {
       }
 
       setNotice(successMessage);
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const firstName = readFormText(formData.get("firstName"));
+    const lastName = readFormText(formData.get("lastName"));
+    const fullName =
+      readFormText(formData.get("fullName")) || `${firstName} ${lastName}`.trim();
+    const phone = readFormText(formData.get("phone"));
+    const country = readFormText(formData.get("country"));
+    const accountType = readFormText(formData.get("accountType"));
+    const currency = readFormText(formData.get("currency")).toUpperCase();
+
+    if (!fullName) {
+      setNotice("Enter an account name.");
+      return;
+    }
+
+    await runAdminAction(
+      "updateProfile",
+      {
+        firstName,
+        lastName,
+        fullName,
+        phone,
+        country,
+        accountType,
+        currency,
+      },
+      `Profile details updated for ${selectedUser?.fullName}.`
+    );
+  }
+
+  async function uploadSelectedAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+
+    if (!file || !selectedUser) return;
+
+    if (!selectedUser.userId) {
+      setNotice("Unable to upload a photo for profile-only records.");
+      return;
+    }
+
+    if (!isAllowedAvatarUpload(file)) {
+      setNotice("Upload a JPG, PNG, WebP, HEIC, or HEIF image.");
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_UPLOAD_SIZE) {
+      setNotice("Profile photo must be 5 MB or smaller.");
+      return;
+    }
+
+    setBusyAction("uploadAvatar");
+    setNotice("");
+
+    try {
+      const token = await getAdminToken();
+
+      if (!token) {
+        setNotice("Missing admin session. Sign in again.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("userId", selectedUser.userId);
+
+      const response = await fetch("/api/admin/users/avatar", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      const data = (await response.json().catch(() => null)) as
+        | { ok?: boolean; avatarUrl?: string; error?: string }
+        | null;
+
+      if (!response.ok || !data?.ok || !data.avatarUrl) {
+        setNotice(data?.error || "Unable to upload profile photo.");
+        return;
+      }
+
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.username === selectedUser.username
+            ? { ...user, avatarUrl: data.avatarUrl ?? user.avatarUrl }
+            : user
+        )
+      );
+
+      if (selectedUser.username === currentProfile.username) {
+        await refreshBanking();
+      }
+
+      await loadUsers(selectedUser.username);
+      setNotice(`Profile photo updated for ${selectedUser.fullName}.`);
     } finally {
       setBusyAction("");
     }
@@ -763,8 +901,19 @@ export default function AdminPage() {
                     <section className="bank-surface rounded-lg p-5 sm:p-6">
                       <div className="flex min-w-0 flex-col gap-5">
                         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start">
-                          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-green-300/20 bg-green-400/10 text-xl font-black text-green-300">
-                            {selectedUser.firstName.slice(0, 1).toUpperCase()}
+                          <span className="flex h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-green-300/20 bg-green-400/10 text-xl font-black text-green-300">
+                            {selectedUser.avatarUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={selectedUser.avatarUrl}
+                                alt={`${selectedUser.fullName} profile photo`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center">
+                                {selectedUser.firstName.slice(0, 1).toUpperCase()}
+                              </span>
+                            )}
                           </span>
                           <div className="min-w-0 flex-1 sm:min-w-[18rem]">
                             <p className="text-sm font-semibold text-green-400">
@@ -901,12 +1050,12 @@ export default function AdminPage() {
                           onClick={() =>
                             updateAccountControls(
                               { accountStatus: "suspended" },
-                              `${selectedUser.fullName} suspended.`
+                              `${selectedUser.fullName} deactivated.`
                             )
                           }
                           className="rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-4 text-sm font-black text-red-200 transition-all hover:bg-red-500/15 disabled:opacity-60"
                         >
-                          Suspend
+                          Deactivate
                         </button>
                         <button
                           type="button"
@@ -951,6 +1100,126 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </section>
+
+                    <form
+                      key={`profile-${selectedUser.username}-${selectedUser.fullName}-${selectedUser.phone}-${selectedUser.country}-${selectedUser.avatarUrl}`}
+                      onSubmit={saveProfile}
+                      className="bank-surface rounded-lg p-6"
+                    >
+                      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-green-400">
+                            Customer Profile
+                          </p>
+                          <h2 className="mt-2 text-3xl font-black tracking-tight">
+                            Account Identity
+                          </h2>
+                        </div>
+                        <label
+                          className={`inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition-all ${
+                            busyAction === "uploadAvatar"
+                              ? "bg-white/10 text-zinc-500"
+                              : "bg-green-400 text-black hover:bg-green-300"
+                          }`}
+                        >
+                          <AppIcon name="profile" className="h-4 w-4" />
+                          {busyAction === "uploadAvatar" ? "Uploading..." : "Upload Photo"}
+                          <input
+                            type="file"
+                            accept="image/*,.heic,.heif"
+                            disabled={Boolean(busyAction)}
+                            onChange={(event) => void uploadSelectedAvatar(event)}
+                            className="sr-only"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <label className="block md:col-span-2 xl:col-span-3">
+                          <span className="text-sm text-zinc-400">Account Name</span>
+                          <input
+                            name="fullName"
+                            defaultValue={selectedUser.fullName}
+                            className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm text-zinc-400">First Name</span>
+                          <input
+                            name="firstName"
+                            defaultValue={selectedUser.firstName}
+                            className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm text-zinc-400">Last Name</span>
+                          <input
+                            name="lastName"
+                            defaultValue={selectedUser.lastName}
+                            className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm text-zinc-400">Phone</span>
+                          <input
+                            name="phone"
+                            defaultValue={
+                              selectedUser.phone === "Not provided" ? "" : selectedUser.phone
+                            }
+                            className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm text-zinc-400">Country</span>
+                          <input
+                            name="country"
+                            defaultValue={
+                              selectedUser.country === "Not provided" ? "" : selectedUser.country
+                            }
+                            className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm text-zinc-400">Account Type</span>
+                          <select
+                            name="accountType"
+                            defaultValue={selectedUser.accountType}
+                            className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                          >
+                            <option value="personal">Personal</option>
+                            <option value="business">Business</option>
+                            <option value="premium">Premium</option>
+                          </select>
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm text-zinc-400">Currency</span>
+                          <select
+                            name="currency"
+                            defaultValue={selectedUser.currency}
+                            className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                          >
+                            <option value="USD">USD</option>
+                            <option value="GBP">GBP</option>
+                            <option value="EUR">EUR</option>
+                            <option value="NGN">NGN</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={Boolean(busyAction)}
+                        className="mt-6 w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60 sm:w-auto sm:px-8"
+                      >
+                        {busyAction === "updateProfile" ? "Saving..." : "Save Profile Details"}
+                      </button>
+                    </form>
 
                     <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
                       <div className="min-w-0 space-y-6">
@@ -1179,6 +1448,40 @@ export default function AdminPage() {
                           </p>
 
                           <div className="mt-6 space-y-3">
+                            {remoteTransferCodeAlerts.map((alert) => (
+                              <div
+                                key={alert.id}
+                                className="rounded-lg border border-blue-300/15 bg-blue-400/[0.07] p-4"
+                              >
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                  <div>
+                                    <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">
+                                      Admin Notification
+                                    </p>
+                                    <h3 className="mt-2 text-lg font-black text-white">
+                                      Transfer Code Request
+                                    </h3>
+                                  </div>
+                                  <span className="w-fit rounded-md border border-white/10 bg-black/25 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-zinc-300">
+                                    {alert.time}
+                                  </span>
+                                </div>
+
+                                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                                  {alert.desc.split(" | ").map((part, index) => (
+                                    <div
+                                      key={`${alert.id}-${index}`}
+                                      className="rounded-md border border-white/10 bg-black/20 p-3"
+                                    >
+                                      <p className="break-words text-sm font-black text-zinc-100">
+                                        {part}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+
                             {pendingTransferCodes.length ? (
                               pendingTransferCodes.map((request) => (
                                 <div
@@ -1274,7 +1577,9 @@ export default function AdminPage() {
                                   </div>
                                 </div>
                               ))
-                            ) : (
+                            ) : null}
+
+                            {!pendingTransferCodes.length && !remoteTransferCodeAlerts.length && (
                               <div className="rounded-lg border border-white/10 bg-black/20 p-5 text-sm font-semibold text-zinc-500">
                                 No pending transfer codes.
                               </div>

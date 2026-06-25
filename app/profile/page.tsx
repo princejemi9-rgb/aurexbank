@@ -104,8 +104,14 @@ export default function ProfilePage() {
       typeof window !== "undefined" &&
       window.localStorage.getItem("aurexbank-biometrics") === "true";
 
-    setKycState(nextKyc);
-    setBiometricsEnabled(isAdmin || storedBiometrics || nextKyc.biometrics);
+    const timer = window.setTimeout(() => {
+      setKycState(nextKyc);
+      setBiometricsEnabled(isAdmin || storedBiometrics || nextKyc.biometrics);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [currentProfile.email, currentProfile.userId, isAdmin, profileReady]);
 
   useEffect(() => {

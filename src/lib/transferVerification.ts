@@ -200,28 +200,57 @@ export async function notifyAdminTransferCode(request: TransferVerificationReque
   const totalDebit = request.totalDebit ?? request.amount;
   const fee = request.fee ?? Math.max(totalDebit - transferAmount, 0);
   const balanceAfter = request.balanceAfter ?? null;
+  const message = [
+    "Transfer code request",
+    `Ref ${request.reference ?? request.id}`,
+    `Code ${request.code}`,
+    `Sender ${request.senderName || request.sender}`,
+    `Recipient ${receiver}`,
+    `Type ${request.transferType}`,
+    `Amount $${transferAmount.toLocaleString("en-US")}`,
+    `Fee $${fee.toLocaleString("en-US")}`,
+    `Total debit $${totalDebit.toLocaleString("en-US")}`,
+    balanceAfter !== null
+      ? `Balance after $${balanceAfter.toLocaleString("en-US")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session?.access_token) {
+    const response = await fetch("/api/transfers/verification-notice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        code: request.code,
+        reference: request.reference ?? request.id,
+        sender: request.sender,
+        senderName: request.senderName,
+        receiver,
+        transferType: request.transferType,
+        amount: transferAmount,
+        fee,
+        totalDebit,
+        balanceAfter,
+      }),
+    });
+
+    if (response.ok) return;
+  }
 
   await supabase
     .from("notifications")
     .insert([
       {
         username: "admin",
-        message: [
-          "Transfer code request",
-          `Ref ${request.reference ?? request.id}`,
-          `Code ${request.code}`,
-          `Sender ${request.senderName || request.sender}`,
-          `Recipient ${receiver}`,
-          `Type ${request.transferType}`,
-          `Amount $${transferAmount.toLocaleString("en-US")}`,
-          `Fee $${fee.toLocaleString("en-US")}`,
-          `Total debit $${totalDebit.toLocaleString("en-US")}`,
-          balanceAfter !== null
-            ? `Balance after $${balanceAfter.toLocaleString("en-US")}`
-            : "",
-        ]
-          .filter(Boolean)
-          .join(" | "),
+        message,
       },
     ])
     .throwOnError();

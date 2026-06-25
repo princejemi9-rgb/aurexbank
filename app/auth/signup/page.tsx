@@ -220,6 +220,46 @@ export default function SignUpPage() {
     }
   };
 
+  const getFullName = () => `${formData.firstName} ${formData.lastName}`.trim();
+
+  const getBaseMetadata = (kycSkipped = false) => ({
+    username: formData.email.trim().toLowerCase(),
+    first_name: formData.firstName,
+    middle_name: formData.middleName,
+    last_name: formData.lastName,
+    full_name: getFullName(),
+    phone: formData.phone,
+    country: formData.country,
+    account_type: formData.accountType,
+    currency: formData.currency,
+    balance: 0,
+    reserve: 0,
+    income: 0,
+    account_status: "active",
+    transfer_frozen: false,
+    verification_status: "pending",
+    kyc_status: "pending",
+    kyc_skipped: kycSkipped,
+  });
+
+  const onboardCreatedUser = async (userId: string) => {
+    await fetch("/api/auth/onboard", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        fullName: getFullName(),
+        phone: formData.phone,
+        country: formData.country,
+      }),
+    }).catch(() => null);
+  };
+
   const handleSignUp = async () => {
     setLoading(true);
     setError("");
@@ -230,12 +270,7 @@ export default function SignUpPage() {
         password: formData.password,
         options: {
           data: {
-            username: formData.email.trim().toLowerCase(),
-            first_name: formData.firstName,
-            middle_name: formData.middleName,
-            last_name: formData.lastName,
-            full_name: `${formData.firstName} ${formData.lastName}`,
-            phone: formData.phone,
+            ...getBaseMetadata(false),
             date_of_birth: formData.dateOfBirth,
             place_of_birth: formData.placeOfBirth,
             nationality: formData.nationality,
@@ -253,8 +288,6 @@ export default function SignUpPage() {
             employer: formData.employer,
             annual_income: formData.annualIncome,
             source_of_funds: formData.sourceOfFunds,
-            account_type: formData.accountType,
-            currency: formData.currency,
           },
         },
       });
@@ -266,6 +299,7 @@ export default function SignUpPage() {
       }
 
       if (data.user) {
+        await onboardCreatedUser(data.user.id);
         setStep("complete");
         setSuccess(
           "Account created successfully! Please verify your email to activate your account."
@@ -288,17 +322,7 @@ export default function SignUpPage() {
         password: formData.password,
         options: {
           data: {
-            username: formData.email.trim().toLowerCase(),
-            first_name: formData.firstName,
-            middle_name: formData.middleName,
-            last_name: formData.lastName,
-            full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-            phone: formData.phone,
-            country: formData.country,
-            kyc_status: "pending",
-            kyc_skipped: true,
-            account_type: formData.accountType,
-            currency: formData.currency,
+            ...getBaseMetadata(true),
           },
         },
       });
@@ -310,6 +334,7 @@ export default function SignUpPage() {
       }
 
       if (data.user) {
+        await onboardCreatedUser(data.user.id);
         setStep("complete");
         setSuccess(
           "Account created. You can complete identity verification later in Settings."

@@ -208,11 +208,11 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
+    <main className="relative min-h-dvh overflow-x-hidden bg-black text-white">
       {/* GRID */}
-      <div className="relative z-10 grid min-h-screen min-w-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+      <div className="relative z-10 grid min-h-dvh min-w-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         {/* LEFT SIDE */}
-        <section className="flex flex-col justify-between px-6 py-8 lg:px-14 lg:py-12">
+        <section className="hidden flex-col justify-between px-6 py-8 lg:flex lg:px-14 lg:py-12">
           {/* TOP */}
           <div>
             {/* LOGO */}
@@ -266,9 +266,17 @@ export default function SignInPage() {
         </section>
 
         {/* RIGHT SIDE */}
-        <section className="flex items-center justify-center px-5 py-10 lg:px-10">
+        <section className="flex min-h-dvh items-start justify-center px-4 py-5 sm:px-5 sm:py-8 lg:min-h-screen lg:items-center lg:px-10 lg:py-10">
           <div className="w-full max-w-md">
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-2xl rounded-lg p-8 shadow-2xl">
+            <div className="mb-5 lg:hidden">
+              <AurexBrand
+                markClassName="h-12 w-12 rounded-lg"
+                titleClassName="text-3xl"
+                taglineClassName="text-[11px]"
+              />
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-2xl backdrop-blur-2xl sm:p-8">
               {/* HEADER */}
               <div>
                 <div className="flex items-center gap-3">
@@ -277,14 +285,14 @@ export default function SignInPage() {
                     Secure Access Portal
                   </p>
                 </div>
-                <h2 className="text-5xl font-black mt-6 tracking-tight">Sign In</h2>
-                <p className="text-zinc-500 mt-4 leading-relaxed">
+                <h2 className="mt-5 text-4xl font-black tracking-tight sm:mt-6 sm:text-5xl">Sign In</h2>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-500 sm:mt-4 sm:text-base">
                   Access your Aurex Bank dashboard, premium cards, analytics, transfers, and digital assets securely.
                 </p>
               </div>
 
               {/* FORM */}
-              <form onSubmit={handleSignIn} className="mt-8 space-y-5">
+              <form onSubmit={handleSignIn} className="mt-6 space-y-4 sm:mt-8 sm:space-y-5">
                 {/* EMAIL */}
                 <div>
                   <label className="text-sm text-zinc-400 font-medium">Email Address</label>
@@ -294,7 +302,7 @@ export default function SignInPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full mt-2 h-14 rounded-2xl bg-black/30 border border-white/10 px-5 outline-none focus:border-green-400 transition-all"
+                    className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 outline-none transition-all focus:border-green-400 sm:h-14 sm:px-5"
                   />
                 </div>
 
@@ -315,13 +323,13 @@ export default function SignInPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
-                    className="w-full mt-2 h-14 rounded-2xl bg-black/30 border border-white/10 px-5 outline-none focus:border-green-400 transition-all"
+                    className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 outline-none transition-all focus:border-green-400 sm:h-14 sm:px-5"
                   />
                 </div>
 
                 {/* ERROR */}
                 {error && (
-                  <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
                     {error}
                   </div>
                 )}
@@ -330,30 +338,30 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-14 rounded-2xl bg-green-400 text-black font-black text-lg hover:bg-green-300 transition-all disabled:opacity-50"
+                  className="h-12 w-full rounded-lg bg-green-400 text-base font-black text-black transition-all hover:bg-green-300 disabled:opacity-50 sm:h-14 sm:text-lg"
                 >
                   {loading ? "Signing In..." : "Access Aurex Bank"}
                 </button>
               </form>
 
               {/* FEATURES */}
-              <div className="grid grid-cols-2 gap-4 mt-8">
-                <div className="bg-black/25 border border-white/10 rounded-lg p-4">
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4">
+                <div className="rounded-lg border border-white/10 bg-black/25 p-3 sm:p-4">
                   <p className="text-zinc-500 text-xs">Banking Tier</p>
-                  <h3 className="text-2xl font-black mt-3">Aurex Black</h3>
+                  <h3 className="mt-2 text-xl font-black sm:mt-3 sm:text-2xl">Aurex Black</h3>
                 </div>
-                <div className="bg-black/25 border border-white/10 rounded-lg p-4">
+                <div className="rounded-lg border border-white/10 bg-black/25 p-3 sm:p-4">
                   <p className="text-zinc-500 text-xs">Live Status</p>
-                  <h3 className="text-2xl font-black mt-3 text-green-400">ONLINE</h3>
+                  <h3 className="mt-2 text-xl font-black text-green-400 sm:mt-3 sm:text-2xl">ONLINE</h3>
                 </div>
               </div>
 
               {/* CREATE ACCOUNT */}
-              <div className="mt-8 pt-6 border-t border-white/5 text-center">
+              <div className="mt-6 border-t border-white/5 pt-5 text-center sm:mt-8 sm:pt-6">
                 <p className="text-zinc-500">New to Aurex Bank?</p>
                 <Link
                   href="/auth/signup"
-                  className="mt-4 block w-full h-14 rounded-2xl bg-green-400 text-black font-black hover:bg-green-300 transition-all flex items-center justify-center"
+                  className="mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-green-400 font-black text-black transition-all hover:bg-green-300 sm:h-14"
                 >
                   Create Account
                 </Link>

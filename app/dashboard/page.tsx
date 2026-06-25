@@ -10,6 +10,7 @@ import QuickActions from "../../src/components/widgets/QuickActions";
 import ActivityChart from "../../src/components/widgets/ActivityChart";
 import Transactions from "../../src/components/widgets/Transactions";
 import LiveCard from "../../src/components/widgets/LiveCard";
+import LiveBankingPulse from "../../src/components/widgets/LiveBankingPulse";
 import AIInsights from "../../src/components/widgets/AIInsights";
 import CryptoPortfolio from "../../src/components/widgets/CryptoPortfolio";
 import Analytics from "../../src/components/widgets/Analytics";
@@ -24,8 +25,8 @@ export default function DashboardPage() {
     <main className="bank-shell min-h-screen text-white overflow-x-hidden">
       <DesktopSidebar />
       <MobileDashboard />
-      <div className="app-content lg:ml-72">
-        <div className="app-inner hidden lg:block">
+      <div className="app-content hidden lg:ml-72 lg:block">
+        <div className="app-inner">
           <Header />
 
           <div className="mt-6 grid min-w-0 items-start gap-5 xl:gap-6 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
@@ -36,6 +37,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-6 min-w-0">
+              <LiveBankingPulse />
               <LiveCard />
               <AIInsights />
             </div>

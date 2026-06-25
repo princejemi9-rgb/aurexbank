@@ -11,6 +11,7 @@ import AIInsights from "../widgets/AIInsights";
 import Analytics from "../widgets/Analytics";
 import CryptoPortfolio from "../widgets/CryptoPortfolio";
 import LiveCard from "../widgets/LiveCard";
+import LiveBankingPulse from "../widgets/LiveBankingPulse";
 import StatsGrid from "../widgets/StatsGrid";
 import Transactions from "../widgets/Transactions";
 import UpcomingPayments from "../widgets/UpcomingPayments";
@@ -196,6 +197,10 @@ export default function MobileDashboard() {
               </Link>
             ))}
           </div>
+        </section>
+
+        <section className="mt-5">
+          <LiveBankingPulse compact />
         </section>
 
         <section className="mt-5">

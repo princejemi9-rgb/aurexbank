@@ -6,6 +6,7 @@ type AppIconName =
   | "bell"
   | "card"
   | "check"
+  | "close"
   | "crypto"
   | "dashboard"
   | "device"
@@ -38,6 +39,7 @@ const paths: Record<AppIconName, string[]> = {
   bell: ["M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .53-.21 1.04-.59 1.41L4 17h11Z", "M9 17a3 3 0 0 0 6 0"],
   card: ["M3 7h18v10H3V7Z", "M3 10h18", "M7 15h4"],
   check: ["M20 6 9 17l-5-5"],
+  close: ["M18 6 6 18", "M6 6l12 12"],
   crypto: ["M12 3v18", "M8 6h6a3 3 0 0 1 0 6H8", "M8 12h7a3 3 0 0 1 0 6H8", "M9 3v3", "M15 18v3"],
   dashboard: ["M4 5h7v7H4V5Z", "M13 5h7v4h-7V5Z", "M13 11h7v8h-7v-8Z", "M4 14h7v5H4v-5Z"],
   device: ["M7 4h10v14H7V4Z", "M10 21h4", "M12 17h.01"],

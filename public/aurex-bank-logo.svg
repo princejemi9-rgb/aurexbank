@@ -1,0 +1,55 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Aurex Bank logo mark</title>
+  <defs>
+    <linearGradient id="aurexMarkFill" x1="132" y1="420" x2="334" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16A34A"/>
+      <stop offset="0.48" stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#7CFFAD"/>
+    </linearGradient>
+    <linearGradient id="aurexArcStroke" x1="99" y1="88" x2="451" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7CFFAD"/>
+      <stop offset="0.55" stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#16A34A"/>
+    </linearGradient>
+    <filter id="aurexSoftGlow" x="68" y="36" width="396" height="432" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feFlood flood-color="#4ADE80" flood-opacity="0.28"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <mask id="aurexCutouts" maskUnits="userSpaceOnUse" x="88" y="56" width="336" height="376">
+      <rect x="88" y="56" width="336" height="376" fill="white"/>
+      <path d="M214 299L257 181L301 281C272 285 243 291 214 299Z" fill="black"/>
+      <path d="M166 344C228 308 291 288 372 288L381 315C311 315 257 330 196 366L166 344Z" fill="black"/>
+    </mask>
+  </defs>
+
+  <g filter="url(#aurexSoftGlow)">
+    <path
+      d="M146 385C99 307 108 206 166 139C190 112 220 93 252 83"
+      stroke="url(#aurexArcStroke)"
+      stroke-width="14"
+      stroke-linecap="butt"
+    />
+    <path
+      d="M329 83C394 101 443 155 457 221C469 277 456 337 422 385"
+      stroke="url(#aurexArcStroke)"
+      stroke-width="14"
+      stroke-linecap="butt"
+    />
+    <path
+      d="M201 429C233 447 272 452 310 441"
+      stroke="url(#aurexArcStroke)"
+      stroke-width="14"
+      stroke-linecap="butt"
+    />
+    <path
+      d="M256 58L402 406H333L304 333C253 337 209 356 151 403L106 429L256 58Z"
+      fill="url(#aurexMarkFill)"
+      mask="url(#aurexCutouts)"
+    />
+  </g>
+</svg>

@@ -1,0 +1,1307 @@
+"use client";
+
+import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+
+import AdminGate from "../../src/components/auth/AdminGate";
+import DesktopSidebar from "../../src/components/layout/DesktopSidebar";
+import BottomNav from "../../src/components/navigation/BottomNav";
+import AppIcon from "../../src/components/ui/AppIcon";
+import { PrivateAmount } from "../../src/components/ui/PrivateAmount";
+import { useBanking, type BankAlert } from "../../src/context/BankingContext";
+import { supabase } from "../../src/lib/supabase";
+import {
+  deleteTransferVerificationRequest,
+  getTransferVerificationServerSnapshot,
+  getTransferVerificationSnapshot,
+  issueTransferVerificationCode,
+  markTransferVerificationSuspicious,
+  pruneTransferVerificationRequests,
+  rejectTransferVerificationRequest,
+  subscribeTransferVerificationRequests,
+  type TransferVerificationRequest,
+} from "../../src/lib/transferVerification";
+
+type AdminBankUser = {
+  userId: string;
+  username: string;
+  email: string;
+  fullName: string;
+  firstName: string;
+  phone: string;
+  country: string;
+  customerId: string;
+  balance: number;
+  reserve: number;
+  income: number;
+  accountStatus: "active" | "suspended" | "pending";
+  transferFrozen: boolean;
+  verificationStatus: "pending" | "approved" | "rejected";
+  signedIn: boolean;
+  lastSeenAt: string;
+  onlineUntil: string;
+  lastSignInAt: string;
+  createdAt: string;
+  source: "auth" | "profile";
+};
+
+type UserFilter = "all" | "new" | "active" | "suspended" | "pending";
+
+type AdminUsersResponse = {
+  ok?: boolean;
+  users?: AdminBankUser[];
+  user?: AdminBankUser;
+  serviceRoleConfigured?: boolean;
+  error?: string;
+};
+
+const alertTypes: BankAlert["type"][] = [
+  "Payment",
+  "Security",
+  "Crypto",
+  "Transfer",
+  "Savings",
+];
+
+function money(value: number) {
+  return value.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  });
+}
+
+function readNumber(value: FormDataEntryValue | null) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function formatRequestTime(value: string) {
+  return new Date(value).toLocaleString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatPresence(user: AdminBankUser) {
+  if (user.signedIn) return "Signed in now";
+
+  const lastSeen = user.lastSeenAt || user.lastSignInAt;
+  if (!lastSeen) return "Not seen yet";
+
+  const date = new Date(lastSeen);
+  if (Number.isNaN(date.getTime())) return "Not seen yet";
+
+  return `Last seen ${date.toLocaleString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    day: "numeric",
+  })}`;
+}
+
+function isNewUser(user: AdminBankUser) {
+  if (!user.createdAt) return false;
+
+  const created = new Date(user.createdAt);
+  if (Number.isNaN(created.getTime())) return false;
+
+  return Date.now() - created.getTime() <= 7 * 24 * 60 * 60 * 1000;
+}
+
+function formatDate(value: string) {
+  if (!value) return "Not available";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not available";
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatRequestStatus(request: TransferVerificationRequest) {
+  if (request.status === "pending_admin_code") return "Awaiting admin";
+  if (request.status === "pending_code") return "Code active";
+  if (request.status === "approved") return "Approved";
+  if (request.status === "completed") return "Completed";
+  if (request.status === "rejected") return "Rejected";
+  if (request.status === "suspicious") return "Suspicious";
+  return "Pending";
+}
+
+function transferRequestDetails(request: TransferVerificationRequest) {
+  const receiver =
+    request.receiver ||
+    request.accountNumber ||
+    request.swift ||
+    request.wallet ||
+    "External account";
+  const transferAmount = request.transferAmount ?? request.amount;
+  const totalDebit = request.totalDebit ?? request.amount;
+  const fee = request.fee ?? Math.max(totalDebit - transferAmount, 0);
+
+  const details = [
+    request.reference && { label: "Reference", value: request.reference },
+    { label: "Status", value: formatRequestStatus(request) },
+    { label: "Sender", value: request.senderName || request.sender },
+    request.senderName && { label: "Username", value: request.sender },
+    { label: "Recipient", value: receiver },
+    { label: "Transfer Amount", value: `$${money(transferAmount)}` },
+    { label: "Fee", value: `$${money(fee)}` },
+    { label: "Total Debit", value: `$${money(totalDebit)}` },
+    request.balanceBefore !== undefined && {
+      label: "Balance Before",
+      value: `$${money(request.balanceBefore)}`,
+    },
+    request.balanceAfter !== undefined && {
+      label: "Balance After",
+      value: `$${money(request.balanceAfter)}`,
+    },
+    request.bankName && {
+      label: request.transferType === "crypto" ? "Network" : "Bank",
+      value: request.bankName,
+    },
+    request.accountNumber && {
+      label: request.transferType === "wire" ? "IBAN / Account" : "Account Number",
+      value: request.accountNumber,
+    },
+    request.routingNumber && {
+      label: "Routing / Sort Code",
+      value: request.routingNumber,
+    },
+    request.recipientAccountType && {
+      label: "Account Type",
+      value: request.recipientAccountType,
+    },
+    request.swift && { label: "SWIFT / BIC", value: request.swift },
+    request.wireCountry && { label: "Country", value: request.wireCountry },
+    request.wireCurrency && { label: "Currency", value: request.wireCurrency },
+    request.transferPurpose && { label: "Purpose", value: request.transferPurpose },
+    request.recipientAddress && { label: "Address", value: request.recipientAddress },
+    request.recipientContact && { label: "Contact", value: request.recipientContact },
+    request.memo && { label: "Note", value: request.memo },
+    { label: "Created", value: formatRequestTime(request.createdAt) },
+  ];
+
+  return details.filter((item): item is { label: string; value: string } => Boolean(item));
+}
+
+export default function AdminPage() {
+  const { currentProfile, refreshBanking } = useBanking();
+  const transferVerificationRequests = useSyncExternalStore(
+    subscribeTransferVerificationRequests,
+    getTransferVerificationSnapshot,
+    getTransferVerificationServerSnapshot
+  );
+  const pendingTransferCodes = transferVerificationRequests
+    .filter((request) =>
+      ["pending_admin_code", "pending_code", "pending", "approved"].includes(request.status)
+    )
+    .sort(
+      (first, second) =>
+        new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime()
+    )
+    .slice(0, 1);
+
+  const [users, setUsers] = useState<AdminBankUser[]>([]);
+  const [selectedUsername, setSelectedUsername] = useState("");
+  const [search, setSearch] = useState("");
+  const [userFilter, setUserFilter] = useState<UserFilter>("all");
+  const [notice, setNotice] = useState("");
+  const [copiedTransferCodeId, setCopiedTransferCodeId] = useState("");
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [busyAction, setBusyAction] = useState("");
+  const [serviceRoleConfigured, setServiceRoleConfigured] = useState(true);
+
+  const [alertType, setAlertType] = useState<BankAlert["type"]>("Security");
+  const [alertTitle, setAlertTitle] = useState("Manual review completed");
+  const [alertDesc, setAlertDesc] = useState("Account activity was reviewed by Aurex operations.");
+  const [alertStatus, setAlertStatus] = useState("Secure");
+  const [alertUnread, setAlertUnread] = useState(true);
+
+  const [transactionName, setTransactionName] = useState("Treasury Adjustment");
+  const [transactionType, setTransactionType] = useState("Administrative posting");
+  const [transactionDirection, setTransactionDirection] = useState<"credit" | "debit">("credit");
+  const [transactionAmount, setTransactionAmount] = useState("2500");
+  const [transactionMethod, setTransactionMethod] = useState("Aurex Admin");
+  const [transactionStatus, setTransactionStatus] = useState("Completed");
+
+  const selectedUser =
+    users.find((user) => user.username === selectedUsername) ?? users[0] ?? null;
+  const noticeIsError =
+    notice.startsWith("Enter ") ||
+    notice.startsWith("Unable ") ||
+    notice.startsWith("Missing ") ||
+    notice.startsWith("Admin access") ||
+    notice.startsWith("Service role");
+
+  function handleTransferCodeAction(
+    request: TransferVerificationRequest,
+    action: "issue" | "reject" | "suspicious"
+  ) {
+    if (action === "issue") {
+      issueTransferVerificationCode(request.id);
+      setNotice(`Secure code activated for ${request.reference ?? request.id}.`);
+      return;
+    }
+
+    if (action === "reject") {
+      rejectTransferVerificationRequest(request.id);
+      setNotice(`Transfer request ${request.reference ?? request.id} was rejected.`);
+      return;
+    }
+
+    markTransferVerificationSuspicious(request.id);
+    setNotice(`Transfer request ${request.reference ?? request.id} was marked suspicious.`);
+  }
+
+  function deleteTransferCode(request: TransferVerificationRequest) {
+    deleteTransferVerificationRequest(request.id);
+    setNotice(`Transfer code ${request.reference ?? request.id} removed.`);
+  }
+
+  async function copyTransferCode(request: TransferVerificationRequest) {
+    const text = request.code;
+    const wasActivated = request.status !== "pending_code";
+
+    if (wasActivated) {
+      issueTransferVerificationCode(request.id);
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedTransferCodeId(request.id);
+      setNotice(
+        `Secure code ${text} copied and activated for ${request.reference ?? request.id}.`
+      );
+    } catch {
+      setCopiedTransferCodeId(request.id);
+      setNotice(`Secure code activated: ${text}`);
+    }
+  }
+
+  const filteredUsers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return users.filter((user) => {
+      const matchesFilter =
+        userFilter === "all" ||
+        (userFilter === "new" && isNewUser(user)) ||
+        (userFilter === "active" && user.accountStatus === "active") ||
+        (userFilter === "suspended" && user.accountStatus === "suspended") ||
+        (userFilter === "pending" && user.verificationStatus === "pending");
+
+      if (!matchesFilter) return false;
+      if (!query) return true;
+
+      return [
+        user.fullName,
+        user.email,
+        user.username,
+        user.customerId,
+        user.accountStatus,
+        user.verificationStatus,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [search, userFilter, users]);
+
+  const userCounts = useMemo(
+    () => ({
+      all: users.length,
+      new: users.filter(isNewUser).length,
+      active: users.filter((user) => user.accountStatus === "active").length,
+      suspended: users.filter((user) => user.accountStatus === "suspended").length,
+      pending: users.filter((user) => user.verificationStatus === "pending").length,
+    }),
+    [users]
+  );
+
+  const directoryFilters: Array<{ label: string; value: UserFilter; count: number }> = [
+    { label: "All users", value: "all", count: userCounts.all },
+    { label: "New users", value: "new", count: userCounts.new },
+    { label: "Active", value: "active", count: userCounts.active },
+    { label: "Suspended", value: "suspended", count: userCounts.suspended },
+    { label: "Pending verification", value: "pending", count: userCounts.pending },
+  ];
+
+  async function getAdminToken() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    return session?.access_token ?? "";
+  }
+
+  const loadUsers = useCallback(
+    async (preferredUsername?: string) => {
+      setUsersLoading(true);
+
+      try {
+        const token = await getAdminToken();
+
+        if (!token) {
+          setNotice("Missing admin session. Sign in again.");
+          setUsers([]);
+          return;
+        }
+
+        const response = await fetch("/api/admin/users", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = (await response.json().catch(() => null)) as AdminUsersResponse | null;
+
+        if (!response.ok || !data?.ok) {
+          setNotice(data?.error || "Unable to load admin users.");
+          setUsers([]);
+          return;
+        }
+
+        const nextUsers = data.users ?? [];
+        setUsers(nextUsers);
+        setServiceRoleConfigured(data.serviceRoleConfigured !== false);
+
+        const nextSelectedUsername =
+          preferredUsername ||
+          nextUsers.find((user) => user.username !== currentProfile.username)?.username ||
+          nextUsers[0]?.username ||
+          "";
+
+        setSelectedUsername(nextSelectedUsername);
+        if (!nextUsers.length) {
+          setNotice("No banking profiles found yet.");
+        }
+      } finally {
+        setUsersLoading(false);
+      }
+    },
+    [currentProfile.username]
+  );
+
+  useEffect(() => {
+    pruneTransferVerificationRequests();
+  }, []);
+
+  useEffect(() => {
+    if (!copiedTransferCodeId) return;
+
+    const timer = window.setTimeout(() => {
+      setCopiedTransferCodeId("");
+    }, 2200);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [copiedTransferCodeId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadUsers();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [loadUsers]);
+
+  async function runAdminAction(
+    action: string,
+    body: Record<string, unknown>,
+    successMessage: string
+  ) {
+    if (!selectedUser) {
+      setNotice("Select a target user first.");
+      return;
+    }
+
+    setBusyAction(action);
+    setNotice("");
+
+    try {
+      const token = await getAdminToken();
+
+      if (!token) {
+        setNotice("Missing admin session. Sign in again.");
+        return;
+      }
+
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action,
+          userId: selectedUser.userId,
+          username: selectedUser.username,
+          ...body,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as AdminUsersResponse | null;
+
+      if (!response.ok || !data?.ok) {
+        setNotice(data?.error || "Unable to complete admin action.");
+        return;
+      }
+
+      const nextUser = data.user;
+      if (nextUser) {
+        setUsers((currentUsers) => {
+          const hasUser = currentUsers.some((user) => user.username === nextUser.username);
+          const nextUsers = hasUser
+            ? currentUsers.map((user) =>
+                user.username === nextUser.username ? nextUser : user
+              )
+            : [nextUser, ...currentUsers];
+
+          return nextUsers.sort((first, second) =>
+            first.fullName.localeCompare(second.fullName)
+          );
+        });
+        setSelectedUsername(nextUser.username);
+
+        if (nextUser.username === currentProfile.username) {
+          await refreshBanking();
+        }
+
+        await loadUsers(nextUser.username);
+      }
+
+      setNotice(successMessage);
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function saveMetrics(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const nextBalance = readNumber(formData.get("balance"));
+    const nextReserve = readNumber(formData.get("reserve"));
+    const nextIncome = readNumber(formData.get("income"));
+
+    if (
+      nextBalance === null ||
+      nextReserve === null ||
+      nextIncome === null ||
+      nextBalance < 0 ||
+      nextReserve < 0 ||
+      nextIncome < 0
+    ) {
+      setNotice("Enter valid non-negative numbers for all account metrics.");
+      return;
+    }
+
+    await runAdminAction(
+      "updateMetrics",
+      {
+        balance: nextBalance,
+        reserve: nextReserve,
+        income: nextIncome,
+      },
+      `Account metrics updated for ${selectedUser?.fullName}.`
+    );
+  }
+
+  async function publishAlert(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    await runAdminAction(
+      "publishAlert",
+      {
+        alertType,
+        title: alertTitle.trim() || "Admin alert",
+        desc: alertDesc.trim() || "Aurex operations published an account update.",
+        status: alertStatus.trim() || "Updated",
+        unread: alertUnread,
+      },
+      `Alert published to ${selectedUser?.fullName}.`
+    );
+  }
+
+  async function postTransaction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const rawAmount = Math.abs(Number(transactionAmount));
+
+    if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+      setNotice("Enter a valid transaction amount greater than zero.");
+      return;
+    }
+
+    await runAdminAction(
+      "postTransaction",
+      {
+        name: transactionName.trim() || "Admin transaction",
+        type: transactionType.trim() || "Administrative posting",
+        amount: transactionDirection === "debit" ? -rawAmount : rawAmount,
+        status: transactionStatus.trim() || "Completed",
+        method: transactionMethod.trim() || "Aurex Admin",
+      },
+      `Transaction posted for ${selectedUser?.fullName}.`
+    );
+  }
+
+  async function resetTarget() {
+    await runAdminAction(
+      "resetDemoData",
+      {},
+      `Account metrics reset for ${selectedUser?.fullName}.`
+    );
+  }
+
+  async function updateAccountControls(
+    controls: Partial<
+      Pick<AdminBankUser, "accountStatus" | "transferFrozen" | "verificationStatus">
+    >,
+    message: string
+  ) {
+    if (!selectedUser) return;
+
+    await runAdminAction(
+      "controlAccount",
+      {
+        accountStatus: controls.accountStatus ?? selectedUser.accountStatus,
+        transferFrozen: controls.transferFrozen ?? selectedUser.transferFrozen,
+        verificationStatus: controls.verificationStatus ?? selectedUser.verificationStatus,
+      },
+      message
+    );
+  }
+
+  return (
+    <AdminGate>
+      <main className="bank-shell min-h-screen overflow-x-hidden text-white">
+        <DesktopSidebar />
+
+        <div className="app-content lg:ml-72">
+          <div className="app-inner">
+            <section className="mb-6 border-b border-white/10 pb-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-400/10 text-green-300">
+                      <AppIcon name="admin" className="h-5 w-5" />
+                    </span>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-green-400">
+                      Admin Operations
+                    </p>
+                  </div>
+                  <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
+                    User Control Center
+                  </h1>
+                  <p className="mt-3 max-w-3xl text-base leading-relaxed text-zinc-400">
+                    Select a customer account, update visible banking metrics, post ledger entries,
+                    and send account alerts from your admin session.
+                  </p>
+                </div>
+
+                <div className="grid w-full grid-cols-2 gap-3 sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => loadUsers(selectedUser?.username)}
+                    disabled={usersLoading}
+                    className="bank-button rounded-lg px-4 py-3 text-sm font-black text-zinc-200 disabled:opacity-60"
+                  >
+                    {usersLoading ? "Refreshing..." : "Refresh Users"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetTarget}
+                    disabled={!selectedUser || Boolean(busyAction)}
+                    className="rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-200 transition-all hover:bg-red-500/15 disabled:opacity-60"
+                  >
+                    Reset Metrics
+                  </button>
+                </div>
+              </div>
+
+              {!serviceRoleConfigured && (
+                <div className="mt-5 rounded-lg border border-yellow-300/20 bg-yellow-300/10 px-4 py-3 text-sm font-semibold text-yellow-100">
+                  Service role key is not configured. Admin can only manage users visible through the profiles table.
+                </div>
+              )}
+
+              {notice && (
+                <div
+                  className={`mt-5 rounded-lg border px-4 py-3 text-sm font-semibold ${
+                    noticeIsError
+                      ? "border-red-400/20 bg-red-500/10 text-red-200"
+                      : "border-green-300/15 bg-green-400/10 text-green-200"
+                  }`}
+                >
+                  {notice}
+                </div>
+              )}
+            </section>
+
+            <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
+              <aside className="min-w-0 space-y-6">
+                <section className="bank-surface rounded-lg p-5">
+                  <p className="text-sm font-semibold text-green-400">Customer Directory</p>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight">
+                    Target Account
+                  </h2>
+
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search users..."
+                    className="mt-5 h-11 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none placeholder:text-zinc-600 focus:border-green-400/40"
+                  />
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {directoryFilters.map((filter) => (
+                      <button
+                        key={filter.value}
+                        type="button"
+                        onClick={() => setUserFilter(filter.value)}
+                        className={`rounded-lg border px-3 py-2 text-left text-[11px] font-black transition-all ${
+                          userFilter === filter.value
+                            ? "border-green-300/40 bg-green-400/10 text-green-200"
+                            : "border-white/10 bg-white/[0.025] text-zinc-500 hover:bg-white/[0.055]"
+                        }`}
+                      >
+                        {filter.label} ({filter.count})
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {usersLoading ? (
+                      <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm font-semibold text-zinc-500">
+                        Loading users...
+                      </div>
+                    ) : filteredUsers.length ? (
+                      filteredUsers.map((user) => {
+                        const active = user.username === selectedUser?.username;
+
+                        return (
+                          <button
+                            key={`${user.source}-${user.username}-${user.userId}`}
+                            type="button"
+                            onClick={() => setSelectedUsername(user.username)}
+                            className={`w-full rounded-lg border p-4 text-left transition-all ${
+                              active
+                                ? "border-green-300/40 bg-green-400/10"
+                                : "border-white/10 bg-white/[0.025] hover:bg-white/[0.055]"
+                            }`}
+                          >
+                            <div className="flex min-w-0 items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span
+                                    className={`h-2 w-2 shrink-0 rounded-full ${
+                                      user.signedIn ? "bg-green-400" : "bg-zinc-700"
+                                    }`}
+                                  />
+                                  <h3 className="truncate text-sm font-black">
+                                    {user.fullName}
+                                  </h3>
+                                </div>
+                                <p className="mt-1 truncate text-xs text-zinc-500">
+                                  {user.email}
+                                </p>
+                              </div>
+                              <span className="shrink-0 rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-zinc-400">
+                                {user.source}
+                              </span>
+                            </div>
+                            <p
+                              className={`mt-3 text-xs font-black ${
+                                user.signedIn ? "text-green-300" : "text-zinc-500"
+                              }`}
+                            >
+                              {formatPresence(user)} /{" "}
+                              <PrivateAmount value={user.balance} />
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-zinc-400">
+                                {user.accountStatus}
+                              </span>
+                              <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-zinc-400">
+                                {user.verificationStatus}
+                              </span>
+                              <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-zinc-400">
+                                Created {formatDate(user.createdAt)}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm font-semibold text-zinc-500">
+                        No matching users.
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-lg border border-green-300/15 bg-green-400/[0.07] p-5">
+                  <p className="text-sm font-semibold text-green-400">Admin Access</p>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight">
+                    {currentProfile.fullName}
+                  </h2>
+                  <p className="mt-2 break-words text-sm text-zinc-400">
+                    Signed in as {currentProfile.email}. Server actions still re-check the admin allowlist.
+                  </p>
+                </section>
+              </aside>
+
+              <div className="min-w-0 space-y-6">
+                {selectedUser ? (
+                  <>
+                    <section className="bank-surface rounded-lg p-5 sm:p-6">
+                      <div className="flex min-w-0 flex-col gap-5">
+                        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start">
+                          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-green-300/20 bg-green-400/10 text-xl font-black text-green-300">
+                            {selectedUser.firstName.slice(0, 1).toUpperCase()}
+                          </span>
+                          <div className="min-w-0 flex-1 sm:min-w-[18rem]">
+                            <p className="text-sm font-semibold text-green-400">
+                              Selected Customer
+                            </p>
+                            <h2 className="mt-2 break-words text-2xl font-black leading-tight tracking-tight sm:text-3xl lg:text-4xl">
+                              {selectedUser.fullName}
+                            </h2>
+                            <p className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-sm text-zinc-500">
+                              <span className="min-w-0 break-words">{selectedUser.email}</span>
+                              <span className="text-zinc-700">/</span>
+                              <span className="font-semibold text-zinc-400">
+                                {selectedUser.customerId}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex min-w-0 flex-wrap gap-2">
+                          <span
+                            className={`inline-flex max-w-full items-center whitespace-normal break-words rounded-md border px-3 py-2 text-left text-[11px] font-black uppercase leading-tight tracking-[0.1em] ${
+                              selectedUser.signedIn
+                                ? "border-green-300/20 bg-green-400/10 text-green-300"
+                                : "border-white/10 bg-white/[0.04] text-zinc-400"
+                            }`}
+                          >
+                            {formatPresence(selectedUser)}
+                          </span>
+                          <span className="inline-flex max-w-full items-center whitespace-normal break-words rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-[11px] font-black uppercase leading-tight tracking-[0.1em] text-zinc-400">
+                            {selectedUser.username}
+                          </span>
+                          <span className="inline-flex max-w-full items-center whitespace-normal break-words rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-[11px] font-black uppercase leading-tight tracking-[0.1em] text-zinc-400">
+                            {selectedUser.accountStatus}
+                          </span>
+                          <span
+                            className={`inline-flex max-w-full items-center whitespace-normal break-words rounded-md border px-3 py-2 text-left text-[11px] font-black uppercase leading-tight tracking-[0.1em] ${
+                              selectedUser.transferFrozen
+                                ? "border-red-400/20 bg-red-500/10 text-red-200"
+                                : "border-green-300/20 bg-green-400/10 text-green-300"
+                            }`}
+                          >
+                            {selectedUser.transferFrozen ? "Transfers frozen" : "Transfers active"}
+                          </span>
+                          <span className="inline-flex max-w-full items-center whitespace-normal break-words rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-[11px] font-black uppercase leading-tight tracking-[0.1em] text-zinc-400">
+                            Verification {selectedUser.verificationStatus}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      {[
+                        {
+                          label: "Available Balance",
+                          value: <PrivateAmount value={selectedUser.balance} />,
+                        },
+                        { label: "Reserve", value: <PrivateAmount value={selectedUser.reserve} /> },
+                        {
+                          label: "Monthly Income",
+                          value: <PrivateAmount value={selectedUser.income} />,
+                        },
+                        {
+                          label: "Created",
+                          value: formatDate(selectedUser.createdAt),
+                        },
+                      ].map((item) => (
+                        <div key={item.label} className="bank-surface rounded-lg p-5">
+                          <p className="text-sm text-zinc-500">{item.label}</p>
+                          <h2 className="mt-3 break-words text-3xl font-black tracking-tight">
+                            {item.value}
+                          </h2>
+                        </div>
+                      ))}
+                    </section>
+
+                    <section className="bank-surface rounded-lg p-6">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-green-400">
+                            Account Controls
+                          </p>
+                          <h2 className="mt-2 text-3xl font-black tracking-tight">
+                            Status and Access
+                          </h2>
+                          <p className="mt-2 text-sm text-zinc-500">
+                            Service-role actions are still checked by the protected admin API.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={`/profile?user=${encodeURIComponent(selectedUser.username)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bank-button rounded-lg px-4 py-3 text-sm font-black"
+                          >
+                            View Profile
+                          </a>
+                          <a
+                            href={`/devices?user=${encodeURIComponent(selectedUser.username)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bank-button rounded-lg px-4 py-3 text-sm font-black"
+                          >
+                            Devices
+                          </a>
+                          <a
+                            href={`/notifications?user=${encodeURIComponent(selectedUser.username)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bank-button rounded-lg px-4 py-3 text-sm font-black"
+                          >
+                            Transactions
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                        <button
+                          type="button"
+                          disabled={Boolean(busyAction)}
+                          onClick={() =>
+                            updateAccountControls(
+                              { accountStatus: "active" },
+                              `${selectedUser.fullName} activated.`
+                            )
+                          }
+                          className="rounded-lg bg-green-400 px-4 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
+                        >
+                          Activate
+                        </button>
+                        <button
+                          type="button"
+                          disabled={Boolean(busyAction)}
+                          onClick={() =>
+                            updateAccountControls(
+                              { accountStatus: "suspended" },
+                              `${selectedUser.fullName} suspended.`
+                            )
+                          }
+                          className="rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-4 text-sm font-black text-red-200 transition-all hover:bg-red-500/15 disabled:opacity-60"
+                        >
+                          Suspend
+                        </button>
+                        <button
+                          type="button"
+                          disabled={Boolean(busyAction)}
+                          onClick={() =>
+                            updateAccountControls(
+                              { transferFrozen: !selectedUser.transferFrozen },
+                              selectedUser.transferFrozen
+                                ? `${selectedUser.fullName} transfers unfrozen.`
+                                : `${selectedUser.fullName} transfers frozen.`
+                            )
+                          }
+                          className="bank-button rounded-lg px-4 py-4 text-sm font-black"
+                        >
+                          {selectedUser.transferFrozen ? "Unfreeze Transfers" : "Freeze Transfers"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={Boolean(busyAction)}
+                          onClick={() =>
+                            updateAccountControls(
+                              { verificationStatus: "approved", accountStatus: "active" },
+                              `${selectedUser.fullName} verification approved.`
+                            )
+                          }
+                          className="bank-button rounded-lg px-4 py-4 text-sm font-black text-green-200"
+                        >
+                          Approve KYC
+                        </button>
+                        <button
+                          type="button"
+                          disabled={Boolean(busyAction)}
+                          onClick={() =>
+                            updateAccountControls(
+                              { verificationStatus: "rejected" },
+                              `${selectedUser.fullName} verification rejected.`
+                            )
+                          }
+                          className="bank-button rounded-lg px-4 py-4 text-sm font-black text-red-200"
+                        >
+                          Reject KYC
+                        </button>
+                      </div>
+                    </section>
+
+                    <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                      <div className="min-w-0 space-y-6">
+                        <form
+                          key={`metrics-${selectedUser.username}-${selectedUser.balance}-${selectedUser.reserve}-${selectedUser.income}`}
+                          onSubmit={saveMetrics}
+                          className="bank-surface rounded-lg p-6"
+                        >
+                          <p className="text-sm font-semibold text-green-400">
+                            Financial Controls
+                          </p>
+                          <h2 className="mt-2 text-3xl font-black tracking-tight">
+                            Account Metrics
+                          </h2>
+
+                          <div className="mt-6 grid gap-4">
+                            {[
+                              {
+                                label: "Available Balance",
+                                name: "balance",
+                                value: selectedUser.balance,
+                              },
+                              {
+                                label: "Reserve Balance",
+                                name: "reserve",
+                                value: selectedUser.reserve,
+                              },
+                              {
+                                label: "Monthly Income",
+                                name: "income",
+                                value: selectedUser.income,
+                              },
+                            ].map((field) => (
+                              <label key={field.name} className="block">
+                                <span className="text-sm text-zinc-400">{field.label}</span>
+                                <input
+                                  name={field.name}
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  defaultValue={field.value}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                            ))}
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={Boolean(busyAction)}
+                            className="mt-6 w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
+                          >
+                            {busyAction === "updateMetrics" ? "Saving..." : "Save Target Metrics"}
+                          </button>
+                        </form>
+
+                        <form onSubmit={publishAlert} className="bank-surface rounded-lg p-6">
+                          <p className="text-sm font-semibold text-green-400">
+                            Communication Controls
+                          </p>
+                          <h2 className="mt-2 text-3xl font-black tracking-tight">
+                            Publish User Alert
+                          </h2>
+
+                          <div className="mt-6 grid gap-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Alert Type</span>
+                                <select
+                                  value={alertType}
+                                  onChange={(event) =>
+                                    setAlertType(event.target.value as BankAlert["type"])
+                                  }
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                >
+                                  {alertTypes.map((type) => (
+                                    <option key={type}>{type}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Status</span>
+                                <input
+                                  value={alertStatus}
+                                  onChange={(event) => setAlertStatus(event.target.value)}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                            </div>
+
+                            <label className="block">
+                              <span className="text-sm text-zinc-400">Title</span>
+                              <input
+                                value={alertTitle}
+                                onChange={(event) => setAlertTitle(event.target.value)}
+                                className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="text-sm text-zinc-400">Message</span>
+                              <textarea
+                                value={alertDesc}
+                                onChange={(event) => setAlertDesc(event.target.value)}
+                                rows={4}
+                                className="mt-2 w-full resize-none rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                              />
+                            </label>
+
+                            <label className="flex items-center gap-3 text-sm font-semibold text-zinc-300">
+                              <input
+                                type="checkbox"
+                                checked={alertUnread}
+                                onChange={(event) => setAlertUnread(event.target.checked)}
+                                className="h-5 w-5 rounded border-white/20 bg-black/30 text-green-400 focus:ring-green-400"
+                              />
+                              Mark as unread
+                            </label>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={Boolean(busyAction)}
+                            className="mt-6 w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
+                          >
+                            {busyAction === "publishAlert" ? "Publishing..." : "Publish Alert"}
+                          </button>
+                        </form>
+                      </div>
+
+                      <div className="min-w-0 space-y-6">
+                        <form onSubmit={postTransaction} className="bank-surface rounded-lg p-6">
+                          <p className="text-sm font-semibold text-green-400">
+                            Ledger Controls
+                          </p>
+                          <h2 className="mt-2 text-3xl font-black tracking-tight">
+                            Post Transaction
+                          </h2>
+
+                          <div className="mt-6 grid gap-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Entry Name</span>
+                                <input
+                                  value={transactionName}
+                                  onChange={(event) => setTransactionName(event.target.value)}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Direction</span>
+                                <select
+                                  value={transactionDirection}
+                                  onChange={(event) =>
+                                    setTransactionDirection(
+                                      event.target.value as "credit" | "debit"
+                                    )
+                                  }
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                >
+                                  <option value="credit">Credit</option>
+                                  <option value="debit">Debit</option>
+                                </select>
+                              </label>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Amount</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={transactionAmount}
+                                  onChange={(event) => setTransactionAmount(event.target.value)}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Status</span>
+                                <input
+                                  value={transactionStatus}
+                                  onChange={(event) => setTransactionStatus(event.target.value)}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                            </div>
+
+                            <label className="block">
+                              <span className="text-sm text-zinc-400">Category</span>
+                              <input
+                                value={transactionType}
+                                onChange={(event) => setTransactionType(event.target.value)}
+                                className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="text-sm text-zinc-400">Method</span>
+                              <input
+                                value={transactionMethod}
+                                onChange={(event) => setTransactionMethod(event.target.value)}
+                                className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                              />
+                            </label>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={Boolean(busyAction)}
+                            className="mt-6 w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
+                          >
+                            {busyAction === "postTransaction" ? "Posting..." : "Post Transaction"}
+                          </button>
+                        </form>
+
+                        <section className="bank-surface rounded-lg p-6">
+                          <p className="text-sm font-semibold text-green-400">
+                            Transfer Verification
+                          </p>
+                          <h2 className="mt-2 text-3xl font-black tracking-tight">
+                            Pending Codes
+                          </h2>
+                          <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+                            Give the matching code to the customer only after reviewing the transfer request.
+                          </p>
+
+                          <div className="mt-6 space-y-3">
+                            {pendingTransferCodes.length ? (
+                              pendingTransferCodes.map((request) => (
+                                <div
+                                  key={request.id}
+                                  className="rounded-lg border border-green-300/15 bg-green-400/[0.07] p-4"
+                                >
+                                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <button
+                                      type="button"
+                                      onClick={() => void copyTransferCode(request)}
+                                      className="min-w-0 rounded-lg p-0 text-left transition-all hover:text-green-200"
+                                      title="Copy secure code"
+                                    >
+                                      <p className="text-xs font-black uppercase tracking-[0.16em] text-green-300">
+                                        Code
+                                      </p>
+                                      <h3 className="mt-2 break-all text-3xl font-black tracking-[0.18em] text-white">
+                                        {request.code}
+                                      </h3>
+                                      <p className="mt-2 text-xs font-semibold text-zinc-500">
+                                        {copiedTransferCodeId === request.id
+                                          ? "Copied to clipboard"
+                                          : "Click code to copy"}
+                                      </p>
+                                    </button>
+                                    <div className="flex w-fit shrink-0 flex-wrap gap-2">
+                                      {copiedTransferCodeId === request.id && (
+                                        <span className="rounded-md bg-green-400 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-black">
+                                          Copied
+                                        </span>
+                                      )}
+                                      <span className="rounded-md border border-white/10 bg-black/25 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-zinc-300">
+                                        {request.transferType} / {formatRequestStatus(request)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                                    {transferRequestDetails(request).map((item, index) => (
+                                      <div
+                                        key={`${request.id}-${item.label}-${index}`}
+                                        className="rounded-md border border-white/10 bg-black/20 p-3"
+                                      >
+                                        <p className="text-xs font-black uppercase tracking-[0.12em] text-zinc-500">
+                                          {item.label}
+                                        </p>
+                                        <p className="mt-1 break-words text-sm font-black text-zinc-100">
+                                          {item.value}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                                    <button
+                                      type="button"
+                                      onClick={() => void copyTransferCode(request)}
+                                      className="bank-button rounded-lg px-4 py-3 text-sm font-black text-green-200"
+                                    >
+                                      {copiedTransferCodeId === request.id ? "Copied" : "Copy Code"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTransferCodeAction(request, "issue")}
+                                      disabled={request.status === "pending_code"}
+                                      className="rounded-lg bg-green-400 px-4 py-3 text-sm font-black text-black transition-all hover:bg-green-300 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                      {request.status === "pending_code"
+                                        ? "Code Active"
+                                        : "Activate Code"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTransferCodeAction(request, "reject")}
+                                      className="bank-button rounded-lg px-4 py-3 text-sm font-black text-red-200"
+                                    >
+                                      Reject
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTransferCodeAction(request, "suspicious")}
+                                      className="bank-button rounded-lg px-4 py-3 text-sm font-black text-yellow-100"
+                                    >
+                                      Mark Suspicious
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteTransferCode(request)}
+                                      className="bank-button rounded-lg px-4 py-3 text-sm font-black text-zinc-200"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-lg border border-white/10 bg-black/20 p-5 text-sm font-semibold text-zinc-500">
+                                No pending transfer codes.
+                              </div>
+                            )}
+                          </div>
+                        </section>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <section className="bank-surface rounded-lg p-8">
+                    <p className="text-sm font-semibold text-green-400">No Target Selected</p>
+                    <h2 className="mt-2 text-3xl font-black tracking-tight">
+                      Choose a user to manage
+                    </h2>
+                    <p className="mt-3 text-zinc-500">
+                      Once a customer account exists, it will appear in the directory.
+                    </p>
+                  </section>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <BottomNav />
+      </main>
+    </AdminGate>
+  );
+}

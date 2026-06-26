@@ -96,15 +96,6 @@ body {
     }
   }
 
-  .sidebar-tier-card {
-    display: none;
-  }
-
-  @media (min-height: 780px) {
-    .sidebar-tier-card {
-      display: block;
-    }
-  }
 }
 
 @layer utilities {

@@ -38,7 +38,7 @@ export default function BottomNav() {
     <>
       {moreOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 lg:hidden"
           onClick={() => setMoreOpen(false)}
         >
           <div
@@ -94,7 +94,7 @@ export default function BottomNav() {
       )}
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
-        <div className="mx-3 mb-[calc(0.75rem+env(safe-area-inset-bottom))] rounded-lg border border-white/[0.08] bg-[#050606]/95 px-2 py-2 shadow-2xl backdrop-blur-2xl">
+        <div className="mx-3 mb-[calc(0.75rem+env(safe-area-inset-bottom))] rounded-lg border border-white/[0.08] bg-[#050606] px-2 py-2 shadow-2xl">
           <div
             className="grid gap-1"
             style={{ gridTemplateColumns: `repeat(${navItems.length + 1}, minmax(0, 1fr))` }}

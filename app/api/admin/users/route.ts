@@ -557,6 +557,37 @@ async function updateMetricsForTarget(
   };
 }
 
+async function deleteRowsByUsername(dbClient: SupabaseClient, username: string) {
+  const operations = [
+    dbClient.from("notifications").delete().eq("username", username),
+    dbClient.from("cards").delete().eq("username", username),
+    dbClient.from("transfers").delete().eq("sender", username),
+    dbClient.from("transfers").delete().eq("receiver", username),
+    dbClient.from("profiles").delete().eq("username", username),
+  ];
+
+  const results = await Promise.all(operations);
+  const failed = results.find((result) => result.error);
+
+  if (failed?.error) {
+    return { error: failed.error };
+  }
+
+  return {};
+}
+
+async function deleteAvatarFolder(dbClient: SupabaseClient, userId: string) {
+  if (!userId) return;
+
+  const bucket = dbClient.storage.from("avatars");
+  const { data } = await bucket.list(userId);
+  const files = data?.map((file) => `${userId}/${file.name}`) ?? [];
+
+  if (files.length) {
+    await bucket.remove(files);
+  }
+}
+
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin(request);
   if ("error" in admin) return admin.error;
@@ -779,6 +810,43 @@ export async function POST(request: NextRequest) {
     ).catch(() => {});
 
     return NextResponse.json({ ok: true, user: nextUser });
+  }
+
+  if (action === "deleteUser") {
+    if (!admin.hasServiceRole) {
+      return jsonError("Service role key is required to delete users", 403);
+    }
+
+    const adminUsername = getUsernameFromUser(admin.adminUser);
+    const isCurrentAdmin =
+      (targetUser?.id && targetUser.id === admin.adminUser.id) ||
+      target.username === adminUsername ||
+      target.email.toLowerCase() === readText(admin.adminUser.email).toLowerCase();
+
+    if (isCurrentAdmin) {
+      return jsonError("Cannot delete the signed-in admin account", 400);
+    }
+
+    if (targetUser) {
+      const { error } = await admin.dbClient.auth.admin.deleteUser(targetUser.id);
+
+      if (error) {
+        return jsonError(error.message, 500);
+      }
+
+      await deleteAvatarFolder(admin.dbClient, targetUser.id).catch(() => {});
+    }
+
+    const deleteResult = await deleteRowsByUsername(admin.dbClient, target.username);
+
+    if (deleteResult.error) {
+      return jsonError(deleteResult.error.message, 500);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      deletedUsername: target.username,
+    });
   }
 
   if (action === "resetDemoData") {

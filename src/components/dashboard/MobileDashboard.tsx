@@ -1,20 +1,11 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import Link from "next/link";
 
 import AppIcon from "../ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 import { useBanking } from "../../context/BankingContext";
-import ActivityChart from "../widgets/ActivityChart";
-import ActivityFeed from "../widgets/ActivityFeed";
-import AIInsights from "../widgets/AIInsights";
-import Analytics from "../widgets/Analytics";
-import CryptoPortfolio from "../widgets/CryptoPortfolio";
-import LiveCard from "../widgets/LiveCard";
-import LiveBankingPulse from "../widgets/LiveBankingPulse";
-import StatsGrid from "../widgets/StatsGrid";
-import Transactions from "../widgets/Transactions";
-import UpcomingPayments from "../widgets/UpcomingPayments";
 
 function SectionHeader({ title, href }: { title: string; href?: string }) {
   return (
@@ -69,47 +60,152 @@ function TrendLine() {
   );
 }
 
-export default function MobileDashboard() {
+function MobilePulseSummary({
+  netFlow,
+  settled,
+  status,
+  unreadCount,
+}: {
+  netFlow: number;
+  settled: number;
+  status: string;
+  unreadCount: number;
+}) {
+  return (
+    <section className="rounded-lg border border-green-300/15 bg-white/[0.035] p-4 [contain:paint]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-green-300 shadow-[0_0_14px_rgba(134,239,172,0.45)]" />
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-green-300">
+              Live Banking Pulse
+            </p>
+          </div>
+          <h2 className="mt-2 text-lg font-black tracking-tight">
+            Network synced
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+            Cards, transfers, and security checks are moving in real time.
+          </p>
+        </div>
+
+        <div className="shrink-0 rounded-lg border border-green-300/20 bg-green-400/[0.08] px-3 py-2 text-right">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">
+            Status
+          </p>
+          <p className="mt-1 text-sm font-black text-green-300">{status}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {[
+          { label: "Net Flow", value: <PrivateAmount value={netFlow} /> },
+          { label: "Settled", value: `${settled} items` },
+          { label: "Alerts", value: unreadCount ? `${unreadCount} open` : "Clear" },
+        ].map((item) => (
+          <div key={item.label} className="rounded-lg border border-white/[0.08] bg-black/25 p-3">
+            <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-zinc-500">
+              {item.label}
+            </p>
+            <p className="mt-2 truncate text-sm font-black text-white">{item.value}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const MobileDashboard = memo(function MobileDashboard() {
   const {
     alerts,
     balance,
     currentProfile,
+    income,
     reserve,
     transactions,
     unreadCount,
   } = useBanking();
   const firstName = currentProfile.firstName;
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const primaryTransactions = transactions.slice(0, 3);
+  const primaryTransactions = useMemo(() => transactions.slice(0, 3), [transactions]);
   const latestAlert = alerts[0];
 
-  const quickActions = [
-    { label: "Transfer", icon: "send" as const, href: "/send" },
-    { label: "Pay", icon: "pay" as const, href: "/payments" },
-    { label: "Deposit", icon: "receive" as const, href: "/receive" },
-    { label: "Cards", icon: "card" as const, href: "/cards" },
-  ];
+  const quickActions = useMemo(
+    () => [
+      { label: "Transfer", icon: "send" as const, href: "/send" },
+      { label: "Pay", icon: "pay" as const, href: "/payments" },
+      { label: "Deposit", icon: "receive" as const, href: "/receive" },
+      { label: "Cards", icon: "card" as const, href: "/cards" },
+    ],
+    []
+  );
 
-  const accounts = [
-    {
-      name: "Primary Checking",
-      meta: `**** ${currentProfile.customerId.slice(-4) || "4582"}`,
-      amount: balance,
-      icon: "wallet" as const,
-    },
-    {
-      name: "Reserve Savings",
-      meta: "Goal account",
-      amount: reserve,
-      icon: "spark" as const,
-    },
-  ];
+  const accounts = useMemo(
+    () => [
+      {
+        name: "Primary Checking",
+        meta: `**** ${currentProfile.customerId.slice(-4) || "4582"}`,
+        amount: balance,
+        icon: "wallet" as const,
+      },
+      {
+        name: "Reserve Savings",
+        meta: "Goal account",
+        amount: reserve,
+        icon: "spark" as const,
+      },
+    ],
+    [balance, currentProfile.customerId, reserve]
+  );
+
+  const pulse = useMemo(() => {
+    const settled = transactions.filter((item) => item.status === "Completed").length;
+    const inbound = transactions
+      .filter((item) => item.amount > 0)
+      .reduce((sum, item) => sum + item.amount, 0);
+    const outbound = transactions
+      .filter((item) => item.amount < 0)
+      .reduce((sum, item) => sum + Math.abs(item.amount), 0);
+
+    return {
+      netFlow: inbound - outbound,
+      settled,
+      status: alerts.some((item) => item.type === "Security" && item.unread)
+        ? "Reviewing"
+        : "Secure",
+    };
+  }, [alerts, transactions]);
+
+  const snapshotMetrics = useMemo(
+    () => [
+      {
+        label: "Income",
+        value: (
+          <PrivateAmount
+            value={income}
+            maximumFractionDigits={0}
+            minimumFractionDigits={0}
+          />
+        ),
+      },
+      {
+        label: "Reserve",
+        value: (
+          <PrivateAmount
+            value={reserve}
+            maximumFractionDigits={0}
+            minimumFractionDigits={0}
+          />
+        ),
+      },
+      { label: "Activity", value: `${transactions.length} items` },
+      { label: "Alerts", value: unreadCount ? `${unreadCount} unread` : "Clear" },
+    ],
+    [income, reserve, transactions.length, unreadCount]
+  );
 
   return (
     <div className="lg:hidden">
-      <div className="mx-auto min-h-screen max-w-[430px] bg-[#020403] px-4 pb-24 pt-5 text-white">
+      <div className="isolate mx-auto min-h-screen max-w-[430px] overflow-x-hidden bg-[#020403] px-4 pb-24 pt-5 text-white [contain:layout_paint]">
         <header className="flex items-center justify-between gap-4">
           <Link href="/profile" className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-green-400 text-base font-black text-black">
@@ -129,7 +225,7 @@ export default function MobileDashboard() {
                 Welcome back, <span className="text-green-400">{firstName}</span>
               </span>
               <span className="mt-0.5 block truncate text-xs text-zinc-500">
-                {greeting}. Aurex Black dashboard
+                Aurex Black dashboard
               </span>
             </span>
           </Link>
@@ -200,7 +296,12 @@ export default function MobileDashboard() {
         </section>
 
         <section className="mt-5">
-          <LiveBankingPulse compact />
+          <MobilePulseSummary
+            netFlow={pulse.netFlow}
+            settled={pulse.settled}
+            status={pulse.status}
+            unreadCount={unreadCount}
+          />
         </section>
 
         <section className="mt-5">
@@ -304,19 +405,22 @@ export default function MobileDashboard() {
           </section>
         )}
 
-        <section className="mt-5 space-y-5">
-          <SectionHeader title="Full Dashboard" />
-          <StatsGrid />
-          <LiveCard />
-          <AIInsights />
-          <ActivityChart />
-          <Transactions />
-          <CryptoPortfolio />
-          <Analytics />
-          <UpcomingPayments />
-          <ActivityFeed />
+        <section className="mt-5">
+          <SectionHeader title="Snapshot" />
+          <div className="grid grid-cols-2 gap-3">
+            {snapshotMetrics.map((item) => (
+              <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-zinc-500">
+                  {item.label}
+                </p>
+                <p className="mt-2 truncate text-lg font-black">{item.value}</p>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </div>
   );
-}
+});
+
+export default MobileDashboard;

@@ -56,12 +56,13 @@ type AdminBankUser = {
   source: "auth" | "profile";
 };
 
-type UserFilter = "all" | "new" | "active" | "suspended" | "pending";
+type UserFilter = "all" | "new" | "online" | "active" | "suspended" | "pending";
 
 type AdminUsersResponse = {
   ok?: boolean;
   users?: AdminBankUser[];
   user?: AdminBankUser;
+  deletedUsername?: string;
   serviceRoleConfigured?: boolean;
   error?: string;
 };
@@ -145,6 +146,15 @@ function formatDate(value: string) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function formatAccountType(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "business") return "Business";
+  if (normalized === "premium") return "Premium";
+  if (normalized === "personal") return "Personal";
+  return value || "Personal";
 }
 
 function formatRequestStatus(request: TransferVerificationRequest) {
@@ -270,7 +280,8 @@ export default function AdminPage() {
     notice.startsWith("Upload ") ||
     notice.startsWith("Profile photo ") ||
     notice.startsWith("Admin access") ||
-    notice.startsWith("Service role");
+    notice.startsWith("Service role") ||
+    notice.startsWith("Cannot ");
 
   function handleTransferCodeAction(
     request: TransferVerificationRequest,
@@ -324,6 +335,7 @@ export default function AdminPage() {
       const matchesFilter =
         userFilter === "all" ||
         (userFilter === "new" && isNewUser(user)) ||
+        (userFilter === "online" && user.signedIn) ||
         (userFilter === "active" && user.accountStatus === "active") ||
         (userFilter === "suspended" && user.accountStatus === "suspended") ||
         (userFilter === "pending" && user.verificationStatus === "pending");
@@ -349,6 +361,7 @@ export default function AdminPage() {
     () => ({
       all: users.length,
       new: users.filter(isNewUser).length,
+      online: users.filter((user) => user.signedIn).length,
       active: users.filter((user) => user.accountStatus === "active").length,
       suspended: users.filter((user) => user.accountStatus === "suspended").length,
       pending: users.filter((user) => user.verificationStatus === "pending").length,
@@ -359,7 +372,8 @@ export default function AdminPage() {
   const directoryFilters: Array<{ label: string; value: UserFilter; count: number }> = [
     { label: "All users", value: "all", count: userCounts.all },
     { label: "New users", value: "new", count: userCounts.new },
-    { label: "Active", value: "active", count: userCounts.active },
+    { label: "Online now", value: "online", count: userCounts.online },
+    { label: "Account active", value: "active", count: userCounts.active },
     { label: "Suspended", value: "suspended", count: userCounts.suspended },
     { label: "Pending verification", value: "pending", count: userCounts.pending },
   ];
@@ -697,6 +711,69 @@ export default function AdminPage() {
     );
   }
 
+  async function deleteSelectedUser() {
+    if (!selectedUser) {
+      setNotice("Select a target user first.");
+      return;
+    }
+
+    if (selectedUser.username === currentProfile.username) {
+      setNotice("Cannot delete the signed-in admin account.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${selectedUser.fullName}? This removes the user's login, profile, cards, transfers, and notifications. This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setBusyAction("deleteUser");
+    setNotice("");
+
+    try {
+      const token = await getAdminToken();
+
+      if (!token) {
+        setNotice("Missing admin session. Sign in again.");
+        return;
+      }
+
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "deleteUser",
+          userId: selectedUser.userId,
+          username: selectedUser.username,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as AdminUsersResponse | null;
+
+      if (!response.ok || !data?.ok) {
+        setNotice(data?.error || "Unable to delete user.");
+        return;
+      }
+
+      const deletedUsername = data.deletedUsername || selectedUser.username;
+      const remainingUsers = users.filter((user) => user.username !== deletedUsername);
+      const nextSelectedUsername =
+        remainingUsers.find((user) => user.username !== currentProfile.username)?.username ||
+        remainingUsers[0]?.username ||
+        "";
+
+      setUsers(remainingUsers);
+      setSelectedUsername(nextSelectedUsername);
+      await loadUsers(nextSelectedUsername || undefined);
+      setNotice(`${selectedUser.fullName} was deleted from Aurex Bank.`);
+    } finally {
+      setBusyAction("");
+    }
+  }
+
   async function updateAccountControls(
     controls: Partial<
       Pick<AdminBankUser, "accountStatus" | "transferFrozen" | "verificationStatus">
@@ -738,12 +815,12 @@ export default function AdminPage() {
                     User Control Center
                   </h1>
                   <p className="mt-3 max-w-3xl text-base leading-relaxed text-zinc-400">
-                    Select a customer account, update visible banking metrics, post ledger entries,
-                    and send account alerts from your admin session.
+                    Select any registered or online customer, then update the dashboard name,
+                    balance, profile photo, account status, and profile personal details.
                   </p>
                 </div>
 
-                <div className="grid w-full grid-cols-2 gap-3 sm:w-auto">
+                <div className="grid w-full grid-cols-2 gap-3 sm:w-auto lg:grid-cols-3">
                   <button
                     type="button"
                     onClick={() => loadUsers(selectedUser?.username)}
@@ -759,6 +836,18 @@ export default function AdminPage() {
                     className="rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-200 transition-all hover:bg-red-500/15 disabled:opacity-60"
                   >
                     Reset Metrics
+                  </button>
+                  <button
+                    type="button"
+                    onClick={deleteSelectedUser}
+                    disabled={
+                      !selectedUser ||
+                      Boolean(busyAction) ||
+                      selectedUser.username === currentProfile.username
+                    }
+                    className="rounded-lg bg-red-500 px-4 py-3 text-sm font-black text-white transition-all hover:bg-red-400 disabled:opacity-60"
+                  >
+                    {busyAction === "deleteUser" ? "Deleting..." : "Delete User"}
                   </button>
                 </div>
               </div>
@@ -787,7 +876,7 @@ export default function AdminPage() {
                 <section className="bank-surface rounded-lg p-5">
                   <p className="text-sm font-semibold text-green-400">Customer Directory</p>
                   <h2 className="mt-2 text-2xl font-black tracking-tight">
-                    Target Account
+                    Select User
                   </h2>
 
                   <input
@@ -976,8 +1065,8 @@ export default function AdminPage() {
                           value: <PrivateAmount value={selectedUser.income} />,
                         },
                         {
-                          label: "Created",
-                          value: formatDate(selectedUser.createdAt),
+                          label: "Account Type",
+                          value: `${formatAccountType(selectedUser.accountType)} / ${selectedUser.currency}`,
                         },
                       ].map((item) => (
                         <div key={item.label} className="bank-surface rounded-lg p-5">
@@ -1030,7 +1119,7 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                      <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                         <button
                           type="button"
                           disabled={Boolean(busyAction)}
@@ -1098,6 +1187,17 @@ export default function AdminPage() {
                         >
                           Reject KYC
                         </button>
+                        <button
+                          type="button"
+                          disabled={
+                            Boolean(busyAction) ||
+                            selectedUser.username === currentProfile.username
+                          }
+                          onClick={deleteSelectedUser}
+                          className="rounded-lg bg-red-500 px-4 py-4 text-sm font-black text-white transition-all hover:bg-red-400 disabled:opacity-60"
+                        >
+                          {busyAction === "deleteUser" ? "Deleting..." : "Delete User"}
+                        </button>
                       </div>
                     </section>
 
@@ -1109,11 +1209,14 @@ export default function AdminPage() {
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <p className="text-sm font-semibold text-green-400">
-                            Customer Profile
+                            Profile Page Controls
                           </p>
                           <h2 className="mt-2 text-3xl font-black tracking-tight">
-                            Account Identity
+                            Identity Information
                           </h2>
+                          <p className="mt-2 text-sm text-zinc-500">
+                            Personal Details shown on the customer profile and dashboard.
+                          </p>
                         </div>
                         <label
                           className={`inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition-all ${
@@ -1136,7 +1239,7 @@ export default function AdminPage() {
 
                       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         <label className="block md:col-span-2 xl:col-span-3">
-                          <span className="text-sm text-zinc-400">Account Name</span>
+                          <span className="text-sm text-zinc-400">Full Name / Profile Name</span>
                           <input
                             name="fullName"
                             defaultValue={selectedUser.fullName}
@@ -1145,7 +1248,7 @@ export default function AdminPage() {
                         </label>
 
                         <label className="block">
-                          <span className="text-sm text-zinc-400">First Name</span>
+                          <span className="text-sm text-zinc-400">Dashboard Display Name</span>
                           <input
                             name="firstName"
                             defaultValue={selectedUser.firstName}
@@ -1232,7 +1335,7 @@ export default function AdminPage() {
                             Financial Controls
                           </p>
                           <h2 className="mt-2 text-3xl font-black tracking-tight">
-                            Account Metrics
+                            Balance and Metrics
                           </h2>
 
                           <div className="mt-6 grid gap-4">

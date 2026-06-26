@@ -118,7 +118,7 @@ export default function CardsPage() {
     <main className="bank-shell min-h-screen overflow-x-hidden text-white">
       <DesktopSidebar />
 
-      <div className="app-content lg:ml-72">
+      <div className="app-content lg:ml-[16.25rem]">
         <div className="app-inner">
           <section className="bank-surface mb-6 rounded-lg p-6 lg:p-8">
             <div className="flex items-center gap-3">

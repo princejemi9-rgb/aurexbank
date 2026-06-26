@@ -44,7 +44,7 @@ export default function DesktopSidebar() {
             rel={item.adminOnly ? "noreferrer" : undefined}
             title={item.adminOnly ? "Admin opens in a new tab" : item.name}
             aria-current={active ? "page" : undefined}
-            className={`group relative flex h-10 items-center gap-3 overflow-hidden rounded-lg border px-3.5 text-[14px] shadow-[0_10px_26px_rgba(0,0,0,0.16)] backdrop-blur-xl transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.01] ${
+            className={`group relative flex h-9 items-center gap-3 overflow-hidden rounded-lg border px-3 text-[13px] shadow-[0_10px_26px_rgba(0,0,0,0.16)] backdrop-blur-xl transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.01] ${
               active
                 ? "border-green-300/35 bg-green-400/[0.11] text-white"
                 : "border-white/[0.06] bg-white/[0.035] text-zinc-400 hover:border-green-300/20 hover:bg-white/[0.07] hover:text-zinc-100"
@@ -73,21 +73,21 @@ export default function DesktopSidebar() {
 
   return (
     <aside
-      className="hidden h-screen w-72 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[#050606] shadow-[22px_0_70px_rgba(0,0,0,0.28)] lg:fixed lg:left-0 lg:top-0 lg:z-50 lg:flex"
-      style={{ width: "18rem", minWidth: "18rem", maxWidth: "18rem" }}
+      className="hidden h-screen w-[16.25rem] shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[#050606] shadow-[22px_0_70px_rgba(0,0,0,0.28)] lg:fixed lg:left-0 lg:top-0 lg:z-50 lg:flex"
+      style={{ width: "16.25rem", minWidth: "16.25rem", maxWidth: "16.25rem" }}
     >
-      <div className="shrink-0 px-5 pb-2 pt-4">
-        <div className="rounded-lg border border-white/[0.07] bg-white/[0.035] p-2.5 shadow-[0_18px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <div className="shrink-0 px-4 pb-1.5 pt-3.5">
+        <div className="rounded-lg border border-white/[0.07] bg-white/[0.035] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
           <AurexBrand
             className="gap-3"
-            markClassName="h-[3.25rem] w-[3.25rem] rounded-lg"
-            titleClassName="text-[1.25rem]"
+            markClassName="h-12 w-12 rounded-lg"
+            titleClassName="text-[1.15rem]"
             taglineClassName="text-[11px]"
           />
         </div>
       </div>
 
-      <nav className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-5 pb-4 pr-5">
+      <nav className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 pb-5 pr-4">
         <div>
           <p className="px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
             Banking
@@ -95,7 +95,7 @@ export default function DesktopSidebar() {
           <div className="mt-1.5 space-y-1">{renderNavItems("primary")}</div>
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2.5">
           <p className="px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
             Account
           </p>
@@ -103,7 +103,7 @@ export default function DesktopSidebar() {
         </div>
       </nav>
 
-      <div className="shrink-0 px-5 pb-2.5 pt-1.5">
+      <div className="shrink-0 px-4 pb-2.5 pt-1">
         <div className="rounded-lg border border-green-300/20 bg-green-400/[0.075] p-2 shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">

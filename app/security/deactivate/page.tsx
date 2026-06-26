@@ -35,7 +35,7 @@ export default function DeactivatePage() {
     <main className="bank-shell min-h-screen overflow-x-hidden text-white">
       <DesktopSidebar />
 
-      <div className="app-content lg:ml-72">
+      <div className="app-content lg:ml-[16.25rem]">
         <div className="app-inner">
           <section className="rounded-lg border border-red-500/15 bg-red-500/5 p-6 lg:p-8">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-red-400">

@@ -25,7 +25,7 @@ export default function DashboardPage() {
     <main className="bank-shell min-h-screen text-white overflow-x-hidden">
       <DesktopSidebar />
       <MobileDashboard />
-      <div className="app-content hidden lg:ml-72 lg:block">
+      <div className="app-content hidden lg:ml-[16.25rem] lg:block">
         <div className="app-inner">
           <Header />
 

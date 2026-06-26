@@ -7,6 +7,7 @@
     "dev": "next dev",
     "dev:clean": "node scripts/dev-preflight.mjs --force && next dev",
     "dev:webpack": "next dev --webpack",
+    "prebuild": "node scripts/verify-next-root.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

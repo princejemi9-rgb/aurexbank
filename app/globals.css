@@ -28,6 +28,24 @@ body {
 }
 
 @layer components {
+  @media (max-width: 1023px) {
+    .mobile-dashboard-root,
+    .mobile-dashboard-balance,
+    .mobile-dashboard-pulse,
+    .mobile-bottom-navigation {
+      contain: none;
+      filter: none;
+      transform: none;
+      backface-visibility: visible;
+      will-change: auto;
+    }
+
+    .mobile-dashboard-root {
+      overflow-x: clip;
+      isolation: auto;
+    }
+  }
+
   .bank-shell {
     min-height: 100dvh;
     background:

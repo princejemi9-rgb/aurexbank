@@ -72,7 +72,7 @@ function MobilePulseSummary({
   unreadCount: number;
 }) {
   return (
-    <section className="rounded-lg border border-green-300/15 bg-white/[0.035] p-4 [contain:paint]">
+    <section className="mobile-dashboard-pulse rounded-lg border border-green-300/15 bg-white/[0.035] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -205,7 +205,7 @@ const MobileDashboard = memo(function MobileDashboard() {
 
   return (
     <div className="lg:hidden">
-      <div className="isolate mx-auto min-h-screen max-w-[430px] overflow-x-hidden bg-[#020403] px-4 pb-24 pt-5 text-white [contain:layout_paint]">
+      <div className="mobile-dashboard-root mx-auto min-h-screen w-full max-w-[430px] min-w-0 bg-[#020403] px-4 pb-24 pt-5 text-white">
         <header className="flex items-center justify-between gap-4">
           <Link href="/profile" className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-green-400 text-base font-black text-black">
@@ -246,7 +246,7 @@ const MobileDashboard = memo(function MobileDashboard() {
           </div>
         </header>
 
-        <section className="mt-5 overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(21,45,33,0.92),rgba(6,10,8,0.96))] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.5)]">
+        <section className="mobile-dashboard-balance mt-5 rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(21,45,33,0.92),rgba(6,10,8,0.96))] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">

@@ -93,7 +93,7 @@ export default function BottomNav() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+      <nav className="mobile-bottom-navigation fixed bottom-0 left-0 right-0 z-50 lg:hidden">
         <div className="mx-3 mb-[calc(0.75rem+env(safe-area-inset-bottom))] rounded-lg border border-white/[0.08] bg-[#050606] px-2 py-2 shadow-2xl">
           <div
             className="grid gap-1"

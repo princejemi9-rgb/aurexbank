@@ -50,7 +50,7 @@ export default function DashboardPage() {
       {!isDesktop && <MobileDashboard />}
 
       {isDesktop && (
-        <div className="app-content lg:ml-[16.25rem]">
+        <div className="app-content desktop-page-content">
           <div className="app-inner">
             <Header />
 

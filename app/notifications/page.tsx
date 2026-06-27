@@ -22,7 +22,7 @@ export default function NotificationsPage() {
     <main className="bank-shell min-h-screen overflow-x-hidden text-white">
       <DesktopSidebar />
 
-      <div className="app-content lg:ml-[16.25rem]">
+      <div className="app-content desktop-page-content">
         <div className="app-inner">
           <section className="bank-surface rounded-lg p-6 lg:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">

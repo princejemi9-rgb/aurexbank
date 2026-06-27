@@ -30,22 +30,64 @@ function SectionHeader({ title, href }: { title: string; href?: string }) {
 }
 
 function TrendLine() {
+  const trendPath =
+    "M8 73C21 62 33 57 45 58C58 59 64 47 76 47C90 47 95 28 109 28C122 28 128 40 140 35C153 30 159 17 172 13";
+
   return (
     <svg
       aria-hidden="true"
-      className="block h-16 w-full text-green-400"
+      className="block h-20 w-full overflow-visible text-green-400"
       viewBox="0 0 180 90"
       fill="none"
       preserveAspectRatio="none"
     >
       <path
-        d="M8 72C23 60 31 58 43 58C58 58 61 42 75 42C91 42 95 22 110 22C123 22 126 34 139 31C154 28 159 15 172 12"
+        d={`${trendPath}L172 86H8Z`}
+        fill="currentColor"
+        fillOpacity="0.055"
+      />
+      <path
+        d="M8 85H172"
         stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
+        strokeOpacity="0.08"
+        strokeWidth="1"
         vectorEffect="non-scaling-stroke"
       />
-      <circle cx="172" cy="12" r="4" fill="currentColor" />
+      {[
+        { x: 76, y: 47 },
+        { x: 109, y: 28 },
+        { x: 140, y: 35 },
+      ].map((guide) => (
+        <path
+          key={guide.x}
+          d={`M${guide.x} ${guide.y + 5}V85`}
+          stroke="currentColor"
+          strokeDasharray="2 4"
+          strokeOpacity="0.2"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+      <path
+        d={trendPath}
+        stroke="currentColor"
+        strokeOpacity="0.16"
+        strokeWidth="9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <path
+        d={trendPath}
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle cx="172" cy="13" r="9" fill="currentColor" fillOpacity="0.12" />
+      <circle cx="172" cy="13" r="4" fill="currentColor" />
+      <circle cx="172" cy="13" r="1.5" fill="white" fillOpacity="0.75" />
     </svg>
   );
 }

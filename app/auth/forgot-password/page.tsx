@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[var(--brand-background)] text-white">
       <div className="relative z-10 grid min-h-screen min-w-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <section className="flex flex-col justify-between px-6 py-8 lg:px-14 lg:py-12">
           <div>

@@ -337,7 +337,7 @@ export default function PaymentsPage() {
             </div>
 
             <aside className="min-w-0 space-y-6">
-              <section className="rounded-lg border border-green-300/15 bg-[#07120d] p-6 shadow-2xl">
+              <section className="rounded-lg border border-green-300/15 bg-[var(--brand-surface)] p-6 shadow-2xl">
                 <p className="text-sm font-semibold text-green-400">Available Balance</p>
                 <h2 className="mt-3 break-words text-4xl font-black tracking-tight">
                   <PrivateAmount value={balance} />

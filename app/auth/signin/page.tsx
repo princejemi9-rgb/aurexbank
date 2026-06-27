@@ -208,7 +208,7 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-x-hidden bg-black text-white">
+    <main className="relative min-h-dvh overflow-x-hidden bg-[var(--brand-background)] text-white">
       {/* GRID */}
       <div className="relative z-10 grid min-h-dvh min-w-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         {/* LEFT SIDE */}

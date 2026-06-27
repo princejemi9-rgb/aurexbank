@@ -113,7 +113,7 @@ export default function Header() {
 
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 px-4 py-6 backdrop-blur-xl">
-          <div className="mx-auto max-w-2xl overflow-hidden rounded-lg border border-white/10 bg-[#080a09] shadow-2xl">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-lg border border-white/10 bg-[var(--brand-surface)] shadow-2xl">
             <div className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
               <AppIcon name="search" className="h-5 w-5" />
               <input

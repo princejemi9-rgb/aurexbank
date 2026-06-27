@@ -14,8 +14,11 @@ import AdminGate from "../../src/components/auth/AdminGate";
 import DesktopSidebar from "../../src/components/layout/DesktopSidebar";
 import BottomNav from "../../src/components/navigation/BottomNav";
 import AppIcon from "../../src/components/ui/AppIcon";
+import AurexBrand from "../../src/components/brand/AurexBrand";
 import { PrivateAmount } from "../../src/components/ui/PrivateAmount";
 import { useBanking, type BankAlert } from "../../src/context/BankingContext";
+import { useBranding } from "../../src/context/BrandingContext";
+import type { BrandingConfig } from "../../src/lib/branding";
 import { supabase } from "../../src/lib/supabase";
 import {
   deleteTransferVerificationRequest,
@@ -67,6 +70,12 @@ type AdminUsersResponse = {
   error?: string;
 };
 
+type BrandingResponse = {
+  ok?: boolean;
+  branding?: BrandingConfig;
+  error?: string;
+};
+
 const alertTypes: BankAlert["type"][] = [
   "Payment",
   "Security",
@@ -75,6 +84,7 @@ const alertTypes: BankAlert["type"][] = [
   "Savings",
 ];
 const MAX_AVATAR_UPLOAD_SIZE = 5 * 1024 * 1024;
+const MAX_LOGO_UPLOAD_SIZE = 2 * 1024 * 1024;
 const AVATAR_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
 
 function money(value: number) {
@@ -226,6 +236,7 @@ function transferRequestDetails(request: TransferVerificationRequest) {
 
 export default function AdminPage() {
   const { currentProfile, refreshBanking, alerts } = useBanking();
+  const { branding, updateBranding } = useBranding();
   const transferVerificationRequests = useSyncExternalStore(
     subscribeTransferVerificationRequests,
     getTransferVerificationSnapshot,
@@ -257,6 +268,8 @@ export default function AdminPage() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [busyAction, setBusyAction] = useState("");
   const [serviceRoleConfigured, setServiceRoleConfigured] = useState(true);
+  const [brandingBusy, setBrandingBusy] = useState(false);
+  const [brandingNotice, setBrandingNotice] = useState("");
 
   const [alertType, setAlertType] = useState<BankAlert["type"]>("Security");
   const [alertTitle, setAlertTitle] = useState("Manual review completed");
@@ -793,6 +806,50 @@ export default function AdminPage() {
     );
   }
 
+  async function saveBranding(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (brandingBusy) return;
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const logo = formData.get("logo");
+    if (logo instanceof File && logo.size > MAX_LOGO_UPLOAD_SIZE) {
+      setBrandingNotice("Bank logo must be 2 MB or smaller.");
+      return;
+    }
+
+    setBrandingBusy(true);
+    setBrandingNotice("");
+
+    try {
+      const token = await getAdminToken();
+      if (!token) {
+        setBrandingNotice("Missing admin session. Sign in again.");
+        return;
+      }
+
+      const response = await fetch("/api/branding", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = (await response.json().catch(() => null)) as BrandingResponse | null;
+
+      if (!response.ok || !data?.ok || !data.branding) {
+        setBrandingNotice(data?.error || "Unable to update bank branding.");
+        return;
+      }
+
+      updateBranding(data.branding);
+      setBrandingNotice("Branding updated for every user and device.");
+      form.reset();
+    } catch {
+      setBrandingNotice("Unable to update bank branding.");
+    } finally {
+      setBrandingBusy(false);
+    }
+  }
+
   return (
     <AdminGate>
       <main className="bank-shell min-h-screen overflow-x-hidden text-white">
@@ -870,6 +927,137 @@ export default function AdminPage() {
                 </div>
               )}
             </section>
+
+            <form
+              key={`branding-${branding.updatedAt}`}
+              onSubmit={saveBranding}
+              className="bank-surface mb-6 rounded-lg p-5 sm:p-6"
+            >
+              <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(240px,0.75fr)_minmax(0,1.25fr)]">
+                <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-4 sm:p-5">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-green-400">
+                    Live Brand Preview
+                  </p>
+                  <div className="mt-5">
+                    <AurexBrand
+                      markClassName="h-16 w-16 rounded-lg"
+                      titleClassName="text-2xl sm:text-3xl"
+                    />
+                  </div>
+                  <div className="mt-5 flex gap-2">
+                    <span
+                      className="h-10 flex-1 rounded-lg border border-white/10"
+                      style={{ backgroundColor: branding.primaryColor }}
+                      title="Primary color"
+                    />
+                    <span
+                      className="h-10 flex-1 rounded-lg border border-white/10"
+                      style={{ backgroundColor: branding.backgroundColor }}
+                      title="Background color"
+                    />
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-green-400">Bank Branding</p>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
+                    Name, Logo and Colors
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+                    Changes apply globally to desktop, mobile, login pages, navigation, and customer dashboards.
+                  </p>
+
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    <label className="block sm:col-span-2">
+                      <span className="text-sm text-zinc-400">Bank Name</span>
+                      <input
+                        name="bankName"
+                        required
+                        minLength={2}
+                        maxLength={48}
+                        defaultValue={branding.bankName}
+                        className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-sm text-zinc-400">Primary Accent</span>
+                      <span className="mt-2 flex h-12 items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-3">
+                        <input
+                          name="primaryColor"
+                          type="color"
+                          defaultValue={branding.primaryColor}
+                          className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+                        />
+                        <span className="text-xs font-black uppercase text-zinc-400">
+                          Buttons, links and status colors
+                        </span>
+                      </span>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-sm text-zinc-400">Dark Background</span>
+                      <span className="mt-2 flex h-12 items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-3">
+                        <input
+                          name="backgroundColor"
+                          type="color"
+                          defaultValue={branding.backgroundColor}
+                          className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+                        />
+                        <span className="text-xs font-black uppercase text-zinc-400">
+                          App background and navigation
+                        </span>
+                      </span>
+                    </label>
+
+                    <label className="block sm:col-span-2">
+                      <span className="text-sm text-zinc-400">New Bank Logo</span>
+                      <input
+                        name="logo"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="mt-2 block w-full rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-green-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black"
+                      />
+                      <span className="mt-2 block text-xs text-zinc-600">
+                        PNG, JPG, or WebP. Maximum 2 MB. Leave empty to keep the current logo.
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-3 sm:col-span-2">
+                      <input
+                        name="removeLogo"
+                        type="checkbox"
+                        value="true"
+                        className="h-5 w-5 rounded border-white/20 bg-black/30 text-green-400 focus:ring-green-400"
+                      />
+                      <span className="text-sm text-zinc-400">
+                        Restore the original default logo
+                      </span>
+                    </label>
+                  </div>
+
+                  {brandingNotice && (
+                    <div
+                      className={`mt-5 rounded-lg border px-4 py-3 text-sm font-semibold ${
+                        /unable|missing|must|choose|upload/i.test(brandingNotice)
+                          ? "border-red-400/20 bg-red-500/10 text-red-200"
+                          : "border-green-300/20 bg-green-400/10 text-green-200"
+                      }`}
+                    >
+                      {brandingNotice}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={brandingBusy}
+                    className="mt-6 w-full rounded-lg bg-green-400 px-5 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
+                  >
+                    {brandingBusy ? "Updating Branding..." : "Apply Branding Everywhere"}
+                  </button>
+                </div>
+              </div>
+            </form>
 
             <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
               <aside className="min-w-0 space-y-6">

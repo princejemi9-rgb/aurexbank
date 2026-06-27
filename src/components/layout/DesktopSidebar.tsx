@@ -51,7 +51,7 @@ export default function DesktopSidebar() {
             }`}
           >
             {active && (
-              <span className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-green-300 shadow-[0_0_18px_rgba(74,222,128,0.5)]" />
+              <span className="brand-glow-md absolute left-0 top-0 h-full w-1 rounded-r-full bg-green-300" />
             )}
 
             <span
@@ -73,7 +73,7 @@ export default function DesktopSidebar() {
 
   return (
     <aside
-      className="desktop-sidebar hidden h-screen shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[#050606] shadow-[22px_0_70px_rgba(0,0,0,0.28)] lg:fixed lg:left-0 lg:top-0 lg:z-50 lg:flex"
+      className="desktop-sidebar hidden h-screen shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[var(--brand-background)] shadow-[22px_0_70px_rgba(0,0,0,0.28)] lg:fixed lg:left-0 lg:top-0 lg:z-50 lg:flex"
     >
       <div className="desktop-sidebar-header shrink-0">
         <div className="desktop-sidebar-brand-card rounded-lg border border-white/[0.07] bg-white/[0.035] shadow-[0_18px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">

@@ -16,7 +16,7 @@ export default function BalanceCard() {
   ];
 
   return (
-    <section className="relative overflow-hidden rounded-lg border border-green-300/20 bg-[#07120d] p-6 text-white shadow-[0_28px_90px_rgba(0,0,0,0.38)] lg:p-7">
+    <section className="relative overflow-hidden rounded-lg border border-green-300/20 bg-[var(--brand-surface)] p-6 text-white shadow-[0_28px_90px_rgba(0,0,0,0.38)] lg:p-7">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-300/70 to-transparent" />
 
       <div className="relative z-10">

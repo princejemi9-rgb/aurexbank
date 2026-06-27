@@ -543,7 +543,7 @@ export default function ProfilePage() {
             </div>
 
             <aside className="min-w-0 space-y-6">
-              <section className="rounded-lg border border-green-300/15 bg-[#07120d] p-6 shadow-2xl">
+              <section className="rounded-lg border border-green-300/15 bg-[var(--brand-surface)] p-6 shadow-2xl">
                 <p className="text-sm font-semibold text-green-400">Membership Status</p>
                 <h2 className="mt-3 text-3xl font-black tracking-tight">Aurex Black</h2>
                 <div className="mt-6 space-y-4">

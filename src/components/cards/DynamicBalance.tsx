@@ -7,7 +7,7 @@ export default function DynamicBalance() {
   const { balance } = useBanking();
 
   return (
-    <div className="rounded-lg border border-green-300/20 bg-[#07120d] p-6 text-white shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
+    <div className="rounded-lg border border-green-300/20 bg-[var(--brand-surface)] p-6 text-white shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-zinc-400">
           Total Balance

@@ -1,8 +1,10 @@
 "use client";
 
 import jsPDF from "jspdf";
+import { useBranding } from "../../context/BrandingContext";
 
 export default function ReceiptGenerator() {
+  const { branding } = useBranding();
 
   function generateReceipt() {
 
@@ -11,7 +13,7 @@ export default function ReceiptGenerator() {
     doc.setFontSize(22);
 
     doc.text(
-      "Aurex Bank Receipt",
+      `${branding.bankName} Receipt`,
       20,
       30
     );
@@ -25,7 +27,7 @@ export default function ReceiptGenerator() {
     );
 
     doc.text(
-      "Bank: Aurex Bank",
+      `Bank: ${branding.bankName}`,
       20,
       70
     );
@@ -43,7 +45,7 @@ export default function ReceiptGenerator() {
     );
 
     doc.save(
-      "aurex-bank-receipt.pdf"
+      `${branding.bankName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-receipt.pdf`
     );
 
   }

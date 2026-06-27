@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { useBranding } from "../../context/BrandingContext";
 
 type AurexMarkProps = {
   className?: string;
@@ -19,19 +19,39 @@ export function AurexMark({
   imageClassName = "p-1",
   label,
 }: AurexMarkProps) {
+  const { branding } = useBranding();
+  const logoUrl = branding.logoUrl || "/aurex-bank-logo.svg";
+
   return (
     <span
-      className={`flex shrink-0 items-center justify-center overflow-hidden border border-green-400/25 bg-[#070908] shadow-[0_0_32px_rgba(74,222,128,0.18)] ${className}`}
+      role="img"
+      aria-label={label ?? branding.bankName}
+      className={`brand-glow-md flex shrink-0 items-center justify-center overflow-hidden border border-green-400/25 bg-[var(--brand-surface)] ${className}`}
     >
-      <Image
-        src="/aurex-bank-logo.svg"
-        alt={label ?? ""}
-        aria-hidden={label ? undefined : true}
-        width={512}
-        height={512}
-        unoptimized
-        className={`h-full w-full object-contain ${imageClassName}`}
-      />
+      {branding.logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt=""
+          aria-hidden="true"
+          className={`h-full w-full object-contain ${imageClassName}`}
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className={`h-full w-full bg-green-400 ${imageClassName}`}
+          style={{
+            WebkitMaskImage: "url(/aurex-bank-logo.svg)",
+            WebkitMaskPosition: "center",
+            WebkitMaskRepeat: "no-repeat",
+            WebkitMaskSize: "contain",
+            maskImage: "url(/aurex-bank-logo.svg)",
+            maskPosition: "center",
+            maskRepeat: "no-repeat",
+            maskSize: "contain",
+          }}
+        />
+      )}
     </span>
   );
 }
@@ -43,12 +63,14 @@ export default function AurexBrand({
   taglineClassName = "text-sm",
   showTagline = true,
 }: AurexBrandProps) {
+  const { branding } = useBranding();
+
   return (
     <div className={`flex items-center gap-4 ${className}`}>
-      <AurexMark className={markClassName} label="Aurex Bank" />
+      <AurexMark className={markClassName} label={branding.bankName} />
       <div className="min-w-0">
         <h1 className={`truncate font-black tracking-tight text-white ${titleClassName}`}>
-          Aurex Bank
+          {branding.bankName}
         </h1>
         {showTagline && (
           <p className={`mt-1 truncate text-zinc-500 ${taglineClassName}`}>

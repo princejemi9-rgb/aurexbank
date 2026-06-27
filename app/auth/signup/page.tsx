@@ -371,7 +371,7 @@ export default function SignUpPage() {
   const currentStepIndex = steps.findIndex((s) => s.id === step);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[var(--brand-background)] text-white">
       {/* GRID */}
       <div className="relative z-10 grid min-h-screen min-w-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         {/* LEFT SIDE - Form */}

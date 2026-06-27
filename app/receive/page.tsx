@@ -625,7 +625,7 @@ export default function ReceivePage() {
             role="dialog"
             aria-modal="true"
             aria-label="Crypto wallet collection"
-            className="my-4 w-full max-w-4xl rounded-lg border border-green-300/20 bg-[#06110c] p-5 shadow-2xl sm:p-6"
+            className="my-4 w-full max-w-4xl rounded-lg border border-green-300/20 bg-[var(--brand-surface)] p-5 shadow-2xl sm:p-6"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">

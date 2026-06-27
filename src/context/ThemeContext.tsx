@@ -73,11 +73,11 @@ const lightThemeStyles = `
 // CSS variables for dark theme (default)
 const darkThemeStyles = `
   :root {
-    --background: #050606;
+    --background: var(--brand-background, #050606);
     --foreground: #ededed;
   }
   body {
-    background: #050606 !important;
+    background: var(--brand-background, #050606) !important;
     color: #ededed !important;
   }
 `;

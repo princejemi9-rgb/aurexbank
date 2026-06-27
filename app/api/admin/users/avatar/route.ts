@@ -32,6 +32,15 @@ function readText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function getUsernameFromUser(user: { id: string; email?: string; user_metadata?: unknown }) {
+  const metadata =
+    user.user_metadata && typeof user.user_metadata === "object"
+      ? (user.user_metadata as Record<string, unknown>)
+      : {};
+
+  return readText(metadata.username) || readText(user.email) || user.id;
+}
+
 function getImageExtension(file: File) {
   const typeExtension = IMAGE_TYPES[file.type];
   if (typeExtension) return typeExtension;
@@ -157,6 +166,15 @@ export async function POST(request: NextRequest) {
   if (updateError) {
     return jsonError(updateError.message, 500);
   }
+
+  try {
+    await serviceClient.from("notifications").insert([
+      {
+        username: getUsernameFromUser(targetUser),
+        message: "Aurex Admin updated your profile photo.",
+      },
+    ]);
+  } catch {}
 
   return NextResponse.json({ ok: true, avatarUrl });
 }

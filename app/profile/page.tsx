@@ -70,6 +70,15 @@ function readStoredKyc(userId: string, fallback: KycState) {
   }
 }
 
+function formatAccountType(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "business") return "Business";
+  if (normalized === "premium") return "Premium";
+  if (normalized === "personal") return "Personal";
+  return value || "Personal";
+}
+
 
 export default function ProfilePage() {
   const { balance, currentProfile, income, refreshBanking, reserve } = useBanking();
@@ -174,7 +183,8 @@ export default function ProfilePage() {
     { label: "Email Address", value: currentProfile.email },
     { label: "Phone Number", value: currentProfile.phone },
     { label: "Country", value: currentProfile.country },
-    { label: "Account Type", value: "Aurex Black" },
+    { label: "Account Type", value: formatAccountType(currentProfile.accountType) },
+    { label: "Currency", value: currentProfile.currency },
     { label: "Customer ID", value: currentProfile.customerId },
   ];
 
@@ -228,7 +238,7 @@ export default function ProfilePage() {
     <main className="bank-shell min-h-screen overflow-x-hidden text-white">
       <DesktopSidebar />
 
-      <div className="app-content lg:ml-[16.25rem]">
+      <div className="app-content lg:ml-72">
         <div className="app-inner">
           <section className="bank-surface mb-6 rounded-lg p-6 lg:p-8">
             <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">

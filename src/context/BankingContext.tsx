@@ -40,6 +40,8 @@ export type BankingProfile = {
   email: string;
   phone: string;
   country: string;
+  accountType: string;
+  currency: string;
   customerId: string;
   initials: string;
   avatar_url?: string;
@@ -142,6 +144,8 @@ const FALLBACK_PROFILE: BankingProfile = {
   email: "user@aurexbank.demo",
   phone: "Not provided",
   country: "Not provided",
+  accountType: "personal",
+  currency: "USD",
   customerId: "ARX-PENDING",
   initials: "A",
   avatar_url: undefined,
@@ -339,6 +343,8 @@ function mergeStableProfile(current: BankingProfile, next: BankingProfile) {
     firstName: chooseProfileText(next.firstName, current.firstName),
     phone: next.phone === "Not provided" ? current.phone : next.phone,
     country: next.country === "Not provided" ? current.country : next.country,
+    accountType: next.accountType || current.accountType,
+    currency: next.currency || current.currency,
     initials: chooseProfileText(next.initials, current.initials),
     avatar_url: next.avatar_url ?? current.avatar_url,
   };
@@ -649,6 +655,12 @@ function buildProfile(user: User | null): BankingProfile {
     email,
     phone: readText(metadata.phone) || readText(cachedProfile?.phone) || "Not provided",
     country: readText(metadata.country) || readText(cachedProfile?.country) || "Not provided",
+    accountType:
+      readText(metadata.account_type) || readText(cachedProfile?.accountType) || "personal",
+    currency:
+      readText(metadata.currency).toUpperCase() ||
+      readText(cachedProfile?.currency).toUpperCase() ||
+      "USD",
     customerId: `ARX-${user.id.slice(0, 8).toUpperCase()}`,
     initials,
     avatar_url,

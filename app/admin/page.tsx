@@ -798,7 +798,7 @@ export default function AdminPage() {
       <main className="bank-shell min-h-screen overflow-x-hidden text-white">
         <DesktopSidebar />
 
-        <div className="app-content lg:ml-[16.25rem]">
+        <div className="app-content lg:ml-72">
           <div className="app-inner">
             <section className="mb-6 border-b border-white/10 pb-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">

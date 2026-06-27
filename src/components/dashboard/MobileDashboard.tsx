@@ -36,45 +36,17 @@ function TrendLine() {
   return (
     <svg
       aria-hidden="true"
-      className="block h-20 w-full overflow-visible text-green-400"
+      className="block h-20 w-full text-green-400"
       viewBox="0 0 180 90"
       fill="none"
       preserveAspectRatio="none"
     >
       <path
-        d={`${trendPath}L172 86H8Z`}
-        fill="currentColor"
-        fillOpacity="0.055"
-      />
-      <path
-        d="M8 85H172"
+        d="M76 52V85M109 33V85M140 40V85"
         stroke="currentColor"
-        strokeOpacity="0.08"
+        strokeDasharray="2 4"
+        strokeOpacity="0.24"
         strokeWidth="1"
-        vectorEffect="non-scaling-stroke"
-      />
-      {[
-        { x: 76, y: 47 },
-        { x: 109, y: 28 },
-        { x: 140, y: 35 },
-      ].map((guide) => (
-        <path
-          key={guide.x}
-          d={`M${guide.x} ${guide.y + 5}V85`}
-          stroke="currentColor"
-          strokeDasharray="2 4"
-          strokeOpacity="0.2"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-      <path
-        d={trendPath}
-        stroke="currentColor"
-        strokeOpacity="0.16"
-        strokeWidth="9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
       />
       <path
@@ -85,9 +57,7 @@ function TrendLine() {
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
       />
-      <circle cx="172" cy="13" r="9" fill="currentColor" fillOpacity="0.12" />
       <circle cx="172" cy="13" r="4" fill="currentColor" />
-      <circle cx="172" cy="13" r="1.5" fill="white" fillOpacity="0.75" />
     </svg>
   );
 }

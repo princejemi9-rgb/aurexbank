@@ -32,24 +32,6 @@ body {
 }
 
 @layer components {
-  @media (max-width: 1023px) {
-    .mobile-dashboard-root,
-    .mobile-dashboard-balance,
-    .mobile-dashboard-pulse,
-    .mobile-bottom-navigation {
-      contain: none;
-      filter: none;
-      transform: none;
-      backface-visibility: visible;
-      will-change: auto;
-    }
-
-    .mobile-dashboard-root {
-      overflow-x: clip;
-      isolation: auto;
-    }
-  }
-
   .bank-shell {
     min-height: 100dvh;
     background:
@@ -229,5 +211,40 @@ body {
 
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/*
+ * Keep the mobile dashboard on the browser's normal paint path. These rules
+ * intentionally sit outside Tailwind's layers so shadow/filter utilities
+ * cannot promote large dashboard sections into unstable GPU tiles.
+ */
+@media (max-width: 1023px) {
+  .mobile-dashboard-root,
+  .mobile-dashboard-balance,
+  .mobile-dashboard-pulse,
+  .mobile-bottom-navigation {
+    contain: none;
+    filter: none;
+    transform: none;
+    backface-visibility: visible;
+    will-change: auto;
+  }
+
+  .bank-shell {
+    background-image: none;
+  }
+
+  .mobile-dashboard-root {
+    overflow-x: visible;
+    isolation: auto;
+  }
+
+  .mobile-dashboard-root *,
+  .mobile-bottom-navigation,
+  .mobile-bottom-navigation * {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
   }
 }

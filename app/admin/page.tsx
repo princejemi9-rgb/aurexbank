@@ -18,7 +18,7 @@ import AurexBrand from "../../src/components/brand/AurexBrand";
 import { PrivateAmount } from "../../src/components/ui/PrivateAmount";
 import { useBanking, type BankAlert } from "../../src/context/BankingContext";
 import { useBranding } from "../../src/context/BrandingContext";
-import type { BrandingConfig } from "../../src/lib/branding";
+import { DEFAULT_BRANDING, type BrandingConfig } from "../../src/lib/branding";
 import { supabase } from "../../src/lib/supabase";
 import {
   deleteTransferVerificationRequest,
@@ -850,6 +850,53 @@ export default function AdminPage() {
     }
   }
 
+  async function restoreDefaultBranding() {
+    if (brandingBusy) return;
+    if (
+      !window.confirm(
+        "Restore the original Aurex logo and default app colors on every device?"
+      )
+    ) {
+      return;
+    }
+
+    setBrandingBusy(true);
+    setBrandingNotice("");
+
+    try {
+      const token = await getAdminToken();
+      if (!token) {
+        setBrandingNotice("Missing admin session. Sign in again.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("bankName", branding.bankName);
+      formData.set("primaryColor", DEFAULT_BRANDING.primaryColor);
+      formData.set("backgroundColor", DEFAULT_BRANDING.backgroundColor);
+      formData.set("restoreDefaults", "true");
+
+      const response = await fetch("/api/branding", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = (await response.json().catch(() => null)) as BrandingResponse | null;
+
+      if (!response.ok || !data?.ok || !data.branding) {
+        setBrandingNotice(data?.error || "Unable to restore the default branding.");
+        return;
+      }
+
+      updateBranding(data.branding);
+      setBrandingNotice("Original logo and default app colors restored everywhere.");
+    } catch {
+      setBrandingNotice("Unable to restore the default branding.");
+    } finally {
+      setBrandingBusy(false);
+    }
+  }
+
   return (
     <AdminGate>
       <main className="bank-shell min-h-screen overflow-x-hidden text-white">
@@ -1023,17 +1070,24 @@ export default function AdminPage() {
                       </span>
                     </label>
 
-                    <label className="flex items-center gap-3 sm:col-span-2">
-                      <input
-                        name="removeLogo"
-                        type="checkbox"
-                        value="true"
-                        className="h-5 w-5 rounded border-white/20 bg-black/30 text-green-400 focus:ring-green-400"
-                      />
-                      <span className="text-sm text-zinc-400">
-                        Restore the original default logo
-                      </span>
-                    </label>
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-4 sm:col-span-2">
+                      <p className="text-sm font-black text-white">
+                        Need the original look back?
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                        Restores the original Aurex logo, green accent (
+                        {DEFAULT_BRANDING.primaryColor}), and dark app background (
+                        {DEFAULT_BRANDING.backgroundColor}).
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void restoreDefaultBranding()}
+                        disabled={brandingBusy}
+                        className="bank-button mt-4 w-full rounded-lg px-4 py-3 text-sm font-black text-green-200 disabled:opacity-60 sm:w-auto"
+                      >
+                        Restore Logo &amp; Default Colors
+                      </button>
+                    </div>
                   </div>
 
                   {brandingNotice && (

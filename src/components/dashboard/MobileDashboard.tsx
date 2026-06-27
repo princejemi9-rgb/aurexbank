@@ -26,36 +26,19 @@ function TrendLine() {
   return (
     <svg
       aria-hidden="true"
-      className="h-20 w-full text-green-400"
+      className="block h-16 w-full text-green-400"
       viewBox="0 0 180 90"
       fill="none"
+      preserveAspectRatio="none"
     >
       <path
         d="M8 72C23 60 31 58 43 58C58 58 61 42 75 42C91 42 95 22 110 22C123 22 126 34 139 31C154 28 159 15 172 12"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="3"
         strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
       />
-      <path
-        d="M8 72C23 60 31 58 43 58C58 58 61 42 75 42C91 42 95 22 110 22C123 22 126 34 139 31C154 28 159 15 172 12V90H8V72Z"
-        fill="url(#mobileBalanceGradient)"
-      />
-      {[43, 75, 110, 139, 172].map((x) => (
-        <path
-          key={x}
-          d={`M${x} 88V18`}
-          stroke="currentColor"
-          strokeDasharray="2 4"
-          strokeOpacity="0.18"
-        />
-      ))}
       <circle cx="172" cy="12" r="4" fill="currentColor" />
-      <defs>
-        <linearGradient id="mobileBalanceGradient" x1="90" x2="90" y1="12" y2="90">
-          <stop stopColor="currentColor" stopOpacity="0.24" />
-          <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 }
@@ -76,7 +59,7 @@ function MobilePulseSummary({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="brand-glow-sm h-2.5 w-2.5 rounded-full bg-green-300" />
+            <span className="h-2.5 w-2.5 rounded-full bg-green-300" />
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-green-300">
               Live Banking Pulse
             </p>
@@ -246,9 +229,9 @@ const MobileDashboard = memo(function MobileDashboard() {
           </div>
         </header>
 
-        <section className="mobile-dashboard-balance mt-5 rounded-lg border border-white/10 bg-[linear-gradient(135deg,var(--brand-surface-strong),var(--brand-background))] p-4">
+        <section className="mobile-dashboard-balance mt-5 rounded-lg border border-white/10 bg-[var(--brand-surface-strong)] p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">
                   Available Balance
@@ -258,7 +241,7 @@ const MobileDashboard = memo(function MobileDashboard() {
                   iconClassName="h-4 w-4"
                 />
               </div>
-              <h1 className="mt-2 text-[2rem] font-black leading-none tracking-tight">
+              <h1 className="mt-2 text-[clamp(1.6rem,8vw,2rem)] font-black leading-none tracking-tight">
                 <PrivateAmount value={balance} />
               </h1>
               <div className="mt-3 flex items-center gap-2">
@@ -269,7 +252,7 @@ const MobileDashboard = memo(function MobileDashboard() {
               </div>
             </div>
 
-            <div className="min-w-[132px] flex-1">
+            <div className="w-[42%] min-w-0 shrink-0">
               <TrendLine />
             </div>
           </div>
@@ -281,7 +264,7 @@ const MobileDashboard = memo(function MobileDashboard() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-4 gap-2.5">
+          <div className="mt-4 grid grid-cols-2 gap-2.5 min-[340px]:grid-cols-4">
             {quickActions.map((action) => (
               <Link
                 key={action.label}

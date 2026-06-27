@@ -115,19 +115,26 @@ export async function POST(request: NextRequest) {
   const bankName = String(formData.get("bankName") || "").trim();
   const primaryColor = String(formData.get("primaryColor") || "").toLowerCase();
   const backgroundColor = String(formData.get("backgroundColor") || "").toLowerCase();
-  const removeLogo = formData.get("removeLogo") === "true";
+  const restoreDefaults = formData.get("restoreDefaults") === "true";
+  const removeLogo = restoreDefaults || formData.get("removeLogo") === "true";
   const logo = formData.get("logo");
+  const nextPrimaryColor = restoreDefaults
+    ? DEFAULT_BRANDING.primaryColor
+    : primaryColor;
+  const nextBackgroundColor = restoreDefaults
+    ? DEFAULT_BRANDING.backgroundColor
+    : backgroundColor;
 
   if (bankName.length < 2 || bankName.length > 48) {
     return jsonError("Bank name must be between 2 and 48 characters.", 400);
   }
-  if (!isHexColor(primaryColor) || !isHexColor(backgroundColor)) {
+  if (!isHexColor(nextPrimaryColor) || !isHexColor(nextBackgroundColor)) {
     return jsonError("Choose valid primary and background colors.", 400);
   }
-  if (getRelativeLuminance(primaryColor) < 0.28) {
+  if (getRelativeLuminance(nextPrimaryColor) < 0.28) {
     return jsonError("Choose a brighter primary color so buttons remain readable.", 400);
   }
-  if (getRelativeLuminance(backgroundColor) > 0.24) {
+  if (getRelativeLuminance(nextBackgroundColor) > 0.24) {
     return jsonError("Choose a darker background color so account details remain readable.", 400);
   }
 
@@ -165,8 +172,8 @@ export async function POST(request: NextRequest) {
     bankName,
     logoUrl,
     logoPath,
-    primaryColor,
-    backgroundColor,
+    primaryColor: nextPrimaryColor,
+    backgroundColor: nextBackgroundColor,
     updatedAt: new Date().toISOString(),
   });
   const { error: configError } = await admin.serviceClient.storage

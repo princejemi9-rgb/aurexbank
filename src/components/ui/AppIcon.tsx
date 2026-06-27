@@ -29,6 +29,7 @@ type AppIconName =
 type AppIconProps = {
   name: AppIconName;
   className?: string;
+  strokeWidth?: number;
 };
 
 const paths: Record<AppIconName, string[]> = {
@@ -60,7 +61,11 @@ const paths: Record<AppIconName, string[]> = {
   wallet: ["M3 7h16a2 2 0 0 1 2 2v9H3V7Z", "M3 7V5a2 2 0 0 1 2-2h12v4", "M16 13h2"],
 };
 
-export default function AppIcon({ name, className = "h-5 w-5" }: AppIconProps) {
+export default function AppIcon({
+  name,
+  className = "h-5 w-5",
+  strokeWidth = 2,
+}: AppIconProps) {
   return (
     <svg
       aria-hidden="true"
@@ -69,7 +74,7 @@ export default function AppIcon({ name, className = "h-5 w-5" }: AppIconProps) {
       stroke="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth="2"
+      strokeWidth={strokeWidth}
       viewBox="0 0 24 24"
     >
       {paths[name].map((path) => (

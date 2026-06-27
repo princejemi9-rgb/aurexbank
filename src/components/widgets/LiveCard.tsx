@@ -143,7 +143,7 @@ export default function LiveCard() {
 
   return (
     <section className="space-y-4">
-      <div className="relative overflow-hidden rounded-lg border border-green-300/15 bg-gradient-to-br from-zinc-950 via-emerald-950 to-black p-6 shadow-[0_28px_90px_rgba(0,0,0,0.38)] lg:p-7">
+      <div className="relative overflow-hidden rounded-lg border border-green-300/15 bg-gradient-to-br from-zinc-950 via-emerald-950 to-black p-4 shadow-[0_28px_90px_rgba(0,0,0,0.38)] sm:p-6 lg:p-7">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-200/60 to-transparent" />
 
         <div className="relative z-10">
@@ -152,7 +152,7 @@ export default function LiveCard() {
               <p className="text-xs font-black uppercase tracking-[0.28em] text-white/55">
                 Aurex Bank
               </p>
-              <h2 className="mt-4 text-4xl font-black text-white">VISA</h2>
+              <h2 className="mt-4 text-3xl font-black text-white sm:text-4xl">VISA</h2>
             </div>
             <div className="text-right">
               <div className="ml-auto flex h-14 w-14 items-center justify-center rounded-lg border border-white/10 bg-white/10 text-white/75">
@@ -164,22 +164,22 @@ export default function LiveCard() {
             </div>
           </div>
 
-          <div className="mt-12">
+          <div className="mt-9 sm:mt-12">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-white/45">
               Card Number
             </p>
-            <h3 className="mt-4 break-all text-2xl font-black tracking-[0.16em] text-white lg:text-3xl">
+            <h3 className="mt-4 break-all text-[clamp(1rem,5.5vw,1.5rem)] font-black tracking-[0.12em] text-white sm:tracking-[0.16em] lg:text-3xl">
               {display.number}
             </h3>
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-3">
+          <div className="mt-7 grid grid-cols-3 gap-2 sm:mt-8 sm:gap-3">
             {[
               { label: "Holder", value: display.holder },
               { label: "Expires", value: card.expiry },
               { label: "CVV", value: display.cvv },
             ].map((item) => (
-              <div key={item.label} className="rounded-lg border border-white/10 bg-white/10 p-3">
+              <div key={item.label} className="min-w-0 rounded-lg border border-white/10 bg-white/10 p-2.5 sm:p-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
                   {item.label}
                 </p>
@@ -202,11 +202,11 @@ export default function LiveCard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <button
           type="button"
           onClick={toggleFrozen}
-          className={`flex items-center justify-center gap-2 rounded-lg py-4 text-sm font-black transition-all active:scale-[0.99] ${
+          className={`flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg px-1 py-3 text-[11px] font-black transition-all active:scale-[0.99] sm:flex-row sm:gap-2 sm:py-4 sm:text-sm ${
             frozen ? "bg-red-500 text-white hover:bg-red-400" : "bg-white text-black hover:bg-zinc-100"
           }`}
         >
@@ -216,14 +216,14 @@ export default function LiveCard() {
         <button
           type="button"
           onClick={() => setShowDetails(!showDetails)}
-          className="bank-button flex items-center justify-center gap-2 rounded-lg py-4 text-sm font-black"
+          className="bank-button flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg px-1 py-3 text-[11px] font-black sm:flex-row sm:gap-2 sm:py-4 sm:text-sm"
         >
           <AppIcon name="shield" className="h-4 w-4" />
           {showDetails ? "Hide" : "Show"}
         </button>
         <Link
           href="/cards"
-          className="bank-button flex items-center justify-center gap-2 rounded-lg py-4 text-center text-sm font-black"
+          className="bank-button flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg px-1 py-3 text-center text-[11px] font-black sm:flex-row sm:gap-2 sm:py-4 sm:text-sm"
         >
           <AppIcon name="card" className="h-4 w-4" />
           Manage

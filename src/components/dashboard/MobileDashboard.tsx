@@ -6,6 +6,13 @@ import Link from "next/link";
 import AppIcon from "../ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 import { useBanking } from "../../context/BankingContext";
+import ActivityChart from "../widgets/ActivityChart";
+import ActivityFeed from "../widgets/ActivityFeed";
+import AIInsights from "../widgets/AIInsights";
+import Analytics from "../widgets/Analytics";
+import CryptoPortfolio from "../widgets/CryptoPortfolio";
+import LiveCard from "../widgets/LiveCard";
+import UpcomingPayments from "../widgets/UpcomingPayments";
 
 function SectionHeader({ title, href }: { title: string; href?: string }) {
   return (
@@ -188,7 +195,7 @@ const MobileDashboard = memo(function MobileDashboard() {
 
   return (
     <div className="lg:hidden">
-      <div className="mobile-dashboard-root mx-auto min-h-screen w-full max-w-[430px] min-w-0 bg-[var(--brand-background)] px-4 pb-24 pt-5 text-white">
+      <div className="mobile-dashboard-root mx-auto min-h-screen w-full max-w-[430px] min-w-0 bg-[var(--brand-background)] px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-5 text-white">
         <header className="flex items-center justify-between gap-4">
           <Link href="/profile" className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-green-400 text-base font-black text-black">
@@ -213,20 +220,18 @@ const MobileDashboard = memo(function MobileDashboard() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-2">
-            <Link
-              href="/notifications"
-              aria-label="Notifications"
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300"
-            >
-              <AppIcon name="bell" className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-green-400 px-1 text-[10px] font-black text-black">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-          </div>
+          <Link
+            href="/notifications"
+            aria-label={`${unreadCount} unread notifications`}
+            className="relative flex h-12 w-11 shrink-0 items-center justify-center text-white transition-colors hover:text-green-300"
+          >
+            <AppIcon name="bell" className="h-7 w-7" strokeWidth={2.25} />
+            {unreadCount > 0 && (
+              <span className="absolute right-0 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--brand-background)] bg-green-400 px-1 text-[10px] font-black leading-none text-black">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Link>
         </header>
 
         <section className="mobile-dashboard-balance mt-5 rounded-lg border border-white/10 bg-[var(--brand-surface-strong)] p-4">
@@ -361,21 +366,7 @@ const MobileDashboard = memo(function MobileDashboard() {
 
         <section className="mt-5">
           <SectionHeader title="Your Cards" href="/cards" />
-          <Link
-            href="/cards"
-            className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-3"
-          >
-            <span className="flex h-12 w-20 shrink-0 items-end justify-end rounded-md bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_30%),linear-gradient(135deg,#171717,#020202)] px-2 py-2 text-sm font-black italic text-white">
-              VISA
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-black">Debit Card</span>
-              <span className="mt-0.5 block truncate text-xs text-zinc-500">**** 4582</span>
-            </span>
-            <span className="text-xs font-semibold text-green-400">
-              <PrivateAmount value={balance} />
-            </span>
-          </Link>
+          <LiveCard />
         </section>
 
         {latestAlert && (
@@ -399,6 +390,29 @@ const MobileDashboard = memo(function MobileDashboard() {
                 <p className="mt-2 truncate text-lg font-black">{item.value}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="mobile-dashboard-details mt-8">
+          <div className="mb-4 border-b border-white/10 pb-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-green-400">
+              Full Dashboard
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">
+              Everything in one scroll
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+              Analytics, insights, assets, payments, and live account activity.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            <ActivityChart />
+            <AIInsights />
+            <CryptoPortfolio />
+            <Analytics />
+            <UpcomingPayments />
+            <ActivityFeed />
           </div>
         </section>
       </div>

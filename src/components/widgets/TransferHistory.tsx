@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { accountTransferFilter } from "../../lib/supabaseFilters";
 import { useBanking } from "../../context/BankingContext";
 import { PrivateAmount } from "../ui/PrivateAmount";
 
@@ -35,7 +36,7 @@ export default function TransferHistory() {
       const { data } = await supabase
         .from("transfers")
         .select("id, sender, receiver, amount")
-        .or(`sender.eq.${username},receiver.eq.${username}`)
+        .or(accountTransferFilter(username))
         .order("created_at", {
           ascending: false,
         });

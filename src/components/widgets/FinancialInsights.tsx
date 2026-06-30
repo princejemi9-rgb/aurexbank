@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { accountTransferFilter } from "../../lib/supabaseFilters";
 import { useBanking } from "../../context/BankingContext";
 import { PrivateAmount } from "../ui/PrivateAmount";
 
@@ -37,7 +38,7 @@ export default function FinancialInsights() {
       const { data } = await supabase
         .from("transfers")
         .select("sender, receiver, amount")
-        .or(`sender.eq.${username},receiver.eq.${username}`);
+        .or(accountTransferFilter(username));
 
       if (!data) return null;
 

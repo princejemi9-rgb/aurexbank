@@ -29,6 +29,8 @@ function toWholeDatabaseMoney(value: number) {
   return Math.round(value);
 }
 
+const PROTECTED_METRICS_KEY = "aurex_metrics";
+
 function readNonNegativeNumber(value: unknown) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? Math.max(numberValue, 0) : null;
@@ -113,6 +115,11 @@ export async function GET(request: NextRequest) {
     freshUser.user_metadata && typeof freshUser.user_metadata === "object"
       ? (freshUser.user_metadata as Record<string, unknown>)
       : {};
+  const protectedMetricsValue = freshUser.app_metadata?.[PROTECTED_METRICS_KEY];
+  const protectedMetrics =
+    protectedMetricsValue && typeof protectedMetricsValue === "object"
+      ? (protectedMetricsValue as Record<string, unknown>)
+      : {};
   const username = readUsername(freshUser);
   const { data: profile } = await accountClient
     .from("profiles")
@@ -128,11 +135,19 @@ export async function GET(request: NextRequest) {
     {
       ok: true,
       balance: profileBalance ?? readNonNegativeNumber(metadata.balance) ?? 0,
-      reserve: readNonNegativeNumber(metadata.reserve) ?? 0,
-      income: readNonNegativeNumber(metadata.income) ?? 0,
+      reserve:
+        readNonNegativeNumber(protectedMetrics.reserve) ??
+        readNonNegativeNumber(metadata.reserve) ??
+        0,
+      income:
+        readNonNegativeNumber(protectedMetrics.income) ??
+        readNonNegativeNumber(metadata.income) ??
+        0,
       updatedAt:
-        typeof metadata.admin_updated_at === "string"
-          ? metadata.admin_updated_at
+        typeof protectedMetrics.updated_at === "string"
+          ? protectedMetrics.updated_at
+          : typeof metadata.admin_updated_at === "string"
+            ? metadata.admin_updated_at
           : null,
     },
     {

@@ -58,10 +58,7 @@ function TrendLine({ className = "h-20" }: { className?: string }) {
   ] as const;
 
   return (
-    <div className={`mobile-dashboard-trend relative w-full ${className}`}>
-      <span className="absolute left-0 top-0 z-10 rounded-full border border-green-300/15 bg-[#10271b] px-1.5 py-0.5 text-[7px] font-black tracking-wide text-green-200">
-        30D +24.8%
-      </span>
+    <div className={`mobile-dashboard-trend w-full ${className}`}>
       <svg
         role="img"
         aria-label="Thirty-day balance trend, up 24.8 percent"
@@ -164,13 +161,25 @@ const MobileDashboard = memo(function MobileDashboard() {
     unreadCount,
   } = useBanking();
   const firstName = currentProfile.firstName;
+  const balanceDisplayLength = `$${balance.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  })}`.length;
+  const mobileBalanceTypeClass =
+    balanceDisplayLength > 21
+      ? "break-all text-[clamp(0.72rem,3.2vw,0.9rem)] leading-tight"
+      : balanceDisplayLength > 16
+        ? "whitespace-nowrap text-[clamp(0.78rem,3.5vw,1rem)]"
+        : balanceDisplayLength > 11
+          ? "whitespace-nowrap text-[clamp(1.05rem,5vw,1.35rem)]"
+        : "whitespace-nowrap text-[clamp(1.65rem,8vw,2rem)]";
   const primaryTransactions = useMemo(() => transactions.slice(0, 3), [transactions]);
   const latestAlert = alerts[0];
 
   const quickActions = useMemo(
     () => [
-      { label: "Transfer", icon: "send" as const, href: "/send" },
-      { label: "Pay", icon: "pay" as const, href: "/payments" },
+      { label: "Transfer", icon: "activity" as const, href: "/send" },
+      { label: "Pay", icon: "send" as const, href: "/payments" },
       { label: "Deposit", icon: "receive" as const, href: "/receive" },
       { label: "Cards", icon: "card" as const, href: "/cards" },
     ],
@@ -282,48 +291,54 @@ const MobileDashboard = memo(function MobileDashboard() {
           </Link>
         </header>
 
-        <section className="mobile-dashboard-balance mt-5 rounded-lg border border-white/10 bg-[var(--brand-surface-strong)] p-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.14em] text-zinc-500 min-[360px]:text-[10px]">
-                Available Balance
-              </p>
-              <BalancePrivacyToggle
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300"
-                iconClassName="h-3 w-3"
-              />
+        <section className="mobile-dashboard-balance mt-5 rounded-[1.75rem] border border-green-200/15 bg-[#0b1711] p-4">
+          <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(6rem,0.9fr)] items-end gap-3">
+            <div className="min-w-0 pb-1">
+              <div className="flex items-center gap-2">
+                <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.15em] text-zinc-400 min-[360px]:text-[10px]">
+                  Available Balance
+                </p>
+                <BalancePrivacyToggle
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#11231a] text-zinc-300"
+                  iconClassName="h-3 w-3"
+                />
+              </div>
+              <h1
+                className={`mt-3 font-black leading-none tracking-[-0.035em] tabular-nums ${mobileBalanceTypeClass}`}
+              >
+                <PrivateAmount value={balance} />
+              </h1>
+              <div className="mt-4 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-lg bg-[#173c25] px-2.5 py-1.5 text-xs font-black text-green-300">
+                  <span aria-hidden="true">↑</span>
+                  +2.4%
+                </span>
+                <span className="whitespace-nowrap text-[11px] text-zinc-400">
+                  this month
+                </span>
+              </div>
             </div>
-            <h1 className="mt-2 break-words text-[clamp(1.35rem,6.2vw,1.75rem)] font-black leading-none tracking-[-0.025em] tabular-nums">
-              <PrivateAmount value={balance} />
-            </h1>
-            <div className="mt-3 flex items-center gap-2">
-              <span className="rounded-md bg-green-400/20 px-2.5 py-1 text-xs font-black text-green-300">
-                +2.4%
-              </span>
-              <span className="text-xs text-zinc-500">this month</span>
+
+            <div className="min-w-0 pb-1">
+              <TrendLine className="h-24" />
             </div>
           </div>
 
-          <div className="mt-3 min-w-0 border-t border-white/[0.06] pt-2">
-            <TrendLine className="h-16" />
-          </div>
-
-          <div className="mt-4 rounded-lg border border-green-300/15 bg-green-400/[0.07] px-3 py-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-semibold text-zinc-400">Account status</span>
-              <span className="text-xs font-black text-green-300">Active</span>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2.5 min-[340px]:grid-cols-4">
+          <div className="mt-5 grid grid-cols-4 gap-2">
             {quickActions.map((action) => (
               <Link
                 key={action.label}
                 href={action.href}
-                className="flex min-h-16 flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-1.5 py-3 text-center text-zinc-200"
+                className="flex min-h-24 min-w-0 flex-col items-center justify-center rounded-[1.15rem] border border-white/10 bg-[#0b1510] px-1 py-3 text-center text-zinc-100"
               >
-                <AppIcon name={action.icon} className="h-5 w-5 text-green-400" />
-                <span className="mt-2 truncate text-[11px] font-semibold">{action.label}</span>
+                <AppIcon
+                  name={action.icon}
+                  className="h-7 w-7 text-green-300"
+                  strokeWidth={1.8}
+                />
+                <span className="mt-3 w-full truncate text-[10px] font-semibold min-[360px]:text-[11px]">
+                  {action.label}
+                </span>
               </Link>
             ))}
           </div>

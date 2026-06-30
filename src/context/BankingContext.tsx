@@ -11,6 +11,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../lib/supabase";
+import { accountTransferFilter } from "../lib/supabaseFilters";
 
 export type BankAlert = {
   id: string;
@@ -315,6 +316,8 @@ const seedAlerts: BankAlert[] = [
 
 const BankingContext = createContext<BankingContextValue | null>(null);
 const REMOTE_OPERATION_TIMEOUT_MS = 8000;
+const ADMIN_ALERT_PREFIX = "__AUREX_ALERT__:";
+const ADMIN_TRANSACTION_PREFIX = "__AUREX_TX__:";
 
 function formatMoney(value: number) {
   return value.toLocaleString("en-US", {
@@ -543,9 +546,66 @@ function inferRemoteAlertType(message: string): BankAlert["type"] {
   return "Savings";
 }
 
+function parseAdminAlertMessage(
+  message: string,
+  record: RemoteNotificationRecord
+): BankAlert | null {
+  if (!message.startsWith(ADMIN_ALERT_PREFIX)) return null;
+
+  try {
+    const payload = JSON.parse(
+      message.slice(ADMIN_ALERT_PREFIX.length)
+    ) as Record<string, unknown>;
+    const allowedTypes: BankAlert["type"][] = [
+      "Payment",
+      "Security",
+      "Crypto",
+      "Transfer",
+      "Savings",
+    ];
+    const type = allowedTypes.includes(payload.type as BankAlert["type"])
+      ? (payload.type as BankAlert["type"])
+      : "Security";
+
+    return {
+      id: `remote-notification-${String(record.id ?? message)}`,
+      type,
+      title: readText(payload.title) || "Admin alert",
+      desc: readText(payload.desc) || "Aurex operations published an account update.",
+      time: formatRemoteAlertTime(record.created_at),
+      status: readText(payload.status) || "Updated",
+      unread: typeof payload.unread === "boolean" ? payload.unread : true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function parseAdminTransactionDetails(value: unknown) {
+  const text = readText(value);
+  if (!text.startsWith(ADMIN_TRANSACTION_PREFIX)) return null;
+
+  try {
+    const payload = JSON.parse(
+      text.slice(ADMIN_TRANSACTION_PREFIX.length)
+    ) as Record<string, unknown>;
+
+    return {
+      name: readText(payload.name),
+      status: readText(payload.status),
+      method: readText(payload.method),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function mapRemoteNotification(record: RemoteNotificationRecord): BankAlert | null {
   const message = readText(record.message);
   if (!message) return null;
+
+  const adminAlert = parseAdminAlertMessage(message, record);
+  if (adminAlert) return adminAlert;
 
   return {
     id: `remote-notification-${String(record.id ?? message)}`,
@@ -919,7 +979,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     const { data: transferData } = await supabase
       .from("transfers")
       .select("id, sender, receiver, amount, type, account_type, bank_name, created_at")
-      .or(`sender.eq.${username},receiver.eq.${username}`)
+      .or(accountTransferFilter(username))
       .order("created_at", { ascending: false })
       .limit(12);
 
@@ -929,12 +989,15 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
         const accountType = String(item.account_type ?? "");
         const rawAmount = Number(item.amount);
         const amount = accountType.endsWith(":cents") ? rawAmount / 100 : rawAmount;
+        const adminDetails = parseAdminTransactionDetails(item.bank_name);
         return {
           id: String(item.id),
-          name: sent ? String(item.receiver) : String(item.sender),
+          name:
+            adminDetails?.name ||
+            (sent ? String(item.receiver) : String(item.sender)),
           type: `${String(item.type ?? "Transfer")} transfer`,
           amount: sent ? -amount : amount,
-          status: "Completed",
+          status: adminDetails?.status || "Completed",
           time: item.created_at
             ? new Date(String(item.created_at)).toLocaleDateString("en-US", {
                 month: "short",
@@ -942,7 +1005,9 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
                 year: "numeric",
               })
             : "Live",
-          method: item.bank_name ? String(item.bank_name) : "Aurex Secure",
+          method:
+            adminDetails?.method ||
+            (item.bank_name ? String(item.bank_name) : "Aurex Secure"),
         };
       });
 

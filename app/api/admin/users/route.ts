@@ -39,6 +39,9 @@ type AdminActionBody = {
 const STARTING_BALANCE = 0;
 const STARTING_RESERVE = 0;
 const STARTING_INCOME = 0;
+const PROTECTED_METRICS_KEY = "aurex_metrics";
+const ADMIN_ALERT_PREFIX = "__AUREX_ALERT__:";
+const ADMIN_TRANSACTION_PREFIX = "__AUREX_TX__:";
 
 function getAllowedAdminEmails() {
   return (process.env.AUREX_ADMIN_EMAILS || "")
@@ -80,6 +83,24 @@ function toDatabaseCents(value: number) {
 
 function readMetadataNumber(user: User | null, key: string, fallback: number) {
   return readNonNegativeNumber(user?.user_metadata?.[key], fallback);
+}
+
+function readProtectedMetrics(user: User | null) {
+  const value = user?.app_metadata?.[PROTECTED_METRICS_KEY];
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readAccountMetric(
+  user: User | null,
+  key: "balance" | "reserve" | "income",
+  fallback: number
+) {
+  const protectedValue = readFiniteNumber(readProtectedMetrics(user)[key]);
+  return protectedValue === null
+    ? readMetadataNumber(user, key, fallback)
+    : Math.max(protectedValue, 0);
 }
 
 function readMetadataText(user: User | null, key: string) {
@@ -195,11 +216,11 @@ function buildAdminUser(user: User | null, profile?: ProfileRecord | null) {
     currency: readMetadataText(user, "currency") || "USD",
     customerId: getCustomerId(user?.id, username),
     balance:
-      metadataBalance ??
       profileBalance ??
+      metadataBalance ??
       STARTING_BALANCE,
-    reserve: readMetadataNumber(user, "reserve", STARTING_RESERVE),
-    income: readMetadataNumber(user, "income", STARTING_INCOME),
+    reserve: readAccountMetric(user, "reserve", STARTING_RESERVE),
+    income: readAccountMetric(user, "income", STARTING_INCOME),
     accountStatus: readAccountStatus(user),
     transferFrozen: readTransferFrozen(user),
     verificationStatus: readVerificationStatus(user),
@@ -366,6 +387,11 @@ async function updateTargetMetadata(
     user.user_metadata && typeof user.user_metadata === "object"
       ? (user.user_metadata as Record<string, unknown>)
       : {};
+  const currentAppMetadata: Record<string, unknown> =
+    user.app_metadata && typeof user.app_metadata === "object"
+      ? (user.app_metadata as Record<string, unknown>)
+      : {};
+  const savedAt = new Date().toISOString();
 
   const { data, error } = await dbClient.auth.admin.updateUserById(user.id, {
     user_metadata: {
@@ -374,7 +400,16 @@ async function updateTargetMetadata(
       balance: metrics.balance,
       reserve: metrics.reserve,
       income: metrics.income,
-      admin_updated_at: new Date().toISOString(),
+      admin_updated_at: savedAt,
+    },
+    app_metadata: {
+      ...currentAppMetadata,
+      [PROTECTED_METRICS_KEY]: {
+        balance: metrics.balance,
+        reserve: metrics.reserve,
+        income: metrics.income,
+        updated_at: savedAt,
+      },
     },
   });
 
@@ -383,8 +418,8 @@ async function updateTargetMetadata(
   }
 
   const updatedUser = data.user ?? user;
-  const savedReserve = readMetadataNumber(updatedUser, "reserve", -1);
-  const savedIncome = readMetadataNumber(updatedUser, "income", -1);
+  const savedReserve = readAccountMetric(updatedUser, "reserve", -1);
+  const savedIncome = readAccountMetric(updatedUser, "income", -1);
 
   if (savedReserve !== metrics.reserve || savedIncome !== metrics.income) {
     return { error: "Income and reserve metrics could not be verified after saving." };
@@ -412,7 +447,7 @@ async function updateTargetControls(
       ? (user.user_metadata as Record<string, unknown>)
       : {};
 
-  await dbClient.auth.admin.updateUserById(user.id, {
+  const { data, error } = await dbClient.auth.admin.updateUserById(user.id, {
     user_metadata: {
       ...currentMetadata,
       username: getUsernameFromUser(user),
@@ -423,11 +458,21 @@ async function updateTargetControls(
     },
   });
 
-  const {
-    data: { user: updatedUser },
-  } = await dbClient.auth.admin.getUserById(user.id);
+  if (error) {
+    return { error: jsonError(error.message, 500) };
+  }
 
-  return { user: updatedUser ?? user };
+  const updatedUser = data.user ?? user;
+  const controlsSaved =
+    readAccountStatus(updatedUser) === controls.accountStatus &&
+    readTransferFrozen(updatedUser) === controls.transferFrozen &&
+    readVerificationStatus(updatedUser) === controls.verificationStatus;
+
+  if (!controlsSaved) {
+    return { error: jsonError("Account controls could not be verified after saving", 500) };
+  }
+
+  return { user: updatedUser };
 }
 
 async function updateTargetProfileDetails(
@@ -741,6 +786,35 @@ export async function POST(request: NextRequest) {
       return jsonError("Enter a valid transaction amount", 400);
     }
 
+    const absAmount = Math.abs(amount);
+    const entryName = readText(body.name) || "Admin transaction";
+    const entryType = readText(body.type) || "Administrative posting";
+    const entryStatus = readText(body.status) || "Completed";
+    const method = readText(body.method) || "Aurex Admin";
+    const encodedTransaction = `${ADMIN_TRANSACTION_PREFIX}${JSON.stringify({
+      name: entryName,
+      status: entryStatus,
+      method,
+    })}`;
+    const { data: insertedTransfer, error: transferError } = await admin.dbClient
+      .from("transfers")
+      .insert([
+        {
+          sender: amount < 0 ? target.username : "Aurex Admin",
+          receiver: amount < 0 ? "Aurex Admin" : target.username,
+          amount: toDatabaseCents(absAmount),
+          type: entryType,
+          account_type: "admin:cents",
+          bank_name: encodedTransaction,
+        },
+      ])
+      .select("id")
+      .maybeSingle();
+
+    if (transferError) {
+      return jsonError(transferError.message, 500);
+    }
+
     const nextBalance = Math.max(target.balance + amount, 0);
     const nextMetrics = {
       balance: nextBalance,
@@ -754,28 +828,16 @@ export async function POST(request: NextRequest) {
       nextMetrics
     );
 
-    if ("error" in result) return result.error;
+    if ("error" in result) {
+      if (insertedTransfer?.id) {
+        await admin.dbClient
+          .from("transfers")
+          .delete()
+          .eq("id", insertedTransfer.id);
+      }
 
-    const absAmount = Math.abs(amount);
-    const entryName = readText(body.name) || "Admin transaction";
-    const entryType = readText(body.type) || "Administrative posting";
-    const method = readText(body.method) || "Aurex Admin";
-
-    try {
-      await admin.dbClient
-        .from("transfers")
-        .insert([
-          {
-            sender: amount < 0 ? result.user.username : "Aurex Admin",
-            receiver: amount < 0 ? "Aurex Admin" : result.user.username,
-            amount: toDatabaseCents(absAmount),
-            type: entryType,
-            account_type: "admin:cents",
-            bank_name: method,
-          },
-        ])
-        .throwOnError();
-    } catch {}
+      return result.error;
+    }
 
     await insertNotification(
       admin.dbClient,
@@ -787,11 +849,26 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === "publishAlert") {
+    const alertType = readText(body.alertType);
     const title = readText(body.title) || "Admin alert";
     const desc =
       readText(body.desc) || "Aurex operations published an account update.";
+    const status = readText(body.status) || "Updated";
+    const unread = typeof body.unread === "boolean" ? body.unread : true;
+    const encodedAlert = `${ADMIN_ALERT_PREFIX}${JSON.stringify({
+      type: alertType,
+      title,
+      desc,
+      status,
+      unread,
+    })}`;
 
-    await insertNotification(admin.dbClient, target.username, `${title}: ${desc}`);
+    try {
+      await insertNotification(admin.dbClient, target.username, encodedAlert);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to publish alert";
+      return jsonError(message, 500);
+    }
 
     return NextResponse.json({ ok: true, user: target });
   }

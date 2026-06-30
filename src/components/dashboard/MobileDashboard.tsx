@@ -31,34 +31,81 @@ function SectionHeader({ title, href }: { title: string; href?: string }) {
 
 function TrendLine() {
   const trendPath =
-    "M8 73C21 62 33 57 45 58C58 59 64 47 76 47C90 47 95 28 109 28C122 28 128 40 140 35C153 30 159 17 172 13";
+    "M8 72C20 68 27 58 40 59C53 60 58 48 70 46C84 44 87 30 101 29C114 28 121 39 133 35C147 31 153 20 172 13";
+  const comparisonPath =
+    "M8 77C26 72 35 68 50 66C67 64 77 58 91 56C107 54 120 48 137 45C151 42 161 35 172 31";
 
   return (
-    <svg
-      aria-hidden="true"
-      className="block h-20 w-full text-green-400"
-      viewBox="0 0 180 90"
-      fill="none"
-      preserveAspectRatio="none"
-    >
-      <path
-        d="M76 52V85M109 33V85M140 40V85"
-        stroke="currentColor"
-        strokeDasharray="2 4"
-        strokeOpacity="0.24"
-        strokeWidth="1"
-        vectorEffect="non-scaling-stroke"
-      />
-      <path
-        d={trendPath}
-        stroke="currentColor"
-        strokeWidth="2.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-      <circle cx="172" cy="13" r="4" fill="currentColor" />
-    </svg>
+    <div className="relative h-20 w-full">
+      <span className="absolute left-0 top-0 z-10 rounded-full bg-green-400/10 px-1.5 py-0.5 text-[7px] font-black tracking-wide text-green-200">
+        30D +24.8%
+      </span>
+      <svg
+        role="img"
+        aria-label="Thirty-day balance trend, up 24.8 percent"
+        className="block h-full w-full"
+        viewBox="0 0 180 90"
+        fill="none"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="mobileTrendStroke" x1="8" x2="172" y1="72" y2="13">
+            <stop stopColor="#22c55e" />
+            <stop offset="0.55" stopColor="#34d399" />
+            <stop offset="1" stopColor="#86efac" />
+          </linearGradient>
+          <linearGradient id="mobileTrendArea" x1="90" x2="90" y1="12" y2="88">
+            <stop stopColor="#22c55e" stopOpacity="0.32" />
+            <stop offset="0.65" stopColor="#22c55e" stopOpacity="0.08" />
+            <stop offset="1" stopColor="#22c55e" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        <path
+          d="M8 22H172M8 45H172M8 68H172"
+          stroke="#ffffff"
+          strokeDasharray="1 7"
+          strokeLinecap="round"
+          strokeOpacity="0.12"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={comparisonPath}
+          stroke="#a1a1aa"
+          strokeDasharray="3 5"
+          strokeOpacity="0.35"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path d={`${trendPath}V88H8Z`} fill="url(#mobileTrendArea)" />
+        <path
+          d={trendPath}
+          stroke="#22c55e"
+          strokeOpacity="0.18"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={trendPath}
+          stroke="url(#mobileTrendStroke)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M172 13V83"
+          stroke="#86efac"
+          strokeDasharray="2 5"
+          strokeOpacity="0.28"
+          vectorEffect="non-scaling-stroke"
+        />
+        <circle cx="172" cy="13" r="6" fill="#22c55e" fillOpacity="0.16" />
+        <circle cx="172" cy="13" r="3" fill="#86efac" />
+      </svg>
+    </div>
   );
 }
 
@@ -247,18 +294,18 @@ const MobileDashboard = memo(function MobileDashboard() {
         </header>
 
         <section className="mobile-dashboard-balance mt-5 rounded-lg border border-white/10 bg-[var(--brand-surface-strong)] p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(5.5rem,38%)] items-start gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.14em] text-zinc-500 min-[360px]:text-[10px]">
                   Available Balance
                 </p>
                 <BalancePrivacyToggle
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300"
-                  iconClassName="h-4 w-4"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300"
+                  iconClassName="h-3 w-3"
                 />
               </div>
-              <h1 className="mt-2 text-[clamp(1.6rem,8vw,2rem)] font-black leading-none tracking-tight">
+              <h1 className="mt-2 whitespace-nowrap text-[clamp(1.45rem,7.2vw,2rem)] font-black leading-none tracking-tight">
                 <PrivateAmount value={balance} />
               </h1>
               <div className="mt-3 flex items-center gap-2">
@@ -269,7 +316,7 @@ const MobileDashboard = memo(function MobileDashboard() {
               </div>
             </div>
 
-            <div className="w-[42%] min-w-0 shrink-0">
+            <div className="min-w-0">
               <TrendLine />
             </div>
           </div>

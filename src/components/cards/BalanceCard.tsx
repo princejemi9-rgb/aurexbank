@@ -7,6 +7,16 @@ import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 
 export default function BalanceCard() {
   const { balance, expenses, income, reserve } = useBanking();
+  const balanceDisplayLength = `$${balance.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  })}`.length;
+  const balanceTypeClass =
+    balanceDisplayLength > 24
+      ? "break-all text-[clamp(1.8rem,3.6vw,3rem)] tracking-[-0.04em]"
+      : balanceDisplayLength > 17
+        ? "break-words text-[clamp(2.1rem,4.5vw,3.8rem)] tracking-[-0.04em]"
+        : "break-words text-[clamp(2.2rem,5vw,4rem)] tracking-tight";
 
   const metrics = [
     { label: "Available", value: <PrivateAmount value={balance} /> },
@@ -38,7 +48,7 @@ export default function BalanceCard() {
                 iconClassName="h-4 w-4"
               />
             </div>
-            <h2 className="mt-2 break-words text-[clamp(2.6rem,6vw,4.8rem)] font-black leading-none tracking-tight">
+            <h2 className={`mt-2 font-black leading-none tabular-nums ${balanceTypeClass}`}>
               <PrivateAmount value={balance} />
             </h2>
 

@@ -29,6 +29,120 @@ function toWholeDatabaseMoney(value: number) {
   return Math.round(value);
 }
 
+function readNonNegativeNumber(value: unknown) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? Math.max(numberValue, 0) : null;
+}
+
+function readUsername(user: { id: string; email?: string | null; user_metadata?: unknown }) {
+  const metadata =
+    user.user_metadata && typeof user.user_metadata === "object"
+      ? (user.user_metadata as Record<string, unknown>)
+      : {};
+
+  return typeof metadata.username === "string" && metadata.username.trim()
+    ? metadata.username.trim()
+    : user.email ?? user.id;
+}
+
+export async function GET(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.json(
+      { ok: false, error: "Missing Supabase env vars" },
+      { status: 500 }
+    );
+  }
+
+  const authHeader = request.headers.get("authorization") || "";
+  const accessToken = authHeader.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length)
+    : null;
+
+  if (!accessToken) {
+    return NextResponse.json(
+      { ok: false, error: "Missing access token" },
+      { status: 401 }
+    );
+  }
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  const {
+    data: { user },
+    error: userError,
+  } = await authClient.auth.getUser(accessToken);
+
+  if (userError || !user) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid session" },
+      { status: 401 }
+    );
+  }
+
+  const serviceRoleKey = getServiceRoleKey();
+  const accountClient = serviceRoleKey
+    ? createClient(supabaseUrl, serviceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      })
+    : createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      });
+  const freshUserResult = serviceRoleKey
+    ? await accountClient.auth.admin.getUserById(user.id)
+    : null;
+  const freshUser = freshUserResult?.data.user ?? user;
+  const metadata =
+    freshUser.user_metadata && typeof freshUser.user_metadata === "object"
+      ? (freshUser.user_metadata as Record<string, unknown>)
+      : {};
+  const username = readUsername(freshUser);
+  const { data: profile } = await accountClient
+    .from("profiles")
+    .select("balance")
+    .eq("username", username)
+    .limit(1)
+    .maybeSingle();
+  const profileBalance = readNonNegativeNumber(
+    (profile as { balance?: unknown } | null)?.balance
+  );
+
+  return NextResponse.json(
+    {
+      ok: true,
+      balance: profileBalance ?? readNonNegativeNumber(metadata.balance) ?? 0,
+      reserve: readNonNegativeNumber(metadata.reserve) ?? 0,
+      income: readNonNegativeNumber(metadata.income) ?? 0,
+      updatedAt:
+        typeof metadata.admin_updated_at === "string"
+          ? metadata.admin_updated_at
+          : null,
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    }
+  );
+}
+
 export async function POST(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -90,12 +204,8 @@ export async function POST(request: NextRequest) {
     user.user_metadata && typeof user.user_metadata === "object"
       ? user.user_metadata
       : {};
-  const metadataRecord = currentMetadata as Record<string, unknown>;
   const savedAt = new Date().toISOString();
-  const username =
-    typeof metadataRecord.username === "string" && metadataRecord.username.trim()
-      ? metadataRecord.username.trim()
-      : user.email ?? user.id;
+  const username = readUsername(user);
   const serviceRoleKey = getServiceRoleKey();
   const profileClient = serviceRoleKey
     ? createClient(supabaseUrl, serviceRoleKey, {

@@ -111,6 +111,13 @@ type RemoteTransferResponse = {
   receiverCredited?: boolean;
 };
 
+type RemoteAccountMetrics = {
+  ok?: boolean;
+  balance?: number;
+  reserve?: number;
+  income?: number;
+};
+
 type BankingContextValue = {
   balance: number;
   reserve: number;
@@ -627,6 +634,40 @@ async function saveRemoteBalance(value: number) {
   }
 }
 
+async function getRemoteAccountMetrics() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const token = session?.access_token;
+  if (!token) return null;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    REMOTE_OPERATION_TIMEOUT_MS
+  );
+
+  try {
+    const response = await fetch("/api/account/balance", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    const data = (await response.json().catch(() => null)) as
+      | RemoteAccountMetrics
+      | null;
+
+    return response.ok && data?.ok === true ? data : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function saveRemoteTransfer(input: TransferInput) {
   const {
     data: { session },
@@ -824,18 +865,25 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("balance")
-      .eq("username", username)
-      .limit(1)
-      .maybeSingle();
+    const [{ data: profile }, remoteMetrics] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("balance")
+        .eq("username", username)
+        .limit(1)
+        .maybeSingle(),
+      getRemoteAccountMetrics(),
+    ]);
 
     const profileBalance = readFiniteNumber(profile?.balance);
+    const remoteBalance = readNonNegativeNumber(remoteMetrics?.balance);
+    const remoteReserve = readNonNegativeNumber(remoteMetrics?.reserve);
+    const remoteIncome = readNonNegativeNumber(remoteMetrics?.income);
     // The profiles ledger is updated by admin actions and transfers. Auth
     // metadata is retained as a fallback for older accounts, but can remain
     // stale in an already-issued session.
-    const resolvedBalance = profileBalance ?? metadataBalance ?? STARTING_BALANCE;
+    const resolvedBalance =
+      remoteBalance ?? profileBalance ?? metadataBalance ?? STARTING_BALANCE;
     const storedAlerts = mergeAlertHistory(
       getStoredItems(profileInfo.userId, "alerts", seedAlerts)
     );
@@ -844,8 +892,16 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     );
 
     setBalance(resolvedBalance);
-    setReserve(metadataReserve ?? getStoredNumber(profileInfo.userId, "reserve", STARTING_RESERVE));
-    setIncome(metadataIncome ?? getStoredNumber(profileInfo.userId, "income", STARTING_INCOME));
+    setReserve(
+      remoteReserve ??
+        metadataReserve ??
+        getStoredNumber(profileInfo.userId, "reserve", STARTING_RESERVE)
+    );
+    setIncome(
+      remoteIncome ??
+        metadataIncome ??
+        getStoredNumber(profileInfo.userId, "income", STARTING_INCOME)
+    );
     setTransactions(storedTransactions);
     setAlerts(storedAlerts);
 
@@ -935,17 +991,6 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
         setAccountStatus(readAccountStatus(session.user));
         setTransferFrozen(readTransferFrozen(session.user));
         setVerificationStatus(readVerificationStatus(session.user));
-
-        const metadataReserve = readMetadataNonNegativeNumber(session.user, "reserve");
-        const metadataIncome = readMetadataNonNegativeNumber(session.user, "income");
-
-        if (metadataReserve !== null) {
-          setReserve(metadataReserve);
-        }
-
-        if (metadataIncome !== null) {
-          setIncome(metadataIncome);
-        }
       } else {
         setAccountStatus("active");
         setTransferFrozen(false);

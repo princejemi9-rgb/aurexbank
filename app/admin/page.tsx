@@ -1579,6 +1579,10 @@ export default function AdminPage() {
                           <h2 className="mt-2 text-3xl font-black tracking-tight">
                             Balance and Metrics
                           </h2>
+                          <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+                            Reserve controls the dashboard portfolio balance and asset allocations.
+                            Saved income and reserve values sync to the selected user account.
+                          </p>
 
                           <div className="mt-6 grid gap-4">
                             {[

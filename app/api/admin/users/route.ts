@@ -356,14 +356,18 @@ async function updateTargetMetadata(
   user: User | null,
   metrics: { balance: number; reserve: number; income: number }
 ) {
-  if (!hasServiceRole || !user) return;
+  if (!hasServiceRole || !user) {
+    return {
+      error: "Service role key is required to save income and reserve metrics.",
+    };
+  }
 
   const currentMetadata: Record<string, unknown> =
     user.user_metadata && typeof user.user_metadata === "object"
       ? (user.user_metadata as Record<string, unknown>)
       : {};
 
-  await dbClient.auth.admin.updateUserById(user.id, {
+  const { data, error } = await dbClient.auth.admin.updateUserById(user.id, {
     user_metadata: {
       ...currentMetadata,
       username: getUsernameFromUser(user),
@@ -373,6 +377,20 @@ async function updateTargetMetadata(
       admin_updated_at: new Date().toISOString(),
     },
   });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  const updatedUser = data.user ?? user;
+  const savedReserve = readMetadataNumber(updatedUser, "reserve", -1);
+  const savedIncome = readMetadataNumber(updatedUser, "income", -1);
+
+  if (savedReserve !== metrics.reserve || savedIncome !== metrics.income) {
+    return { error: "Income and reserve metrics could not be verified after saving." };
+  }
+
+  return { user: updatedUser };
 }
 
 async function updateTargetControls(
@@ -540,14 +558,23 @@ async function updateMetricsForTarget(
     return { error: jsonError(profileResult.error.message, 500) };
   }
 
-  await updateTargetMetadata(dbClient, hasServiceRole, targetUser, metrics);
+  const metadataResult = await updateTargetMetadata(
+    dbClient,
+    hasServiceRole,
+    targetUser,
+    metrics
+  );
+
+  if (metadataResult.error) {
+    return { error: jsonError(metadataResult.error, 500) };
+  }
 
   const profile = await getProfileByUsername(dbClient, resolvedUsername);
 
   return {
     user: {
       ...buildAdminUser(
-        targetUser,
+        metadataResult.user ?? targetUser,
         profile ?? { username: resolvedUsername, balance: metrics.balance }
       ),
       balance: metrics.balance,

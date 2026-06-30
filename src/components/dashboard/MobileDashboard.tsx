@@ -29,7 +29,7 @@ function SectionHeader({ title, href }: { title: string; href?: string }) {
   );
 }
 
-function TrendLine() {
+function TrendLine({ className = "h-20" }: { className?: string }) {
   const trendPath =
     "M8 72C20 68 27 58 40 59C53 60 58 48 70 46C84 44 87 30 101 29C114 28 121 39 133 35C147 31 153 20 172 13";
   const interiorDots = [
@@ -58,7 +58,7 @@ function TrendLine() {
   ] as const;
 
   return (
-    <div className="mobile-dashboard-trend relative h-20 w-full">
+    <div className={`mobile-dashboard-trend relative w-full ${className}`}>
       <span className="absolute left-0 top-0 z-10 rounded-full border border-green-300/15 bg-[#10271b] px-1.5 py-0.5 text-[7px] font-black tracking-wide text-green-200">
         30D +24.8%
       </span>
@@ -283,31 +283,29 @@ const MobileDashboard = memo(function MobileDashboard() {
         </header>
 
         <section className="mobile-dashboard-balance mt-5 rounded-lg border border-white/10 bg-[var(--brand-surface-strong)] p-4">
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(5.5rem,38%)] items-start gap-2">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.14em] text-zinc-500 min-[360px]:text-[10px]">
-                  Available Balance
-                </p>
-                <BalancePrivacyToggle
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300"
-                  iconClassName="h-3 w-3"
-                />
-              </div>
-              <h1 className="mt-2 whitespace-nowrap text-[clamp(1.45rem,7.2vw,2rem)] font-black leading-none tracking-tight">
-                <PrivateAmount value={balance} />
-              </h1>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="rounded-md bg-green-400/20 px-2.5 py-1 text-xs font-black text-green-300">
-                  +2.4%
-                </span>
-                <span className="text-xs text-zinc-500">this month</span>
-              </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.14em] text-zinc-500 min-[360px]:text-[10px]">
+                Available Balance
+              </p>
+              <BalancePrivacyToggle
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300"
+                iconClassName="h-3 w-3"
+              />
             </div>
+            <h1 className="mt-2 break-words text-[clamp(1.35rem,6.2vw,1.75rem)] font-black leading-none tracking-[-0.025em] tabular-nums">
+              <PrivateAmount value={balance} />
+            </h1>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="rounded-md bg-green-400/20 px-2.5 py-1 text-xs font-black text-green-300">
+                +2.4%
+              </span>
+              <span className="text-xs text-zinc-500">this month</span>
+            </div>
+          </div>
 
-            <div className="min-w-0">
-              <TrendLine />
-            </div>
+          <div className="mt-3 min-w-0 border-t border-white/[0.06] pt-2">
+            <TrendLine className="h-16" />
           </div>
 
           <div className="mt-4 rounded-lg border border-green-300/15 bg-green-400/[0.07] px-3 py-2">

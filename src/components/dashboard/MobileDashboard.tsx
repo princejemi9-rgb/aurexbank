@@ -32,12 +32,34 @@ function SectionHeader({ title, href }: { title: string; href?: string }) {
 function TrendLine() {
   const trendPath =
     "M8 72C20 68 27 58 40 59C53 60 58 48 70 46C84 44 87 30 101 29C114 28 121 39 133 35C147 31 153 20 172 13";
-  const comparisonPath =
-    "M8 77C26 72 35 68 50 66C67 64 77 58 91 56C107 54 120 48 137 45C151 42 161 35 172 31";
+  const interiorDots = [
+    [28, 73],
+    [45, 68],
+    [62, 61],
+    [62, 75],
+    [79, 55],
+    [79, 70],
+    [96, 44],
+    [96, 59],
+    [96, 74],
+    [113, 46],
+    [113, 61],
+    [113, 76],
+    [130, 49],
+    [130, 64],
+    [130, 79],
+    [147, 40],
+    [147, 55],
+    [147, 70],
+    [164, 28],
+    [164, 43],
+    [164, 58],
+    [164, 73],
+  ] as const;
 
   return (
-    <div className="relative h-20 w-full">
-      <span className="absolute left-0 top-0 z-10 rounded-full bg-green-400/10 px-1.5 py-0.5 text-[7px] font-black tracking-wide text-green-200">
+    <div className="mobile-dashboard-trend relative h-20 w-full">
+      <span className="absolute left-0 top-0 z-10 rounded-full border border-green-300/15 bg-[#10271b] px-1.5 py-0.5 text-[7px] font-black tracking-wide text-green-200">
         30D +24.8%
       </span>
       <svg
@@ -48,61 +70,28 @@ function TrendLine() {
         fill="none"
         preserveAspectRatio="none"
       >
-        <defs>
-          <linearGradient id="mobileTrendStroke" x1="8" x2="172" y1="72" y2="13">
-            <stop stopColor="#22c55e" />
-            <stop offset="0.55" stopColor="#34d399" />
-            <stop offset="1" stopColor="#86efac" />
-          </linearGradient>
-          <linearGradient id="mobileTrendArea" x1="90" x2="90" y1="12" y2="88">
-            <stop stopColor="#22c55e" stopOpacity="0.32" />
-            <stop offset="0.65" stopColor="#22c55e" stopOpacity="0.08" />
-            <stop offset="1" stopColor="#22c55e" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
         <path
-          d="M8 22H172M8 45H172M8 68H172"
-          stroke="#ffffff"
-          strokeDasharray="1 7"
-          strokeLinecap="round"
-          strokeOpacity="0.12"
-          vectorEffect="non-scaling-stroke"
+          d={`${trendPath}V88H8Z`}
+          fill="#0f3d24"
         />
-        <path
-          d={comparisonPath}
-          stroke="#a1a1aa"
-          strokeDasharray="3 5"
-          strokeOpacity="0.35"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path d={`${trendPath}V88H8Z`} fill="url(#mobileTrendArea)" />
+        <g fill="#2c7046">
+          {interiorDots.map(([x, y], index) => (
+            <circle
+              key={`${x}-${y}`}
+              cx={x}
+              cy={y}
+              r={index % 3 === 0 ? 1.4 : 1}
+            />
+          ))}
+        </g>
         <path
           d={trendPath}
-          stroke="#22c55e"
-          strokeOpacity="0.18"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d={trendPath}
-          stroke="url(#mobileTrendStroke)"
+          stroke="#4ade80"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
         />
-        <path
-          d="M172 13V83"
-          stroke="#86efac"
-          strokeDasharray="2 5"
-          strokeOpacity="0.28"
-          vectorEffect="non-scaling-stroke"
-        />
-        <circle cx="172" cy="13" r="6" fill="#22c55e" fillOpacity="0.16" />
+        <circle cx="172" cy="13" r="5.5" fill="#14532d" />
         <circle cx="172" cy="13" r="3" fill="#86efac" />
       </svg>
     </div>

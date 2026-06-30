@@ -222,12 +222,20 @@ body {
 @media (max-width: 1023px) {
   .mobile-dashboard-root,
   .mobile-dashboard-balance,
-  .mobile-dashboard-pulse {
+  .mobile-dashboard-pulse,
+  .mobile-dashboard-trend,
+  .mobile-dashboard-trend svg {
     contain: none;
     filter: none;
     transform: none;
     backface-visibility: visible;
     will-change: auto;
+  }
+
+  .mobile-dashboard-trend,
+  .mobile-dashboard-trend svg {
+    isolation: auto;
+    mix-blend-mode: normal;
   }
 
   .bank-shell {

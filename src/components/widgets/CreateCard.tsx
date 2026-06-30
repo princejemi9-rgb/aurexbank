@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useBanking } from "../../context/BankingContext";
 
 export default function CreateCard() {
-  const { currentProfile } = useBanking();
+  const { balance, currentProfile } = useBanking();
 
   function generateCardNumber() {
 
@@ -51,7 +51,7 @@ export default function CreateCard() {
             card_number: cardNumber,
             expiry,
             cvv,
-            balance: 5000,
+            balance,
           },
         ]);
 

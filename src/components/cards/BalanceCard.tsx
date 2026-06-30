@@ -58,7 +58,7 @@ export default function BalanceCard() {
             </p>
             <h3 className="mt-3 text-2xl font-black text-green-300">Active</h3>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-              Instant settlement and card controls are online.
+              Private client since 2018. Instant settlement and card controls are online.
             </p>
           </div>
         </div>

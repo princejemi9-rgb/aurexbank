@@ -222,8 +222,7 @@ body {
 @media (max-width: 1023px) {
   .mobile-dashboard-root,
   .mobile-dashboard-balance,
-  .mobile-dashboard-pulse,
-  .mobile-bottom-navigation {
+  .mobile-dashboard-pulse {
     contain: none;
     filter: none;
     transform: none;
@@ -246,5 +245,12 @@ body {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     box-shadow: none;
+  }
+
+  .mobile-bottom-navigation {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    width: 100%;
+    transform: none !important;
   }
 }

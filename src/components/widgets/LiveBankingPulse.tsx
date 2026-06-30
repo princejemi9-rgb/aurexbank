@@ -18,7 +18,7 @@ function getClockLabel(date: Date) {
 }
 
 export default function LiveBankingPulse({ compact = false }: LiveBankingPulseProps) {
-  const { alerts, balance, transactions, unreadCount } = useBanking();
+  const { alerts, balance, transactions } = useBanking();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -34,23 +34,21 @@ export default function LiveBankingPulse({ compact = false }: LiveBankingPulsePr
     const outbound = transactions
       .filter((item) => item.amount < 0)
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
-    const riskScore = Math.max(96, 100 - unreadCount);
 
     return {
       inbound,
       outbound,
-      riskScore,
       settled,
       status: alerts.some((item) => item.type === "Security" && item.unread)
         ? "Reviewing"
         : "Secure",
     };
-  }, [alerts, transactions, unreadCount]);
+  }, [alerts, transactions]);
 
   const metrics = [
     {
-      label: "Net Flow",
-      value: <PrivateAmount value={activity.inbound - activity.outbound} />,
+      label: "Ledger Volume",
+      value: <PrivateAmount value={activity.inbound + activity.outbound} />,
       icon: "activity" as const,
     },
     {
@@ -59,8 +57,8 @@ export default function LiveBankingPulse({ compact = false }: LiveBankingPulsePr
       icon: "check" as const,
     },
     {
-      label: "Risk",
-      value: `${activity.riskScore}%`,
+      label: "Client Since",
+      value: "2018",
       icon: "shield" as const,
     },
   ];

@@ -63,12 +63,12 @@ function TrendLine() {
 }
 
 function MobilePulseSummary({
-  netFlow,
+  ledgerVolume,
   settled,
   status,
   unreadCount,
 }: {
-  netFlow: number;
+  ledgerVolume: number;
   settled: number;
   status: string;
   unreadCount: number;
@@ -101,7 +101,7 @@ function MobilePulseSummary({
 
       <div className="mt-4 grid grid-cols-3 gap-2">
         {[
-          { label: "Net Flow", value: <PrivateAmount value={netFlow} /> },
+          { label: "Ledger Volume", value: <PrivateAmount value={ledgerVolume} /> },
           { label: "Settled", value: `${settled} items` },
           { label: "Alerts", value: unreadCount ? `${unreadCount} open` : "Clear" },
         ].map((item) => (
@@ -169,7 +169,7 @@ const MobileDashboard = memo(function MobileDashboard() {
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
     return {
-      netFlow: inbound - outbound,
+      ledgerVolume: inbound + outbound,
       settled,
       status: alerts.some((item) => item.type === "Security" && item.unread)
         ? "Reviewing"
@@ -199,10 +199,10 @@ const MobileDashboard = memo(function MobileDashboard() {
           />
         ),
       },
-      { label: "Activity", value: `${transactions.length} items` },
+      { label: "Client Since", value: "2018" },
       { label: "Alerts", value: unreadCount ? `${unreadCount} unread` : "Clear" },
     ],
-    [income, reserve, transactions.length, unreadCount]
+    [income, reserve, unreadCount]
   );
 
   return (
@@ -297,7 +297,7 @@ const MobileDashboard = memo(function MobileDashboard() {
 
         <section className="mt-5">
           <MobilePulseSummary
-            netFlow={pulse.netFlow}
+            ledgerVolume={pulse.ledgerVolume}
             settled={pulse.settled}
             status={pulse.status}
             unreadCount={unreadCount}

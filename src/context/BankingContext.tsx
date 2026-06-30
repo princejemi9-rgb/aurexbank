@@ -153,41 +153,127 @@ const FALLBACK_PROFILE: BankingProfile = {
 
 const seedTransactions: BankTransaction[] = [
   {
-    id: "seed-netflix",
-    name: "Netflix",
-    type: "Entertainment Subscription",
-    amount: -15,
+    id: "legacy-2026-capital-distribution",
+    name: "Crestline Capital Partners",
+    type: "Investment Distribution",
+    amount: 2850000,
     status: "Completed",
-    time: "2 mins ago",
-    method: "Visa **5821",
+    time: "Jun 28, 2026",
+    method: "Private Banking Wire",
   },
   {
-    id: "seed-salary",
-    name: "Salary",
-    type: "Monthly Payroll Deposit",
-    amount: 4000,
-    status: "Received",
-    time: "1 hour ago",
-    method: "Direct Deposit",
+    id: "legacy-2026-property-acquisition",
+    name: "Meridian Property Group",
+    type: "Property Acquisition",
+    amount: -1275000,
+    status: "Completed",
+    time: "Jun 19, 2026",
+    method: "Aurex Escrow",
   },
   {
-    id: "seed-apple",
-    name: "Apple Store",
-    type: "Card Purchase",
-    amount: -799,
+    id: "legacy-2026-advisory",
+    name: "Northstar Holdings",
+    type: "Advisory Settlement",
+    amount: -640000,
     status: "Completed",
-    time: "Yesterday",
-    method: "Visa **4582",
+    time: "May 30, 2026",
+    method: "International Wire",
+  },
+  {
+    id: "legacy-2025-private-equity",
+    name: "Atlantic Private Equity",
+    type: "Fund Redemption",
+    amount: 1900000,
+    status: "Completed",
+    time: "Nov 14, 2025",
+    method: "SWIFT Priority",
+  },
+  {
+    id: "legacy-2025-family-office",
+    name: "Westbridge Family Office",
+    type: "Treasury Allocation",
+    amount: -875000,
+    status: "Completed",
+    time: "Jan 24, 2025",
+    method: "Private Client Transfer",
+  },
+  {
+    id: "legacy-2024-commercial-exit",
+    name: "Arden Commercial Ventures",
+    type: "Business Exit Proceeds",
+    amount: 3420000,
+    status: "Completed",
+    time: "Aug 8, 2024",
+    method: "Institutional Clearing",
+  },
+  {
+    id: "legacy-2023-estate",
+    name: "Belgrave Estates",
+    type: "Real Estate Settlement",
+    amount: -1180000,
+    status: "Completed",
+    time: "Mar 16, 2023",
+    method: "Aurex Escrow",
+  },
+  {
+    id: "legacy-2022-dividend",
+    name: "Sterling Infrastructure Fund",
+    type: "Annual Dividend",
+    amount: 760000,
+    status: "Completed",
+    time: "Dec 2, 2022",
+    method: "Custody Account",
+  },
+  {
+    id: "legacy-2021-acquisition",
+    name: "Horizon Technology Group",
+    type: "Strategic Acquisition",
+    amount: -2150000,
+    status: "Completed",
+    time: "Sep 10, 2021",
+    method: "Institutional Wire",
+  },
+  {
+    id: "legacy-2020-liquidity",
+    name: "Crown Liquidity Fund",
+    type: "Portfolio Redemption",
+    amount: 1650000,
+    status: "Completed",
+    time: "Jul 6, 2020",
+    method: "Private Banking Wire",
+  },
+  {
+    id: "legacy-2019-investment",
+    name: "Oakmont Growth Fund",
+    type: "Series C Investment",
+    amount: -925000,
+    status: "Completed",
+    time: "Oct 21, 2019",
+    method: "Capital Call",
+  },
+  {
+    id: "legacy-2018-opening",
+    name: "Founders Equity Trust",
+    type: "Opening Portfolio Transfer",
+    amount: 2400000,
+    status: "Completed",
+    time: "Apr 12, 2018",
+    method: "Wealth Transfer",
   },
 ];
+const retiredDemoTransactionIds = new Set([
+  "seed-netflix",
+  "seed-salary",
+  "seed-apple",
+]);
 
 const seedAlerts: BankAlert[] = [
   {
     id: "seed-payment",
     type: "Payment",
-    title: "Salary payment received",
-    desc: "$4,000 credited to Aurex Checking",
-    time: "2 mins ago",
+    title: "Capital distribution settled",
+    desc: "$2,850,000 credited to Aurex Checking",
+    time: "Jun 28",
     status: "Completed",
     unread: true,
   },
@@ -301,6 +387,34 @@ function getStoredItems<T>(userId: string, key: string, fallback: T[]) {
 
   const stored = window.localStorage.getItem(getStorageKey(userId, key));
   return stored ? (JSON.parse(stored) as T[]) : fallback;
+}
+
+function mergeTransactionHistory(transactions: BankTransaction[]) {
+  const currentTransactions = transactions.filter(
+    (transaction) => !retiredDemoTransactionIds.has(transaction.id)
+  );
+  const transactionIds = new Set(
+    currentTransactions.map((transaction) => transaction.id)
+  );
+
+  return [
+    ...currentTransactions,
+    ...seedTransactions.filter((transaction) => !transactionIds.has(transaction.id)),
+  ].slice(0, 24);
+}
+
+function mergeAlertHistory(alerts: BankAlert[]) {
+  const seedAlertIds = new Set(seedAlerts.map((alert) => alert.id));
+  const storedById = new Map(alerts.map((alert) => [alert.id, alert]));
+  const currentAlerts = alerts.filter((alert) => !seedAlertIds.has(alert.id));
+
+  return [
+    ...currentAlerts,
+    ...seedAlerts.map((alert) => ({
+      ...alert,
+      unread: storedById.get(alert.id)?.unread ?? alert.unread,
+    })),
+  ].slice(0, 12);
 }
 
 function titleCaseName(value: string) {
@@ -718,13 +832,21 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       .maybeSingle();
 
     const profileBalance = readFiniteNumber(profile?.balance);
-    const resolvedBalance = metadataBalance ?? profileBalance ?? STARTING_BALANCE;
-    const storedAlerts = getStoredItems(profileInfo.userId, "alerts", seedAlerts);
+    // The profiles ledger is updated by admin actions and transfers. Auth
+    // metadata is retained as a fallback for older accounts, but can remain
+    // stale in an already-issued session.
+    const resolvedBalance = profileBalance ?? metadataBalance ?? STARTING_BALANCE;
+    const storedAlerts = mergeAlertHistory(
+      getStoredItems(profileInfo.userId, "alerts", seedAlerts)
+    );
+    const storedTransactions = mergeTransactionHistory(
+      getStoredItems(profileInfo.userId, "transactions", seedTransactions)
+    );
 
     setBalance(resolvedBalance);
     setReserve(metadataReserve ?? getStoredNumber(profileInfo.userId, "reserve", STARTING_RESERVE));
     setIncome(metadataIncome ?? getStoredNumber(profileInfo.userId, "income", STARTING_INCOME));
-    setTransactions(getStoredItems(profileInfo.userId, "transactions", seedTransactions));
+    setTransactions(storedTransactions);
     setAlerts(storedAlerts);
 
     if (profileBalance !== null && metadataBalance === null) {
@@ -743,7 +865,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       .select("id, sender, receiver, amount, type, account_type, bank_name, created_at")
       .or(`sender.eq.${username},receiver.eq.${username}`)
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(12);
 
     if (transferData?.length) {
       const mapped = transferData.map((item) => {
@@ -756,13 +878,19 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
           name: sent ? String(item.receiver) : String(item.sender),
           type: `${String(item.type ?? "Transfer")} transfer`,
           amount: sent ? -amount : amount,
-          status: sent ? "Sent" : "Received",
-          time: "Live",
+          status: "Completed",
+          time: item.created_at
+            ? new Date(String(item.created_at)).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "Live",
           method: item.bank_name ? String(item.bank_name) : "Aurex Secure",
         };
       });
 
-      setTransactions([...mapped, ...seedTransactions].slice(0, 8));
+      setTransactions(mergeTransactionHistory(mapped));
     }
   }, []);
 
@@ -782,6 +910,24 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
         refreshBanking();
       }
     }, 0);
+    const refreshInterval = window.setInterval(() => {
+      if (active && document.visibilityState === "visible") {
+        refreshBanking();
+      }
+    }, 15000);
+    const refreshOnFocus = () => {
+      if (active) {
+        refreshBanking();
+      }
+    };
+    const refreshOnVisibility = () => {
+      if (active && document.visibilityState === "visible") {
+        refreshBanking();
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisibility);
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
@@ -839,6 +985,9 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
       window.clearTimeout(timer);
+      window.clearInterval(refreshInterval);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisibility);
       authListener.subscription.unsubscribe();
       supabase.removeChannel(profileChannel);
       supabase.removeChannel(transferChannel);

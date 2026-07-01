@@ -22,8 +22,7 @@ function getServerPortalTarget(): HTMLElement | null {
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { isAdmin, loading: adminStatusLoading } = useAdminStatus();
-  const canShowAdmin = isAdmin && !adminStatusLoading;
+  const { isAdmin } = useAdminStatus();
   const [moreOpen, setMoreOpen] = useState(false);
   const portalTarget = useSyncExternalStore(
     subscribePortalTarget,
@@ -41,13 +40,13 @@ export default function BottomNav() {
   const moreItems = [
     { name: "Cards", icon: "card" as const, href: "/cards" },
     { name: "Notifications", icon: "bell" as const, href: "/notifications" },
-    { name: "Settings", icon: "settings" as const, href: "/settings" },
-    { name: "Profile", icon: "profile" as const, href: "/profile" },
-    { name: "Security", icon: "shield" as const, href: "/security/activity" },
-    { name: "Support", icon: "help" as const, href: "/support" },
-    ...(canShowAdmin
+    ...(isAdmin
       ? [{ name: "Admin", icon: "admin" as const, href: "/admin" }]
       : []),
+    { name: "Profile", icon: "profile" as const, href: "/profile" },
+    { name: "Security", icon: "shield" as const, href: "/security/activity" },
+    { name: "Settings", icon: "settings" as const, href: "/settings" },
+    { name: "Support", icon: "help" as const, href: "/support" },
   ];
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);

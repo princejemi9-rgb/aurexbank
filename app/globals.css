@@ -120,10 +120,26 @@ body {
       font-size: clamp(1.05rem, 1.45vw, 1.375rem);
     }
 
+    .desktop-sidebar-menu {
+      display: flex;
+      flex-direction: column;
+    }
+
     .desktop-sidebar-nav {
+      display: flex;
+      flex: 1 0 auto;
+      flex-direction: column;
+      gap: clamp(0.5rem, 1.25vh, 0.75rem);
       padding-right: clamp(0.875rem, 1.45vw, 1.25rem);
       padding-bottom: 0;
       padding-left: clamp(0.875rem, 1.45vw, 1.25rem);
+    }
+
+    .desktop-sidebar-section {
+      display: flex;
+      min-height: min-content;
+      flex-basis: 0;
+      flex-direction: column;
     }
 
     .desktop-sidebar-section-label {
@@ -132,16 +148,18 @@ body {
 
     .desktop-sidebar-nav-items {
       display: grid;
+      flex: 1;
+      grid-auto-rows: minmax(clamp(1.75rem, 4.75vh, 2.5rem), 1fr);
       gap: clamp(0.1875rem, 0.4vh, 0.25rem);
       margin-top: clamp(0.3rem, 0.85vh, 0.375rem);
     }
 
     .desktop-sidebar-account {
-      margin-top: clamp(0.5rem, 1.25vh, 0.75rem);
+      margin-top: 0;
     }
 
     .desktop-sidebar-nav-item {
-      height: clamp(1.75rem, 4.75vh, 2.5rem);
+      min-height: clamp(1.75rem, 4.75vh, 2.5rem);
       padding-right: clamp(0.75rem, 1vw, 0.875rem);
       padding-left: clamp(0.75rem, 1vw, 0.875rem);
       font-size: clamp(0.6875rem, 0.95vw, 0.90625rem);
@@ -153,6 +171,7 @@ body {
     }
 
     .desktop-sidebar-tier-wrap {
+      flex: 0 0 auto;
       padding:
         2px
         clamp(0.875rem, 1.45vw, 1.25rem)

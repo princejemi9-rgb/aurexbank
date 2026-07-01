@@ -9,8 +9,7 @@ import { useAdminStatus } from "../../context/AdminStatusContext";
 
 export default function DesktopSidebar() {
   const pathname = usePathname();
-  const { isAdmin, loading: adminStatusLoading } = useAdminStatus();
-  const canShowAdmin = isAdmin && !adminStatusLoading;
+  const { isAdmin } = useAdminStatus();
 
   const navItems = [
     { name: "Dashboard", icon: "dashboard" as const, href: "/dashboard", section: "primary" as const },
@@ -20,9 +19,9 @@ export default function DesktopSidebar() {
     { name: "Cards", icon: "card" as const, href: "/cards", section: "primary" as const },
     { name: "Notifications", icon: "bell" as const, href: "/notifications", section: "primary" as const },
     { name: "Admin", icon: "admin" as const, href: "/admin", adminOnly: true, section: "account" as const },
-    { name: "Settings", icon: "settings" as const, href: "/settings", section: "account" as const },
     { name: "Profile", icon: "profile" as const, href: "/profile", section: "account" as const },
     { name: "Security", icon: "shield" as const, href: "/security/activity", section: "account" as const },
+    { name: "Settings", icon: "settings" as const, href: "/settings", section: "account" as const },
     { name: "Support", icon: "help" as const, href: "/support", section: "account" as const },
   ];
 
@@ -33,7 +32,7 @@ export default function DesktopSidebar() {
       .filter((item) => item.section === section)
       .filter((item) => {
         if (!item.adminOnly) return true;
-        return canShowAdmin;
+        return isAdmin;
       })
       .map((item) => {
         const active = isActive(item.href);
@@ -90,14 +89,17 @@ export default function DesktopSidebar() {
 
       <div className="desktop-sidebar-menu scrollbar-none min-h-0 flex-1 overflow-y-auto">
         <nav className="desktop-sidebar-nav">
-          <div>
+          <div className="desktop-sidebar-section" style={{ flexGrow: 6 }}>
             <p className="desktop-sidebar-section-label px-2 font-bold uppercase tracking-[0.18em] text-zinc-600">
               Banking
             </p>
             <div className="desktop-sidebar-nav-items">{renderNavItems("primary")}</div>
           </div>
 
-          <div className="desktop-sidebar-account">
+          <div
+            className="desktop-sidebar-section desktop-sidebar-account"
+            style={{ flexGrow: isAdmin ? 5 : 4 }}
+          >
             <p className="desktop-sidebar-section-label px-2 font-bold uppercase tracking-[0.18em] text-zinc-600">
               Account
             </p>

@@ -24,7 +24,7 @@ type TransferType = {
   id: TransferTypeId;
   title: string;
   desc: string;
-  icon: "receive" | "bank" | "send" | "crypto";
+  icon: "transfer" | "bank" | "send" | "crypto";
   feeLabel: string;
   feeAmount: number;
   timeline: string;
@@ -82,7 +82,7 @@ const transferTypes: TransferType[] = [
     id: "internal",
     title: "Internal",
     desc: "Aurex Bank transfers",
-    icon: "receive",
+    icon: "transfer",
     feeLabel: "$0",
     feeAmount: 0,
     timeline: "Instant",

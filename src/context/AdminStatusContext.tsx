@@ -26,10 +26,10 @@ type AdminStatusContextValue = AdminStatus & {
 const AdminStatusContext = createContext<AdminStatusContextValue | null>(null);
 
 function getInitialAdminStatus(): AdminStatus {
-  const cachedStatus = getCachedAdminStatus();
-
   return {
-    isAdmin: cachedStatus?.isAdmin === true,
+    // The cached status cannot be trusted until it is matched to the active
+    // session's user ID. Start closed so another account never sees admin UI.
+    isAdmin: false,
     loading: true,
   };
 }

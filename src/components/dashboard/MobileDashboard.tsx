@@ -178,8 +178,8 @@ const MobileDashboard = memo(function MobileDashboard() {
 
   const quickActions = useMemo(
     () => [
-      { label: "Transfer", icon: "activity" as const, href: "/send" },
-      { label: "Pay", icon: "send" as const, href: "/payments" },
+      { label: "Transfer", icon: "transfer" as const, href: "/send" },
+      { label: "Pay", icon: "pay" as const, href: "/payments" },
       { label: "Deposit", icon: "receive" as const, href: "/receive" },
       { label: "Cards", icon: "card" as const, href: "/cards" },
     ],

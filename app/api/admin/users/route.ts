@@ -549,11 +549,10 @@ async function updateTargetProfileBalance(
     .from("profiles")
     .update({ balance: toWholeDatabaseMoney(balance) })
     .eq("username", username)
-    .select("username,balance")
-    .maybeSingle();
+    .select("username,balance");
 
   if (error) return { error };
-  if (data) return { profile: data as ProfileRecord };
+  if (data?.length) return { profile: data[0] as ProfileRecord };
 
   const { data: insertedProfile, error: insertError } = await dbClient
     .from("profiles")

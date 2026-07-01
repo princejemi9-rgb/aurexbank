@@ -6,10 +6,10 @@ import AppIcon from "../ui/AppIcon";
 
 export default function QuickActions() {
   const actions = [
-    { title: "Send Money", subtitle: "Bank, wire, crypto", icon: "send" as const, href: "/send" },
+    { title: "Send Money", subtitle: "Bank, wire, crypto", icon: "transfer" as const, href: "/send" },
+    { title: "Pay Bills", subtitle: "Now or scheduled", icon: "pay" as const, href: "/payments" },
     { title: "Receive", subtitle: "Accounts and QR", icon: "receive" as const, href: "/receive" },
     { title: "Cards", subtitle: "Limits and controls", icon: "card" as const, href: "/cards" },
-    { title: "Crypto", subtitle: "Wallet and assets", icon: "crypto" as const, href: "/receive" },
   ];
 
   return (

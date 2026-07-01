@@ -789,11 +789,14 @@ async function ensureRemoteProfile(profile: BankingProfile, balance: number) {
     balance: toWholeDatabaseMoney(balance),
   };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
-    .upsert(row, { onConflict: "username" });
+    .update({ balance: row.balance })
+    .eq("username", row.username)
+    .select("username")
+    .limit(1);
 
-  if (!error) return;
+  if (!error && data?.length) return;
 
   await supabase.from("profiles").insert([row]);
 }

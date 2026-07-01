@@ -9,11 +9,13 @@ import { useAdminStatus } from "../../context/AdminStatusContext";
 
 export default function DesktopSidebar() {
   const pathname = usePathname();
-  const { isAdmin } = useAdminStatus();
+  const { isAdmin, loading: adminStatusLoading } = useAdminStatus();
+  const canShowAdmin = isAdmin && !adminStatusLoading;
 
   const navItems = [
     { name: "Dashboard", icon: "dashboard" as const, href: "/dashboard", section: "primary" as const },
-    { name: "Send", icon: "send" as const, href: "/send", section: "primary" as const },
+    { name: "Send", icon: "transfer" as const, href: "/send", section: "primary" as const },
+    { name: "Bill Pay", icon: "pay" as const, href: "/payments", section: "primary" as const },
     { name: "Receive", icon: "receive" as const, href: "/receive", section: "primary" as const },
     { name: "Cards", icon: "card" as const, href: "/cards", section: "primary" as const },
     { name: "Notifications", icon: "bell" as const, href: "/notifications", section: "primary" as const },
@@ -31,7 +33,7 @@ export default function DesktopSidebar() {
       .filter((item) => item.section === section)
       .filter((item) => {
         if (!item.adminOnly) return true;
-        return isAdmin;
+        return canShowAdmin;
       })
       .map((item) => {
         const active = isActive(item.href);
@@ -114,7 +116,7 @@ export default function DesktopSidebar() {
             </span>
           </div>
 
-          <div className="mt-1.5 space-y-0.5 border-t border-white/[0.08] pt-1.5">
+          <div className="desktop-sidebar-tier-details space-y-0.5 border-t border-white/[0.08]">
             <div className="desktop-sidebar-tier-copy flex items-center justify-between gap-3">
               <span className="text-zinc-500">Transfer Limit</span>
               <span className="font-bold text-zinc-100">$25K daily</span>

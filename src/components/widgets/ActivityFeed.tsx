@@ -9,7 +9,7 @@ import { PrivateMoneyText } from "../ui/PrivateAmount";
 function iconForAlert(type: BankAlert["type"]) {
   if (type === "Payment" || type === "Savings") return "receive" as const;
   if (type === "Crypto") return "crypto" as const;
-  if (type === "Transfer") return "send" as const;
+  if (type === "Transfer") return "transfer" as const;
   return "shield" as const;
 }
 

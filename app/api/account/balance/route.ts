@@ -230,18 +230,30 @@ export async function POST(request: NextRequest) {
         },
       })
     : supabase;
-  const { error: profileError } = await profileClient
+  const { data: updatedProfiles, error: profileError } = await profileClient
     .from("profiles")
-    .upsert(
-      { username, balance: toWholeDatabaseMoney(balance) },
-      { onConflict: "username" }
-    );
+    .update({ balance: toWholeDatabaseMoney(balance) })
+    .eq("username", username)
+    .select("username");
 
   if (profileError) {
     return NextResponse.json(
       { ok: false, error: profileError.message },
       { status: 500 }
     );
+  }
+
+  if (!updatedProfiles?.length) {
+    const { error: insertError } = await profileClient
+      .from("profiles")
+      .insert([{ username, balance: toWholeDatabaseMoney(balance) }]);
+
+    if (insertError) {
+      return NextResponse.json(
+        { ok: false, error: insertError.message },
+        { status: 500 }
+      );
+    }
   }
 
   const nextMetadata = {

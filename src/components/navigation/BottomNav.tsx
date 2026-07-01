@@ -2,19 +2,38 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 
 import AppIcon from "../ui/AppIcon";
 import { useAdminStatus } from "../../context/AdminStatusContext";
 
+function subscribePortalTarget() {
+  return () => {};
+}
+
+function getPortalTarget(): HTMLElement | null {
+  return document.body;
+}
+
+function getServerPortalTarget(): HTMLElement | null {
+  return null;
+}
+
 export default function BottomNav() {
   const pathname = usePathname();
-  const { isAdmin } = useAdminStatus();
+  const { isAdmin, loading: adminStatusLoading } = useAdminStatus();
+  const canShowAdmin = isAdmin && !adminStatusLoading;
   const [moreOpen, setMoreOpen] = useState(false);
+  const portalTarget = useSyncExternalStore(
+    subscribePortalTarget,
+    getPortalTarget,
+    getServerPortalTarget
+  );
 
   const navItems = [
     { name: "Home", icon: "dashboard" as const, href: "/dashboard" },
-    { name: "Send", icon: "send" as const, href: "/send" },
+    { name: "Send", icon: "transfer" as const, href: "/send" },
     { name: "Receive", icon: "receive" as const, href: "/receive" },
     { name: "Pay", icon: "pay" as const, href: "/payments" },
   ];
@@ -26,7 +45,7 @@ export default function BottomNav() {
     { name: "Profile", icon: "profile" as const, href: "/profile" },
     { name: "Security", icon: "shield" as const, href: "/security/activity" },
     { name: "Support", icon: "help" as const, href: "/support" },
-    ...(isAdmin
+    ...(canShowAdmin
       ? [{ name: "Admin", icon: "admin" as const, href: "/admin" }]
       : []),
   ];
@@ -34,7 +53,9 @@ export default function BottomNav() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const moreActive = moreItems.some((item) => isActive(item.href));
 
-  return (
+  if (!portalTarget) return null;
+
+  return createPortal(
     <>
       {moreOpen && (
         <div
@@ -139,6 +160,7 @@ export default function BottomNav() {
           </div>
         </div>
       </nav>
-    </>
+    </>,
+    portalTarget
   );
 }

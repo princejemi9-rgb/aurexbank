@@ -16,7 +16,7 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
     }
   }, [isAdmin, loading, router]);
 
-  if (loading && !isAdmin) return <SkeletonAuth />;
+  if (loading) return <SkeletonAuth />;
   if (!isAdmin) return null;
 
   return <>{children}</>;

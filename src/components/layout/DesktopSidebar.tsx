@@ -88,42 +88,44 @@ export default function DesktopSidebar() {
         </div>
       </div>
 
-      <nav className="desktop-sidebar-nav scrollbar-none min-h-0 flex-1 overflow-y-auto">
-        <div>
-          <p className="desktop-sidebar-section-label px-2 font-bold uppercase tracking-[0.18em] text-zinc-600">
-            Banking
-          </p>
-          <div className="desktop-sidebar-nav-items">{renderNavItems("primary")}</div>
-        </div>
-
-        <div className="desktop-sidebar-account">
-          <p className="desktop-sidebar-section-label px-2 font-bold uppercase tracking-[0.18em] text-zinc-600">
-            Account
-          </p>
-          <div className="desktop-sidebar-nav-items">{renderNavItems("account")}</div>
-        </div>
-      </nav>
-
-      <div className="desktop-sidebar-tier-wrap shrink-0">
-        <div className="desktop-sidebar-tier-card rounded-lg border border-green-300/20 bg-green-400/[0.075] shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="desktop-sidebar-tier-title truncate font-black text-white">Aurex Black</p>
-              <p className="desktop-sidebar-tier-copy mt-0.5 truncate text-green-200/70">Premium banking tier</p>
-            </div>
-            <span className="desktop-sidebar-tier-icon flex shrink-0 items-center justify-center rounded-md bg-green-400/15 text-green-300">
-              <AppIcon name="spark" className="h-3.5 w-3.5" />
-            </span>
+      <div className="desktop-sidebar-menu scrollbar-none min-h-0 flex-1 overflow-y-auto">
+        <nav className="desktop-sidebar-nav">
+          <div>
+            <p className="desktop-sidebar-section-label px-2 font-bold uppercase tracking-[0.18em] text-zinc-600">
+              Banking
+            </p>
+            <div className="desktop-sidebar-nav-items">{renderNavItems("primary")}</div>
           </div>
 
-          <div className="desktop-sidebar-tier-details space-y-0.5 border-t border-white/[0.08]">
-            <div className="desktop-sidebar-tier-copy flex items-center justify-between gap-3">
-              <span className="text-zinc-500">Transfer Limit</span>
-              <span className="font-bold text-zinc-100">$25K daily</span>
+          <div className="desktop-sidebar-account">
+            <p className="desktop-sidebar-section-label px-2 font-bold uppercase tracking-[0.18em] text-zinc-600">
+              Account
+            </p>
+            <div className="desktop-sidebar-nav-items">{renderNavItems("account")}</div>
+          </div>
+        </nav>
+
+        <div className="desktop-sidebar-tier-wrap">
+          <div className="desktop-sidebar-tier-card rounded-lg border border-green-300/20 bg-green-400/[0.075] shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="desktop-sidebar-tier-title truncate font-black text-white">Aurex Black</p>
+                <p className="desktop-sidebar-tier-copy mt-0.5 truncate text-green-200/70">Premium banking tier</p>
+              </div>
+              <span className="desktop-sidebar-tier-icon flex shrink-0 items-center justify-center rounded-md bg-green-400/15 text-green-300">
+                <AppIcon name="spark" className="h-3.5 w-3.5" />
+              </span>
             </div>
-            <div className="desktop-sidebar-tier-copy flex items-center justify-between gap-3">
-              <span className="text-zinc-500">Priority Support</span>
-              <span className="font-bold text-green-300">Enabled</span>
+
+            <div className="desktop-sidebar-tier-details space-y-0.5 border-t border-white/[0.08]">
+              <div className="desktop-sidebar-tier-copy flex items-center justify-between gap-3">
+                <span className="text-zinc-500">Transfer Limit</span>
+                <span className="font-bold text-zinc-100">$25K daily</span>
+              </div>
+              <div className="desktop-sidebar-tier-copy flex items-center justify-between gap-3">
+                <span className="text-zinc-500">Priority Support</span>
+                <span className="font-bold text-green-300">Enabled</span>
+              </div>
             </div>
           </div>
         </div>

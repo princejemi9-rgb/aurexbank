@@ -1566,8 +1566,8 @@ export default function AdminPage() {
                       </button>
                     </form>
 
-                    <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                      <div className="min-w-0 space-y-6">
+                    <div className="grid min-w-0 items-stretch gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                      <div className="flex min-w-0 flex-col gap-6">
                         <form
                           key={`metrics-${selectedUser.username}-${selectedUser.balance}-${selectedUser.reserve}-${selectedUser.income}`}
                           onSubmit={saveMetrics}
@@ -1625,7 +1625,10 @@ export default function AdminPage() {
                           </button>
                         </form>
 
-                        <form onSubmit={publishAlert} className="bank-surface rounded-lg p-6">
+                        <form
+                          onSubmit={publishAlert}
+                          className="bank-surface flex flex-1 flex-col rounded-lg p-6"
+                        >
                           <p className="text-sm font-semibold text-green-400">
                             Communication Controls
                           </p>
@@ -1689,17 +1692,19 @@ export default function AdminPage() {
                             </label>
                           </div>
 
-                          <button
-                            type="submit"
-                            disabled={Boolean(busyAction)}
-                            className="mt-6 w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
-                          >
-                            {busyAction === "publishAlert" ? "Publishing..." : "Publish Alert"}
-                          </button>
+                          <div className="mt-auto pt-6">
+                            <button
+                              type="submit"
+                              disabled={Boolean(busyAction)}
+                              className="w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
+                            >
+                              {busyAction === "publishAlert" ? "Publishing..." : "Publish Alert"}
+                            </button>
+                          </div>
                         </form>
                       </div>
 
-                      <div className="min-w-0 space-y-6">
+                      <div className="flex min-w-0 flex-col gap-6">
                         <form onSubmit={postTransaction} className="bank-surface rounded-lg p-6">
                           <p className="text-sm font-semibold text-green-400">
                             Ledger Controls
@@ -1785,7 +1790,7 @@ export default function AdminPage() {
                           </button>
                         </form>
 
-                        <section className="bank-surface rounded-lg p-6">
+                        <section className="bank-surface flex flex-1 flex-col rounded-lg p-6">
                           <p className="text-sm font-semibold text-green-400">
                             Transfer Verification
                           </p>
@@ -1796,7 +1801,7 @@ export default function AdminPage() {
                             Give the matching code to the customer only after reviewing the transfer request.
                           </p>
 
-                          <div className="mt-6 space-y-3">
+                          <div className="mt-6 flex flex-1 flex-col gap-3">
                             {remoteTransferCodeAlerts.map((alert) => (
                               <div
                                 key={alert.id}
@@ -1929,7 +1934,7 @@ export default function AdminPage() {
                             ) : null}
 
                             {!pendingTransferCodes.length && !remoteTransferCodeAlerts.length && (
-                              <div className="rounded-lg border border-white/10 bg-black/20 p-5 text-sm font-semibold text-zinc-500">
+                              <div className="flex flex-1 items-center rounded-lg border border-white/10 bg-black/20 p-5 text-sm font-semibold text-zinc-500">
                                 No pending transfer codes.
                               </div>
                             )}

@@ -68,14 +68,14 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-6">
-              <div className="min-w-0 space-y-6">
+            <div className="mt-6 grid min-w-0 items-stretch gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-6">
+              <div className="flex min-w-0 flex-col gap-6 [&>*:last-child]:flex-1">
                 <ActivityChart />
                 <Transactions />
                 <UpcomingPayments />
               </div>
 
-              <div className="min-w-0 space-y-6">
+              <div className="flex min-w-0 flex-col gap-6 [&>*:last-child]:flex-1">
                 <CryptoPortfolio />
                 <Analytics />
                 <ActivityFeed />

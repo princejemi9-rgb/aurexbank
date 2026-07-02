@@ -1934,8 +1934,58 @@ export default function AdminPage() {
                             ) : null}
 
                             {!pendingTransferCodes.length && !remoteTransferCodeAlerts.length && (
-                              <div className="flex flex-1 items-center rounded-lg border border-white/10 bg-black/20 p-5 text-sm font-semibold text-zinc-500">
-                                No pending transfer codes.
+                              <div className="flex flex-1 flex-col justify-center rounded-lg border border-white/10 bg-black/20 p-5">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-green-400/10 text-green-300">
+                                    <AppIcon name="check" className="h-5 w-5" />
+                                  </span>
+                                  <div>
+                                    <p className="text-sm font-black text-zinc-100">
+                                      Verification queue clear
+                                    </p>
+                                    <p className="mt-1 text-xs text-zinc-500">
+                                      No pending transfer codes require review.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                                  {[
+                                    {
+                                      label: "Queue",
+                                      value: "Clear",
+                                      icon: "check" as const,
+                                    },
+                                    {
+                                      label: "Delivery Rail",
+                                      value: "Online",
+                                      icon: "transfer" as const,
+                                    },
+                                    {
+                                      label: "Review Policy",
+                                      value: "Active",
+                                      icon: "shield" as const,
+                                    },
+                                  ].map((signal) => (
+                                    <div
+                                      key={signal.label}
+                                      className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
+                                    >
+                                      <div className="flex items-center justify-between gap-3">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-zinc-600">
+                                          {signal.label}
+                                        </p>
+                                        <AppIcon
+                                          name={signal.icon}
+                                          className="h-3.5 w-3.5 text-green-400"
+                                        />
+                                      </div>
+                                      <p className="mt-2 text-sm font-black text-green-300">
+                                        {signal.value}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>

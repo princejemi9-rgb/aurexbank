@@ -10,6 +10,7 @@ import { useBanking } from "../../src/context/BankingContext";
 import { useAdminStatus } from "../../src/context/AdminStatusContext";
 import EditProfileModal from "../../src/components/profile/EditProfileModal";
 import AvatarUploader from "../../src/components/profile/AvatarUploader";
+import UserProfile from "../../src/components/widgets/UserProfile";
 
 type KycState = {
   identity: boolean;
@@ -344,6 +345,8 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </section>
+
+              <UserProfile />
 
               <section className="bank-surface rounded-lg p-6">
                 <div className="flex items-start justify-between gap-4">

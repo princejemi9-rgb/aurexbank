@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
-const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const rawSupabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
 
 function parseSupabaseUrl(url: string) {
   try {
@@ -28,10 +30,14 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 export const supabaseAuthStorageKey = getSupabaseAuthStorageKey(supabaseUrl);
 
 if (!supabaseUrl) {
-  console.warn("[SUPABASE] Supabase client created without a valid URL. Set NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL.");
+  console.warn(
+    "[SUPABASE] Supabase client created without a valid URL. Set NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL."
+  );
 }
 if (!supabaseAnonKey) {
-  console.warn("[SUPABASE] Supabase client created without an anon/service key. Set NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY.");
+  console.warn(
+    "[SUPABASE] Supabase client created without an anon key. Set NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY."
+  );
 }
 
 export const supabase = createClient(

@@ -54,7 +54,7 @@ function classifyAuthError(
     rawMessage.includes("Missing Supabase env vars")
   ) {
     console.error("[AUTH CLIENT] Detected CONFIG_ERROR - env vars missing");
-    return "Application configuration error.";
+    return "Application configuration error. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.";
   }
 
   // 2) Invalid credentials (wrong email/password)
@@ -180,8 +180,12 @@ export default function SignInPage() {
 
     // Check if Supabase client is configured
     if (!isSupabaseConfigured) {
-      console.error("[AUTH CLIENT] Supabase is NOT configured — env vars missing at build time");
-      setError("Application configuration error.");
+      console.error(
+        "[AUTH CLIENT] Supabase is NOT configured — env vars missing at build time"
+      );
+      setError(
+        "Application configuration error. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
+      );
       setLoading(false);
       return;
     }

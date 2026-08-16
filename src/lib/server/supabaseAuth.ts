@@ -4,6 +4,7 @@ export type SupabaseRouteUser = {
   id: string;
   email?: string | null;
   user_metadata?: Record<string, unknown> | null;
+  app_metadata?: Record<string, unknown> | null;
 };
 
 async function readRemoteError(response: Response, fallback: string) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { createSecurityPasscode, PASSCODE_METADATA_KEY, readSecurityPasscode, validatePasscodeInput } from "../../../../src/lib/server/securityPasscode";
 
 type ProfileRecord = {
   username?: string | null;
@@ -34,6 +35,7 @@ type AdminActionBody = {
   avatarUrl?: unknown;
   accountType?: unknown;
   currency?: unknown;
+  passcode?: unknown;
 };
 
 const STARTING_BALANCE = 0;
@@ -230,6 +232,7 @@ function buildAdminUser(user: User | null, profile?: ProfileRecord | null) {
     lastSignInAt: readIsoDate(user?.last_sign_in_at),
     createdAt: user?.created_at ?? "",
     source: user ? "auth" : "profile",
+    securityPasscodeConfigured: Boolean(readSecurityPasscode(user?.app_metadata?.[PASSCODE_METADATA_KEY])),
   };
 }
 
@@ -751,6 +754,30 @@ export async function POST(request: NextRequest) {
     ).catch(() => {});
 
     return NextResponse.json({ ok: true, user: result.user });
+  }
+
+  if (action === "setSecurityPasscode" || action === "resetSecurityPasscode" || action === "requireSecurityPasscode") {
+    if (!admin.hasServiceRole || !targetUser) {
+      return jsonError("Service role key is required to manage security passcodes", 403);
+    }
+    const currentAppMetadata = targetUser.app_metadata ?? {};
+    const current = readSecurityPasscode(currentAppMetadata[PASSCODE_METADATA_KEY]);
+    let nextAppMetadata: Record<string, unknown>;
+    if (action === "setSecurityPasscode") {
+      if (!validatePasscodeInput(body.passcode)) return jsonError("Security passcode must be 6 to 128 characters", 400);
+      nextAppMetadata = { ...currentAppMetadata, [PASSCODE_METADATA_KEY]: createSecurityPasscode(body.passcode as string) };
+    } else if (action === "resetSecurityPasscode") {
+      nextAppMetadata = { ...currentAppMetadata };
+      delete nextAppMetadata[PASSCODE_METADATA_KEY];
+    } else {
+      if (!current) return jsonError("No security passcode is configured for this user", 400);
+      nextAppMetadata = { ...currentAppMetadata, [PASSCODE_METADATA_KEY]: { ...current, revision: createSecurityPasscode("temporary-revision").revision } };
+    }
+    const { error } = await admin.dbClient.auth.admin.updateUserById(targetUser.id, { app_metadata: nextAppMetadata });
+    if (error) return jsonError(error.message, 500);
+    const { data: { user: updatedUser } } = await admin.dbClient.auth.admin.getUserById(targetUser.id);
+    const profile = await getProfileByUsername(admin.dbClient, target.username);
+    return NextResponse.json({ ok: true, user: buildAdminUser(updatedUser ?? targetUser, profile ?? { username: target.username }) });
   }
 
   if (action === "updateMetrics") {

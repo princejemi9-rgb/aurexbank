@@ -13,6 +13,7 @@ import Analytics from "../widgets/Analytics";
 import CryptoPortfolio from "../widgets/CryptoPortfolio";
 import LiveCard from "../widgets/LiveCard";
 import UpcomingPayments from "../widgets/UpcomingPayments";
+import { AurexMark } from "../brand/AurexBrand";
 
 function SectionHeader({ title, href }: { title: string; href?: string }) {
   return (
@@ -255,6 +256,11 @@ const MobileDashboard = memo(function MobileDashboard() {
       <div className="mobile-dashboard-root mx-auto min-h-screen w-full max-w-[430px] min-w-0 bg-[var(--brand-background)] px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-5 text-white">
         <header className="flex items-center justify-between gap-4">
           <Link href="/profile" className="flex min-w-0 items-center gap-3">
+            <AurexMark
+              className="h-10 w-10 rounded-xl"
+              imageClassName="p-1.5"
+              label="Aurex Bank home"
+            />
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-green-400 text-base font-black text-black">
               {currentProfile.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element

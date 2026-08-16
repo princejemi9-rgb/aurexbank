@@ -14,6 +14,7 @@ const PUBLIC_ROUTES = [
   "/auth/signin",
   "/auth/signup",
   "/auth/forgot-password",
+  "/security/verify",
 ];
 
 function isPublicRoute(pathname: string) {
@@ -46,6 +47,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+  const [securityVerified, setSecurityVerified] = useState(false);
+  const [securityLoading, setSecurityLoading] = useState(true);
   const presenceInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -56,6 +59,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       setHasSession(!!session);
+      if (session?.access_token) {
+        const response = await fetch("/api/auth/security-status", { headers: { Authorization: `Bearer ${session.access_token}` }, credentials: "include" }).catch(() => null);
+        const status = await response?.json().catch(() => null) as { verified?: boolean } | null;
+        if (mounted) setSecurityVerified(status?.verified === true);
+      } else if (mounted) setSecurityVerified(false);
+      if (mounted) setSecurityLoading(false);
       setLoading(false);
     }
 
@@ -64,6 +73,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       setHasSession(!!session);
+      setSecurityVerified(false);
+      setSecurityLoading(!session);
       setLoading(false);
     });
 
@@ -74,7 +85,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || securityLoading) return;
 
     const isPublic = isPublicRoute(pathname);
 
@@ -83,10 +94,18 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isPublic && hasSession && pathname !== "/dashboard") {
+    if (hasSession && pathname === "/security/verify" && securityVerified) {
+      router.replace("/dashboard");
+      return;
+    }
+    if (hasSession && !securityVerified && pathname !== "/security/verify") {
+      router.replace("/security/verify");
+      return;
+    }
+    if (isPublic && hasSession && securityVerified && pathname !== "/dashboard") {
       router.replace("/dashboard");
     }
-  }, [hasSession, loading, pathname, router]);
+  }, [hasSession, loading, pathname, router, securityLoading, securityVerified]);
 
   useEffect(() => {
     if (loading || !hasSession) return;
@@ -147,7 +166,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [hasSession, loading]);
 
-  if (loading) {
+  if (loading || (hasSession && securityLoading)) {
     // show subtle skeleton to avoid flashing auth pages
     return <SkeletonAuth />;
   }
@@ -158,9 +177,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (!isPublic && hasSession) {
+  if (!isPublic && hasSession && securityVerified) {
     return <>{children}</>;
   }
+
+  if (pathname === "/security/verify" && hasSession) return <>{children}</>;
 
   return null;
 }

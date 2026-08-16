@@ -39,9 +39,14 @@ For this repository:
 
 - Keep the Vercel Root Directory at the repository root.
 - Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for every Vercel environment.
+- Configure the server-only `AUREX_SECURITY_SESSION_SECRET` with a long random value (for example, `openssl rand -base64 32`) and retain `SUPABASE_SERVICE_ROLE_KEY`. These are required for the Aurex security-passcode verification flow.
 - Push the complete repository with Git. Do not use GitHub's file uploader for deployments, and never upload `.env.local`.
 - Run `npm run check` before pushing. GitHub Actions repeats the same lint and production-build checks.
 
 ## Admin branding
 
 Administrators can change the global bank name, logo, primary accent, and dark background from the **Bank Branding** panel on `/admin`. Branding is stored in the existing Supabase `avatars` storage bucket and is shared by desktop, mobile, authentication pages, navigation, and generated receipts. Logo uploads accept PNG, JPG, or WebP files up to 2 MB.
+
+## Security passcodes
+
+After Supabase email/password authentication, every user must complete a second Aurex security-passcode check before protected pages or APIs are available. Administrators manage passcodes from the selected customer’s **Security Passcode** panel. Only an scrypt verifier is stored in Supabase `app_metadata`; the plaintext passcode is never returned or displayed.

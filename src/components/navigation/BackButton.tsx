@@ -13,7 +13,7 @@ const PUBLIC_ROUTES = [
   "/auth/forgot-password",
 ];
 
-const HIDDEN_ROUTES = [...PUBLIC_ROUTES, "/dashboard"];
+const HIDDEN_ROUTES = [...PUBLIC_ROUTES, "/dashboard", "/security/verify"];
 const HISTORY_KEY = "aurexbank:navigation-history";
 const MAX_HISTORY_ITEMS = 25;
 const BACK_EVENT = "aurex:navigate-back";

@@ -93,8 +93,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     void getSessionSafely().then(syncSecurityState);
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
+
+      // A refresh only replaces the provider access token. The independent,
+      // signed Aurex security session remains valid, so rechecking here can
+      // temporarily unmount the passcode form without changing authorization.
+      if (event === "TOKEN_REFRESHED") return;
+
       void syncSecurityState(session);
     });
 
@@ -193,6 +199,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   const isPublic = isPublicRoute(pathname);
 
+  // This is an intentional public transition route. Keeping it mounted while
+  // session status resolves prevents a background auth event from clearing an
+  // in-progress passcode entry.
+  if (pathname === "/security/verify") return <>{children}</>;
+
   if (loading || securityLoading || (hasSession && securityVerified === null)) {
     // show subtle skeleton to avoid flashing protected pages while auth resolves
     return <SkeletonAuth />;
@@ -205,8 +216,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   if (!isPublic && hasSession && securityVerified) {
     return <>{children}</>;
   }
-
-  if (pathname === "/security/verify" && hasSession) return <>{children}</>;
 
   return null;
 }

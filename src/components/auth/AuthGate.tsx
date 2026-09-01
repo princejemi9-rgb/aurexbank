@@ -48,7 +48,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
-  const [securityVerified, setSecurityVerified] = useState(false);
+  const [securityVerified, setSecurityVerified] = useState<boolean | null>(null);
   const [securityLoading, setSecurityLoading] = useState(true);
   const presenceInFlightRef = useRef(false);
 
@@ -91,7 +91,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (loading || securityLoading) return;
+    if (loading || securityLoading || securityVerified === null) return;
 
     const isPublic = isPublicRoute(pathname);
 
@@ -101,15 +101,19 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (hasSession && pathname === "/security/verify" && securityVerified) {
-      router.replace("/dashboard");
+    if (pathname === "/security/verify") {
+      if (securityVerified) {
+        router.replace("/dashboard");
+      }
       return;
     }
-    if (hasSession && !securityVerified && pathname !== "/security/verify") {
+
+    if (!securityVerified) {
       router.replace("/security/verify");
       return;
     }
-    if (isPublic && hasSession && securityVerified && pathname !== "/dashboard") {
+
+    if (isPublic && pathname !== "/dashboard") {
       router.replace("/dashboard");
     }
   }, [hasSession, loading, pathname, router, securityLoading, securityVerified]);
@@ -175,7 +179,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   const isPublic = isPublicRoute(pathname);
 
-  if (loading || (hasSession && securityLoading)) {
+  if (loading || securityLoading || (hasSession && securityVerified === null)) {
     // show subtle skeleton to avoid flashing protected pages while auth resolves
     return <SkeletonAuth />;
   }

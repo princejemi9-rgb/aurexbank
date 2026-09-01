@@ -4,7 +4,7 @@ import type { NextResponse } from "next/server";
 export const SECURITY_SESSION_COOKIE = "aurex_security_verified";
 const MAX_AGE_SECONDS = 60 * 60 * 8;
 
-type SecuritySession = { userId: string; token: string; revision: string; exp: number };
+type SecuritySession = { userId: string; revision: string; exp: number };
 
 function secret() {
   return process.env.AUREX_SECURITY_SESSION_SECRET || "";
@@ -14,13 +14,12 @@ function sign(payload: string) {
   return createHmac("sha256", secret()).update(payload).digest("base64url");
 }
 
-export function createSecuritySession(userId: string, token: string, revision: string) {
+export function createSecuritySession(userId: string, revision: string) {
   if (!secret()) throw new Error("Missing AUREX_SECURITY_SESSION_SECRET");
 
   const payload = Buffer.from(
     JSON.stringify({
       userId,
-      token,
       revision,
       exp: Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS,
     })

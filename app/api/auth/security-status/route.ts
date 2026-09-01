@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseUser } from "../../../../src/lib/server/supabaseAuth";
-import { PASSCODE_METADATA_KEY, readSecurityPasscode, tokenFingerprint } from "../../../../src/lib/server/securityPasscode";
+import { PASSCODE_METADATA_KEY, readSecurityPasscode } from "../../../../src/lib/server/securityPasscode";
 import { readSecuritySession, SECURITY_SESSION_COOKIE } from "../../../../src/lib/server/securitySession";
 
 function isAdminEmail(email: string | null | undefined) {
@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
 
   if (isAdminEmail(result.user.email)) {
     const session = readSecuritySession(request.cookies.get(SECURITY_SESSION_COOKIE)?.value);
-    return NextResponse.json({ ok: true, configured: false, verified: Boolean(session && session.userId === result.user.id && session.token === tokenFingerprint(token) && session.revision === "admin-bypass"), bypassed: true });
+    return NextResponse.json({ ok: true, configured: false, verified: Boolean(session && session.userId === result.user.id && session.revision === "admin-bypass"), bypassed: true });
   }
 
   const passcode = readSecurityPasscode(result.user.app_metadata?.[PASSCODE_METADATA_KEY]);
   const session = readSecuritySession(request.cookies.get(SECURITY_SESSION_COOKIE)?.value);
-  const verified = Boolean(passcode && session && session.userId === result.user.id && session.token === tokenFingerprint(token) && session.revision === passcode.revision);
+  const verified = Boolean(passcode && session && session.userId === result.user.id && session.revision === passcode.revision);
   return NextResponse.json({ ok: true, configured: Boolean(passcode), verified });
 }

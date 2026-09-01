@@ -32,7 +32,7 @@ function loadLocalEnv() {
       }
       if (!process.env[key]) process.env[key] = val;
     });
-  } catch (err) {
+  } catch {
     // ignore
   }
 }
@@ -61,7 +61,6 @@ async function findUserByEmail(email) {
   let page = 1;
   while (page <= 10) {
     // supabase-js admin.listUsers returns { data }
-    // eslint-disable-next-line no-await-in-loop
     const res = await client.auth.admin.listUsers({ page, perPage: 100 });
     const users = res.data?.users || [];
     const found = users.find((u) => (u.email || "").toLowerCase() === email.toLowerCase());
@@ -83,7 +82,6 @@ async function findUserByEmail(email) {
       // try again to find a user whose user_metadata.username matches
       page = 1;
       while (page <= 10) {
-        // eslint-disable-next-line no-await-in-loop
         const res = await client.auth.admin.listUsers({ page, perPage: 100 });
         const users = res.data?.users || [];
         const found = users.find(
@@ -94,7 +92,7 @@ async function findUserByEmail(email) {
         page += 1;
       }
     }
-  } catch (err) {
+  } catch {
     // ignore
   }
 
@@ -205,7 +203,7 @@ async function run() {
 
   console.log("Updating user email and metadata...");
 
-  const { data: updated, error: updateErr } = await client.auth.admin.updateUserById(user.id, {
+  const { error: updateErr } = await client.auth.admin.updateUserById(user.id, {
     email: newEmail,
     user_metadata: nextMetadata,
   });

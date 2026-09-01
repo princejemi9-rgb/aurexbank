@@ -64,7 +64,7 @@ async function run() {
     admin_updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await client.auth.admin.updateUserById(user.id, { user_metadata: nextMetadata });
+  const { error } = await client.auth.admin.updateUserById(user.id, { user_metadata: nextMetadata });
   if (error) {
     console.error('Failed to approve KYC:', error.message || error);
     process.exit(3);

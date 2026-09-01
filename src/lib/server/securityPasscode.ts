@@ -1,4 +1,4 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 
 export const PASSCODE_METADATA_KEY = "aurex_security_passcode";
 const SCRYPT_COST = 16384;
@@ -45,9 +45,6 @@ export function verifySecurityPasscode(passcode: string, record: SecurityPasscod
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
-export function tokenFingerprint(accessToken: string) {
-  return createHash("sha256").update(accessToken).digest("base64url");
-}
 
 export function validatePasscodeInput(value: unknown): value is string {
   return typeof value === "string" && value.length >= 6 && value.length <= 128;

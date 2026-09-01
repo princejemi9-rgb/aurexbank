@@ -55,7 +55,6 @@ async function run() {
   let page = 1;
   let found = null;
   while (page <= 10) {
-    // eslint-disable-next-line no-await-in-loop
     const res = await client.auth.admin.listUsers({ page, perPage: 100 });
     const users = res.data?.users || [];
     const u = users.find((x) => (x.email || '').toLowerCase() === targetEmail.toLowerCase());
@@ -126,7 +125,7 @@ async function run() {
       admin_updated_at: savedAt,
     };
 
-    const { data, error } = await client.auth.admin.updateUserById(userId, { user_metadata: nextMeta, app_metadata: nextApp });
+    const { error } = await client.auth.admin.updateUserById(userId, { user_metadata: nextMeta, app_metadata: nextApp });
     if (error) {
       console.error('Failed to update auth metadata:', error.message || error);
     } else {

@@ -51,37 +51,51 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [securityVerified, setSecurityVerified] = useState<boolean | null>(null);
   const [securityLoading, setSecurityLoading] = useState(true);
   const presenceInFlightRef = useRef(false);
+  const securityRequestRef = useRef(0);
+  const initialSecurityCheckRef = useRef(true);
 
   useEffect(() => {
     let mounted = true;
 
-    async function initializeSession() {
-      const session = await getSessionSafely();
-      if (!mounted) return;
+    async function syncSecurityState(session: Session | null) {
+      const requestId = ++securityRequestRef.current;
+      const isInitialCheck = initialSecurityCheckRef.current;
+      setHasSession(Boolean(session));
 
-      setHasSession(!!session);
-      if (session?.access_token) {
-        const response = await fetch("/api/auth/security-status", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-          credentials: "include",
-        }).catch(() => null);
-        const status = (await response?.json().catch(() => null)) as { verified?: boolean } | null;
-        if (mounted) setSecurityVerified(status?.verified === true);
-      } else if (mounted) {
-        setSecurityVerified(false);
+      if (!session?.access_token) {
+        if (mounted && requestId === securityRequestRef.current) {
+          setSecurityVerified(false);
+          if (isInitialCheck) {
+            initialSecurityCheckRef.current = false;
+            setSecurityLoading(false);
+            setLoading(false);
+          }
+        }
+        return;
       }
-      if (mounted) setSecurityLoading(false);
-      setLoading(false);
+
+      if (isInitialCheck) setSecurityLoading(true);
+      const response = await fetch("/api/auth/security-status", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        credentials: "include",
+      }).catch(() => null);
+      const status = (await response?.json().catch(() => null)) as { verified?: boolean } | null;
+
+      if (mounted && requestId === securityRequestRef.current) {
+        setSecurityVerified(status?.verified === true);
+        if (isInitialCheck) {
+          initialSecurityCheckRef.current = false;
+          setSecurityLoading(false);
+          setLoading(false);
+        }
+      }
     }
 
-    initializeSession();
+    void getSessionSafely().then(syncSecurityState);
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
-      setHasSession(!!session);
-      setSecurityVerified(false);
-      setSecurityLoading(!session);
-      setLoading(false);
+      void syncSecurityState(session);
     });
 
     return () => {

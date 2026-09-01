@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { fetchWithRemoteTimeout } from "../../../../src/lib/server/remoteTimeout";
 import { clearSecuritySession, createSecuritySession, setSecuritySession } from "../../../../src/lib/server/securitySession";
-import { tokenFingerprint } from "../../../../src/lib/server/securityPasscode";
 
 type SupabasePasswordSession = {
   access_token?: string;
@@ -229,7 +228,7 @@ export async function POST(request: NextRequest) {
     try {
       setSecuritySession(
         res,
-        createSecuritySession(session.user.id, tokenFingerprint(session.access_token), "admin-bypass")
+        createSecuritySession(session.user.id, "admin-bypass")
       );
     } catch {
       return NextResponse.json(

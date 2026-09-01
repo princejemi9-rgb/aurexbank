@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import AurexBrand from "../../../src/components/brand/AurexBrand";
 import { supabase } from "../../../src/lib/supabase";
@@ -11,19 +11,6 @@ export default function SecurityVerifyPage() {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-    async function redirectVerifiedAdmin() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session?.access_token) return;
-      const response = await fetch("/api/auth/security-status", { credentials: "include", headers: { Authorization: `Bearer ${data.session.access_token}` } }).catch(() => null);
-      const status = (await response?.json().catch(() => null)) as { verified?: boolean; bypassed?: boolean } | null;
-      if (mounted && status?.verified && status.bypassed) router.replace("/dashboard");
-    }
-    void redirectVerifiedAdmin();
-    return () => { mounted = false; };
-  }, [router]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

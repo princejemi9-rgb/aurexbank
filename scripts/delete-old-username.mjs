@@ -57,12 +57,12 @@ async function run() {
   try {
     const { data: sdata } = await client.from('transfers').delete().eq('sender', oldUsername).select('id');
     console.log('Deleted transfers sender rows:', (sdata || []).length);
-  } catch (e) { }
+  } catch { }
 
   try {
     const { data: rdata } = await client.from('transfers').delete().eq('receiver', oldUsername).select('id');
     console.log('Deleted transfers receiver rows:', (rdata || []).length);
-  } catch (e) { }
+  } catch { }
 
   console.log('Deletion complete.');
 }

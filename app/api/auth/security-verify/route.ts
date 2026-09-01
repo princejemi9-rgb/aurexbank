@@ -3,7 +3,6 @@ import { getSupabaseUser } from "../../../../src/lib/server/supabaseAuth";
 import {
   PASSCODE_METADATA_KEY,
   readSecurityPasscode,
-  tokenFingerprint,
   validatePasscodeInput,
   verifySecurityPasscode,
 } from "../../../../src/lib/server/securityPasscode";
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ ok: true, bypassed: isAdminEmail(auth.user.email) });
 
     if (isAdminEmail(auth.user.email)) {
-      setSecuritySession(response, createSecuritySession(auth.user.id, tokenFingerprint(token), "admin-bypass"));
+      setSecuritySession(response, createSecuritySession(auth.user.id, "admin-bypass"));
       return response;
     }
 
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Incorrect security passcode. Please try again." }, { status: 401 });
     }
 
-    setSecuritySession(response, createSecuritySession(auth.user.id, tokenFingerprint(token), record.revision));
+    setSecuritySession(response, createSecuritySession(auth.user.id, record.revision));
     return response;
   } catch {
     return NextResponse.json({ ok: false, error: "Security verification is unavailable." }, { status: 503 });

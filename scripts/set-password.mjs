@@ -63,7 +63,7 @@ async function run() {
   }
 
   try {
-    const { data, error } = await client.auth.admin.updateUserById(user.id, { password: newPassword });
+    const { error } = await client.auth.admin.updateUserById(user.id, { password: newPassword });
     if (error) {
       console.error('Failed to update password:', error.message || error);
       process.exit(3);

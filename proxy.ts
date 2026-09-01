@@ -83,7 +83,11 @@ export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
 
   if (url.pathname === "/") {
-    url.pathname = request.cookies.get("sb_logged_in")?.value === "1" ? "/security/verify" : "/login";
+    url.pathname = await hasVerifiedSecuritySession(request)
+      ? "/dashboard"
+      : request.cookies.get("sb_logged_in")?.value === "1"
+        ? "/security/verify"
+        : "/login";
     return applySecurityHeaders(NextResponse.redirect(url), request);
   }
 

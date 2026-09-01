@@ -40,7 +40,6 @@ async function run() {
   let page = 1;
   const foundUsers = [];
   while (page <= 10) {
-    // eslint-disable-next-line no-await-in-loop
     const res = await client.auth.admin.listUsers({ page, perPage: 100 });
     const users = res.data?.users || [];
     users.forEach((u) => {

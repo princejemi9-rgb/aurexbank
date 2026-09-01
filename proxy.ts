@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_PATHS = new Set(["/login", "/auth/signin", "/auth/signup", "/auth/forgot-password", "/security/verify"]);
+const PUBLIC_PATHS = new Set(["/login", "/auth/signin", "/auth/signup", "/auth/forgot-password", "/auth/reset-password", "/security/verify"]);
 const PUBLIC_API_PATHS = new Set(["/api/auth/signin", "/api/auth/session", "/api/auth/onboard", "/api/auth/security-status", "/api/auth/security-verify"]);
+
+function getAllowedAdminEmails() {
+  return Array.from(
+    new Set([
+      "princejemi9@gmail.com",
+      ...(process.env.AUREX_ADMIN_EMAILS || "")
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean),
+    ])
+  );
+}
 
 function getSupabaseUrl() {
   return process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
@@ -28,6 +40,37 @@ function extractSupabaseAuthToken(request: NextRequest) {
   return raw ? raw : null;
 }
 
+function isAdminUser(user: { email?: string | null; app_metadata?: Record<string, unknown> | null; user_metadata?: Record<string, unknown> | null } | null | undefined) {
+  if (!user) return false;
+
+  const email = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (email) {
+    const allowedAdmins = getAllowedAdminEmails();
+
+    if (allowedAdmins.includes(email)) {
+      return true;
+    }
+  }
+
+  const values = [
+    user.app_metadata?.is_admin,
+    user.app_metadata?.admin,
+    user.app_metadata?.role,
+    user.user_metadata?.is_admin,
+    user.user_metadata?.admin,
+    user.user_metadata?.role,
+  ];
+
+  return values.some((value) => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      return normalized === "admin" || normalized === "true" || normalized === "1" || normalized === "yes";
+    }
+    return false;
+  });
+}
+
 async function isAdminRequest(request: NextRequest) {
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
@@ -44,16 +87,8 @@ async function isAdminRequest(request: NextRequest) {
 
   if (!response?.ok) return false;
 
-  const user = (await response.json().catch(() => null)) as { email?: string | null } | null;
-  const email = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
-  if (!email) return false;
-
-  const allowedAdmins = (process.env.AUREX_ADMIN_EMAILS || "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-
-  return allowedAdmins.includes(email);
+  const user = (await response.json().catch(() => null)) as { email?: string | null; app_metadata?: Record<string, unknown> | null; user_metadata?: Record<string, unknown> | null } | null;
+  return isAdminUser(user);
 }
 
 const SECURITY_HEADERS = {

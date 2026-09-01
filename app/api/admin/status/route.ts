@@ -3,10 +3,42 @@ import type { NextRequest } from "next/server";
 import { getSupabaseUser } from "../../../../src/lib/server/supabaseAuth";
 
 function getAllowedAdminEmails() {
-  return (process.env.AUREX_ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+  return Array.from(
+    new Set([
+      "princejemi9@gmail.com",
+      ...(process.env.AUREX_ADMIN_EMAILS || "")
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    ])
+  );
+}
+
+function isAdminUser(user: { email?: string | null; app_metadata?: Record<string, unknown> | null; user_metadata?: Record<string, unknown> | null } | null | undefined) {
+  if (!user) return false;
+
+  const email = user.email?.trim().toLowerCase();
+  if (email && getAllowedAdminEmails().includes(email)) {
+    return true;
+  }
+
+  const values = [
+    user.app_metadata?.is_admin,
+    user.app_metadata?.admin,
+    user.app_metadata?.role,
+    user.user_metadata?.is_admin,
+    user.user_metadata?.admin,
+    user.user_metadata?.role,
+  ];
+
+  return values.some((value) => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      return normalized === "admin" || normalized === "true" || normalized === "1" || normalized === "yes";
+    }
+    return false;
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -48,8 +80,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, isAdmin: false }, { status: 401 });
   }
 
-  const allowedEmails = getAllowedAdminEmails();
-  const isAdmin = allowedEmails.includes(user.email.toLowerCase());
+  const isAdmin = isAdminUser(user);
 
   return NextResponse.json({ ok: true, isAdmin });
 }

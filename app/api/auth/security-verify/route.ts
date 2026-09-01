@@ -4,6 +4,18 @@ import { getSupabaseUser } from "../../../../src/lib/server/supabaseAuth";
 import { PASSCODE_METADATA_KEY, readSecurityPasscode, tokenFingerprint, validatePasscodeInput, verifySecurityPasscode } from "../../../../src/lib/server/securityPasscode";
 import { createSecuritySession, setSecuritySession } from "../../../../src/lib/server/securitySession";
 
+function getAllowedAdminEmails() {
+  return Array.from(
+    new Set([
+      "princejemi9@gmail.com",
+      ...(process.env.AUREX_ADMIN_EMAILS || "")
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    ])
+  );
+}
+
 export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -14,6 +26,18 @@ export async function POST(request: NextRequest) {
   if (!validatePasscodeInput(body?.passcode)) return NextResponse.json({ ok: false, error: "Enter your security passcode." }, { status: 400 });
   const auth = await getSupabaseUser(url, key, token);
   if (!auth.user) return NextResponse.json({ ok: false, error: "Invalid session" }, { status: auth.status });
+
+  const email = auth.user.email?.trim().toLowerCase();
+  const isAdmin = Boolean(email && getAllowedAdminEmails().includes(email));
+
+  if (isAdmin) {
+    try {
+      const response = NextResponse.json({ ok: true, adminBypass: true });
+      setSecuritySession(response, createSecuritySession(auth.user.id, tokenFingerprint(token), "admin-bypass"));
+      return response;
+    } catch { return NextResponse.json({ ok: false, error: "Security verification is unavailable." }, { status: 503 }); }
+  }
+
   const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
   const { data: { user } } = await admin.auth.admin.getUserById(auth.user.id);
   const record = readSecurityPasscode(user?.app_metadata?.[PASSCODE_METADATA_KEY]);

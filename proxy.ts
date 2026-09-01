@@ -25,6 +25,12 @@ function getSupabaseAnonKey() {
 }
 
 function extractSupabaseAuthToken(request: NextRequest) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const bearerToken = authHeader.slice("Bearer ".length).trim();
+    if (bearerToken) return bearerToken;
+  }
+
   const authCookie = request.cookies.getAll().find((cookie) => cookie.name.startsWith("sb-") && cookie.name.endsWith("-auth-token"));
   if (!authCookie?.value) return null;
 

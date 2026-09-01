@@ -306,8 +306,8 @@ export default function SignInPage() {
         return;
       }
 
-      console.log("[AUTH CLIENT] Session set successfully, navigating to dashboard");
-      router.replace("/dashboard");
+      console.log("[AUTH CLIENT] Session set successfully, starting security verification");
+      router.replace("/security/verify");
     } catch (error) {
       console.error("[AUTH CLIENT] Unexpected error in handleSignIn:", error);
       setError(classifyAuthError(error));

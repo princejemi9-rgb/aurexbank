@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { fetchWithRemoteTimeout } from "../../../../src/lib/server/remoteTimeout";
+import { clearSecuritySession, createSecuritySession, setSecuritySession } from "../../../../src/lib/server/securitySession";
+import { tokenFingerprint } from "../../../../src/lib/server/securityPasscode";
 
 type SupabasePasswordSession = {
   access_token?: string;
@@ -44,6 +46,15 @@ function getSupabaseAuthStorageKey(supabaseUrl: string) {
   } catch {
     return null;
   }
+}
+
+function isAdminEmail(email: string | null | undefined) {
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized) return false;
+  return new Set([
+    "princejemi9@gmail.com",
+    ...(process.env.AUREX_ADMIN_EMAILS || "").split(",").map((value) => value.trim().toLowerCase()).filter(Boolean),
+  ]).has(normalized);
 }
 
 export async function POST(request: NextRequest) {
@@ -188,6 +199,11 @@ export async function POST(request: NextRequest) {
 
   console.log("[AUTH API] Authentication successful for user:", session.user.email || session.user.id);
 
+  const isLocalhost =
+    request.nextUrl.hostname === "localhost" ||
+    request.nextUrl.hostname === "127.0.0.1" ||
+    request.nextUrl.hostname === "::1";
+
   const res = NextResponse.json({
     ok: true,
     session: {
@@ -205,8 +221,26 @@ export async function POST(request: NextRequest) {
     httpOnly: true,
     maxAge: 60 * 60 * 24,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && !isLocalhost,
   });
+  // This signed, HttpOnly cookie is the server-side counterpart to the browser
+  // Supabase session. It lets the proxy admit only a passcode-verified session.
+  if (isAdminEmail(session.user.email)) {
+    try {
+      setSecuritySession(
+        res,
+        createSecuritySession(session.user.id, tokenFingerprint(session.access_token), "admin-bypass")
+      );
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "Security session configuration is unavailable", errorType: "CONFIG_ERROR" },
+        { status: 500 }
+      );
+    }
+  } else {
+    // A password login always requires a fresh user passcode verification.
+    clearSecuritySession(res);
+  }
   console.log("[AUTH API] Login cookie set, returning success response");
   return res;
 }

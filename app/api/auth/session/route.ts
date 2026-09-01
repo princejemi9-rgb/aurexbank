@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { clearSecuritySession } from "../../../../src/lib/server/securitySession";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const action = body?.action;
+    const isLocalhost =
+      request.nextUrl.hostname === "localhost" ||
+      request.nextUrl.hostname === "127.0.0.1" ||
+      request.nextUrl.hostname === "::1";
 
     const res = NextResponse.json({ ok: true });
 
@@ -14,7 +19,7 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         maxAge: 60 * 60 * 24, // 1 day
         sameSite: "strict",
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NODE_ENV === "production" && !isLocalhost,
       });
       return res;
     }
@@ -25,8 +30,9 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         maxAge: 0,
         sameSite: "strict",
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NODE_ENV === "production" && !isLocalhost,
       });
+      clearSecuritySession(res);
       return res;
     }
 

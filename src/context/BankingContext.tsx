@@ -942,6 +942,11 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     const remoteBalance = readNonNegativeNumber(remoteMetrics?.balance);
     const remoteReserve = readNonNegativeNumber(remoteMetrics?.reserve);
     const remoteIncome = readNonNegativeNumber(remoteMetrics?.income);
+    const shouldSeedLegacyHistory = user && (remoteBalance ?? profileBalance ?? metadataBalance ?? STARTING_BALANCE) === STARTING_BALANCE;
+    const storedTransactions = mergeTransactionHistory(
+      getStoredItems(profileInfo.userId, "transactions", seedTransactions)
+    );
+    const hasMeaningfulHistory = storedTransactions.some((transaction) => Math.abs(transaction.amount) > 0);
     // The profiles ledger is updated by admin actions and transfers. Auth
     // metadata is retained as a fallback for older accounts, but can remain
     // stale in an already-issued session.
@@ -950,9 +955,9 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     const storedAlerts = mergeAlertHistory(
       getStoredItems(profileInfo.userId, "alerts", seedAlerts)
     );
-    const storedTransactions = mergeTransactionHistory(
-      getStoredItems(profileInfo.userId, "transactions", seedTransactions)
-    );
+    const richHistoryTransactions = shouldSeedLegacyHistory && !hasMeaningfulHistory
+      ? seedTransactions
+      : storedTransactions;
 
     setBalance(resolvedBalance);
     setReserve(
@@ -965,7 +970,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
         metadataIncome ??
         getStoredNumber(profileInfo.userId, "income", STARTING_INCOME)
     );
-    setTransactions(storedTransactions);
+    setTransactions(richHistoryTransactions);
     setAlerts(storedAlerts);
 
     if (profileBalance !== null && metadataBalance === null) {

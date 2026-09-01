@@ -142,7 +142,24 @@ export async function POST(request: NextRequest) {
   try {
     await serviceClient
       .from("profiles")
-      .upsert({ username, balance: profileBalance }, { onConflict: "username" });
+      .upsert(
+        {
+          username,
+          balance: profileBalance,
+          first_name: firstName,
+          last_name: lastName,
+          full_name: fullName,
+          email,
+          phone: readText(body?.phone) || "",
+          country: readText(body?.country) || "",
+          account_type: "personal",
+          currency: "USD",
+          account_status: "active",
+          verification_status: "pending",
+          onboarded_at: now,
+        },
+        { onConflict: "username" }
+      );
   } catch {}
 
   const notification = `New user registered: ${fullName} (${email}). Account balance starts at $0.`;

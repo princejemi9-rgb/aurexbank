@@ -47,6 +47,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [securityVerified, setSecurityVerified] = useState(false);
   const [securityLoading, setSecurityLoading] = useState(true);
   const presenceInFlightRef = useRef(false);
@@ -60,10 +61,23 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
       setHasSession(!!session);
       if (session?.access_token) {
-        const response = await fetch("/api/auth/security-status", { headers: { Authorization: `Bearer ${session.access_token}` }, credentials: "include" }).catch(() => null);
-        const status = await response?.json().catch(() => null) as { verified?: boolean } | null;
-        if (mounted) setSecurityVerified(status?.verified === true);
-      } else if (mounted) setSecurityVerified(false);
+        const [securityResponse, adminResponse] = await Promise.all([
+          fetch("/api/auth/security-status", { headers: { Authorization: `Bearer ${session.access_token}` }, credentials: "include" }).catch(() => null),
+          fetch("/api/admin/status", { headers: { Authorization: `Bearer ${session.access_token}` } }).catch(() => null),
+        ]);
+        const status = await securityResponse?.json().catch(() => null) as { verified?: boolean } | null;
+        const adminData = await adminResponse?.json().catch(() => null) as { isAdmin?: boolean } | null;
+        const admin = adminData?.isAdmin === true;
+        if (mounted) {
+          setIsAdmin(admin);
+          setSecurityVerified(status?.verified === true || admin);
+        }
+      } else {
+        if (mounted) {
+          setIsAdmin(false);
+          setSecurityVerified(false);
+        }
+      }
       if (mounted) setSecurityLoading(false);
       setLoading(false);
     }
@@ -73,6 +87,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       setHasSession(!!session);
+      setIsAdmin(false);
       setSecurityVerified(false);
       setSecurityLoading(!session);
       setLoading(false);
@@ -94,6 +109,16 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (hasSession && isAdmin) {
+      if (pathname === "/security/verify") {
+        router.replace("/dashboard");
+      }
+      if (isPublic && pathname !== "/dashboard") {
+        router.replace("/dashboard");
+      }
+      return;
+    }
+
     if (hasSession && pathname === "/security/verify" && securityVerified) {
       router.replace("/dashboard");
       return;
@@ -105,7 +130,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (isPublic && hasSession && securityVerified && pathname !== "/dashboard") {
       router.replace("/dashboard");
     }
-  }, [hasSession, loading, pathname, router, securityLoading, securityVerified]);
+  }, [hasSession, isAdmin, loading, pathname, router, securityLoading, securityVerified]);
 
   useEffect(() => {
     if (loading || !hasSession) return;

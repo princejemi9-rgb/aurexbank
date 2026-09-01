@@ -4,6 +4,58 @@ import type { NextRequest } from "next/server";
 const PUBLIC_PATHS = new Set(["/login", "/auth/signin", "/auth/signup", "/auth/forgot-password", "/security/verify"]);
 const PUBLIC_API_PATHS = new Set(["/api/auth/signin", "/api/auth/session", "/api/auth/onboard", "/api/auth/security-status", "/api/auth/security-verify"]);
 
+function getSupabaseUrl() {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
+}
+
+function getSupabaseAnonKey() {
+  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+}
+
+function extractSupabaseAuthToken(request: NextRequest) {
+  const authCookie = request.cookies.getAll().find((cookie) => cookie.name.startsWith("sb-") && cookie.name.endsWith("-auth-token"));
+  if (!authCookie?.value) return null;
+
+  try {
+    const parsed = JSON.parse(authCookie.value);
+    if (typeof parsed?.access_token === "string") return parsed.access_token;
+    if (Array.isArray(parsed) && typeof parsed[0] === "string") return parsed[0];
+  } catch {
+    // Cookie value is not a JSON payload; fall back to raw token value.
+  }
+
+  const raw = authCookie.value.trim();
+  return raw ? raw : null;
+}
+
+async function isAdminRequest(request: NextRequest) {
+  const supabaseUrl = getSupabaseUrl();
+  const anonKey = getSupabaseAnonKey();
+  const token = extractSupabaseAuthToken(request);
+
+  if (!supabaseUrl || !anonKey || !token) return false;
+
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${token}`,
+    },
+  }).catch(() => null);
+
+  if (!response?.ok) return false;
+
+  const user = (await response.json().catch(() => null)) as { email?: string | null } | null;
+  const email = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!email) return false;
+
+  const allowedAdmins = (process.env.AUREX_ADMIN_EMAILS || "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  return allowedAdmins.includes(email);
+}
+
 const SECURITY_HEADERS = {
   "Cache-Control": "private, no-store, max-age=0",
   "Content-Security-Policy":
@@ -54,6 +106,10 @@ async function hasVerifiedSecuritySession(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
+
+  if (await isAdminRequest(request)) {
+    return applySecurityHeaders(NextResponse.next());
+  }
 
   if (url.pathname === "/") {
     url.pathname = request.cookies.get("sb_logged_in")?.value === "1"

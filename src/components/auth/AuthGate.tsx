@@ -79,18 +79,20 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const isPublic = isPublicRoute(pathname);
+    const isAuthPage = pathname === "/login" || pathname.startsWith("/auth/");
 
-    if (!isPublic && !hasSession) {
+    if (!hasSession) {
+      if (isPublic) return;
       router.replace("/login");
       return;
     }
 
-    if (hasSession && pathname === "/security/verify") {
+    if (isAuthPage) {
       router.replace("/dashboard");
       return;
     }
 
-    if (isPublic && hasSession && pathname !== "/dashboard") {
+    if (pathname === "/security/verify") {
       router.replace("/dashboard");
     }
   }, [hasSession, loading, pathname, router]);

@@ -253,7 +253,7 @@ export default function SignInPage() {
 
           console.log("[AUTH CLIENT] Browser-side signIn succeeded");
           await setLoginCookie();
-          router.replace("/security/verify");
+          router.replace("/dashboard");
           return;
         }
 
@@ -302,12 +302,12 @@ export default function SignInPage() {
         }
 
         console.log("[AUTH CLIENT] Using localStorage fallback, navigating to dashboard");
-        window.location.replace("/security/verify");
+        window.location.replace("/dashboard");
         return;
       }
 
-      console.log("[AUTH CLIENT] Session set successfully, requesting security verification");
-      router.replace("/security/verify");
+      console.log("[AUTH CLIENT] Session set successfully, navigating to dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       console.error("[AUTH CLIENT] Unexpected error in handleSignIn:", error);
       setError(classifyAuthError(error));

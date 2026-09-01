@@ -104,7 +104,6 @@ const SECURITY_HEADERS = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
   "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
   "X-Content-Type-Options": "nosniff",
   "X-DNS-Prefetch-Control": "off",
   "X-Download-Options": "noopen",
@@ -112,9 +111,20 @@ const SECURITY_HEADERS = {
   "X-Permitted-Cross-Domain-Policies": "none",
 } as const;
 
-function applySecurityHeaders(response: NextResponse) {
+function applySecurityHeaders(response: NextResponse, request: NextRequest) {
+  const host = request.headers.get("host") || "";
+  const hostname = host.split(":")[0].toLowerCase();
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(name, value);
+  }
+
+  if (!isLocalhost && process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload"
+    );
   }
 
   return response;
@@ -125,7 +135,7 @@ export async function proxy(request: NextRequest) {
 
   if (url.pathname === "/") {
     url.pathname = extractSupabaseAuthToken(request) ? "/dashboard" : "/login";
-    return applySecurityHeaders(NextResponse.redirect(url));
+    return applySecurityHeaders(NextResponse.redirect(url), request);
   }
 
   const isPublic = PUBLIC_PATHS.has(url.pathname) || PUBLIC_API_PATHS.has(url.pathname);
@@ -133,13 +143,16 @@ export async function proxy(request: NextRequest) {
 
   if (!isPublic && !hasSession) {
     if (url.pathname.startsWith("/api/")) {
-      return applySecurityHeaders(NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 }));
+      return applySecurityHeaders(
+        NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 }),
+        request
+      );
     }
     url.pathname = "/login";
-    return applySecurityHeaders(NextResponse.redirect(url));
+    return applySecurityHeaders(NextResponse.redirect(url), request);
   }
 
-  return applySecurityHeaders(NextResponse.next());
+  return applySecurityHeaders(NextResponse.next(), request);
 }
 
 export const config = {

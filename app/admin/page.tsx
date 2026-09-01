@@ -272,6 +272,9 @@ export default function AdminPage() {
   const [brandingBusy, setBrandingBusy] = useState(false);
   const [brandingNotice, setBrandingNotice] = useState("");
   const [securityPasscode, setSecurityPasscode] = useState("");
+  const [issuedPasscode, setIssuedPasscode] = useState("");
+  const [issuedPasscodeUserId, setIssuedPasscodeUserId] = useState("");
+  const [passcodeCopied, setPasscodeCopied] = useState(false);
 
   const [alertType, setAlertType] = useState<BankAlert["type"]>("Security");
   const [alertTitle, setAlertTitle] = useState("Manual review completed");
@@ -478,10 +481,10 @@ export default function AdminPage() {
     action: string,
     body: Record<string, unknown>,
     successMessage: string
-  ) {
+  ): Promise<boolean> {
     if (!selectedUser) {
       setNotice("Select a target user first.");
-      return;
+      return false;
     }
 
     setBusyAction(action);
@@ -492,7 +495,7 @@ export default function AdminPage() {
 
       if (!token) {
         setNotice("Missing admin session. Sign in again.");
-        return;
+        return false;
       }
 
       const response = await fetch("/api/admin/users", {
@@ -512,7 +515,7 @@ export default function AdminPage() {
 
       if (!response.ok || !data?.ok) {
         setNotice(data?.error || "Unable to complete admin action.");
-        return;
+        return false;
       }
 
       const nextUser = data.user;
@@ -539,10 +542,61 @@ export default function AdminPage() {
       }
 
       setNotice(successMessage);
+      return true;
     } finally {
       setBusyAction("");
     }
   }
+
+  function generateSecurityPasscode() {
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    const values = new Uint32Array(12);
+    window.crypto.getRandomValues(values);
+    return Array.from(values, (value) => alphabet[value % alphabet.length]).join("");
+  }
+
+  async function issueSecurityPasscode() {
+    if (!selectedUser) return;
+
+    const passcode = generateSecurityPasscode();
+    const saved = await runAdminAction(
+      "setSecurityPasscode",
+      { passcode },
+      `A new security passcode was set for ${selectedUser.fullName}.`
+    );
+    if (!saved) return;
+
+    setSecurityPasscode("");
+    setIssuedPasscode(passcode);
+    setIssuedPasscodeUserId(selectedUser.userId);
+    setPasscodeCopied(false);
+
+    try {
+      await navigator.clipboard.writeText(passcode);
+      setPasscodeCopied(true);
+      setNotice(`New passcode set and copied for ${selectedUser.fullName}. Send it through a secure channel.`);
+    } catch {
+      setNotice(`New passcode set for ${selectedUser.fullName}. Copy it before leaving this page.`);
+    }
+  }
+
+  async function copyIssuedPasscode() {
+    const activePasscode = issuedPasscodeUserId === selectedUser?.userId ? issuedPasscode : "";
+    if (!activePasscode) return;
+
+    try {
+      await navigator.clipboard.writeText(activePasscode);
+      setPasscodeCopied(true);
+      setNotice("Security passcode copied. Send it through a secure channel.");
+    } catch {
+      setNotice("Copy the security passcode manually before leaving this page.");
+    }
+  }
+
+  const activeIssuedPasscode = issuedPasscodeUserId === selectedUser?.userId ? issuedPasscode : "";
+  const issuedPasscodeEmailHref = activeIssuedPasscode && selectedUser?.email
+    ? `mailto:${encodeURIComponent(selectedUser.email)}?subject=${encodeURIComponent("Your Aurex security passcode")}&body=${encodeURIComponent(`Hello ${selectedUser.firstName || selectedUser.fullName},\n\nYour Aurex security passcode is: ${activeIssuedPasscode}\n\nSign in with your email and password, then enter this passcode when prompted. Please keep it private and delete this message after use.\n\nAurex Bank`)}`
+    : "";
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -921,8 +975,8 @@ export default function AdminPage() {
                     User Control Center
                   </h1>
                   <p className="mt-3 max-w-3xl text-base leading-relaxed text-zinc-400">
-                    Select any registered or online customer, then update the dashboard name,
-                    balance, profile photo, account status, and profile personal details.
+                    Choose one customer from the directory, then manage only that customer’s
+                    account, access, profile, balance, and sign-in passcode in the workspace below.
                   </p>
                 </div>
 
@@ -1118,10 +1172,11 @@ export default function AdminPage() {
             <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
               <aside className="min-w-0 space-y-6">
                 <section className="bank-surface rounded-lg p-5">
-                  <p className="text-sm font-semibold text-green-400">Customer Directory</p>
+                  <p className="text-sm font-semibold text-green-400">Step 1 &middot; Customer Directory</p>
                   <h2 className="mt-2 text-2xl font-black tracking-tight">
-                    Select User
+                    Choose one customer
                   </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">Click a customer once. Every action on the right applies only to that selected customer.</p>
 
                   <input
                     value={search}
@@ -1250,7 +1305,7 @@ export default function AdminPage() {
                           </span>
                           <div className="min-w-0 flex-1 sm:min-w-[18rem]">
                             <p className="text-sm font-semibold text-green-400">
-                              Selected Customer
+                              Step 2 &middot; Selected customer workspace
                             </p>
                             <h2 className="mt-2 break-words text-2xl font-black leading-tight tracking-tight sm:text-3xl lg:text-4xl">
                               {selectedUser.fullName}
@@ -1262,6 +1317,7 @@ export default function AdminPage() {
                                 {selectedUser.customerId}
                               </span>
                             </p>
+                            <p className="mt-2 text-sm leading-relaxed text-zinc-500">All sections below apply to <span className="font-bold text-zinc-300">{selectedUser.fullName}</span> only.</p>
                           </div>
                         </div>
 
@@ -1323,14 +1379,25 @@ export default function AdminPage() {
                     </section>
 
                     <section className="bank-surface rounded-lg p-6">
-                      <p className="text-sm font-semibold text-green-400">Security Passcode</p>
+                      <p className="text-sm font-semibold text-green-400">Step 3 &middot; Sign-in passcode</p>
                       <h2 className="mt-2 text-3xl font-black tracking-tight">Secondary login verification</h2>
-                      <p className="mt-2 text-sm text-zinc-500">Status: <span className={selectedUser.securityPasscodeConfigured ? "font-black text-green-300" : "font-black text-yellow-200"}>{selectedUser.securityPasscodeConfigured ? "Configured" : "Not configured"}</span>. The passcode is hashed server-side and is never displayed.</p>
+                      <p className="mt-2 text-sm text-zinc-500">For <span className="font-bold text-zinc-300">{selectedUser.fullName}</span>: <span className={selectedUser.securityPasscodeConfigured ? "font-black text-green-300" : "font-black text-yellow-200"}>{selectedUser.securityPasscodeConfigured ? "Configured" : "Not configured"}</span>. Generate a code to set it, copy it, then send it to this customer. The saved passcode is hashed and cannot be viewed later.</p>
                       <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
                         <input value={securityPasscode} onChange={(event) => setSecurityPasscode(event.target.value)} type="password" autoComplete="new-password" placeholder="Set a new passcode (6+ characters)" className="h-12 rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none focus:border-green-400" />
-                        <button type="button" disabled={Boolean(busyAction) || securityPasscode.length < 6} onClick={() => { void runAdminAction("setSecurityPasscode", { passcode: securityPasscode }, `Security passcode updated for ${selectedUser.fullName}.`); setSecurityPasscode(""); }} className="rounded-lg bg-green-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60">Set / change</button>
+                        <button type="button" disabled={Boolean(busyAction) || securityPasscode.length < 6} onClick={() => { void runAdminAction("setSecurityPasscode", { passcode: securityPasscode }, `Security passcode updated for ${selectedUser.fullName}.`).then((saved) => { if (saved) { setSecurityPasscode(""); setIssuedPasscode(""); setIssuedPasscodeUserId(""); setPasscodeCopied(false); } }); }} className="rounded-lg bg-green-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60">Set / change</button>
                         <button type="button" disabled={Boolean(busyAction) || !selectedUser.securityPasscodeConfigured} onClick={() => void runAdminAction("resetSecurityPasscode", {}, `Security passcode reset for ${selectedUser.fullName}.`)} className="bank-button rounded-lg px-4 py-3 text-sm font-black text-red-200 disabled:opacity-60">Reset</button>
                       </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <button type="button" disabled={Boolean(busyAction)} onClick={() => void issueSecurityPasscode()} className="rounded-lg border border-green-400/40 bg-green-400/10 px-4 py-3 text-sm font-black text-green-300 transition hover:bg-green-400/20 disabled:opacity-60">Generate, set &amp; copy</button>
+                        {activeIssuedPasscode && (
+                          <>
+                            <code className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-base font-black tracking-[0.18em] text-white">{activeIssuedPasscode}</code>
+                            <button type="button" onClick={() => void copyIssuedPasscode()} className="bank-button rounded-lg px-3 py-2 text-sm font-bold">{passcodeCopied ? "Copied" : "Copy"}</button>
+                            <a href={issuedPasscodeEmailHref} className="bank-button rounded-lg px-3 py-2 text-sm font-bold">Open email draft</a>
+                          </>
+                        )}
+                      </div>
+                      <p className="mt-3 text-xs leading-relaxed text-zinc-500">Generated passcodes are shown only in this session. The email action opens a prefilled draft addressed to the selected customer; review the recipient and send it, or use another secure channel.</p>
                       <button type="button" disabled={Boolean(busyAction) || !selectedUser.securityPasscodeConfigured} onClick={() => void runAdminAction("requireSecurityPasscode", {}, `Security verification will be required again for ${selectedUser.fullName}.`)} className="mt-3 text-sm font-bold text-zinc-400 transition hover:text-white disabled:opacity-60">Require verification again</button>
                     </section>
 
@@ -1338,13 +1405,13 @@ export default function AdminPage() {
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <p className="text-sm font-semibold text-green-400">
-                            Account Controls
+                            Step 4 &middot; Account access
                           </p>
                           <h2 className="mt-2 text-3xl font-black tracking-tight">
                             Status and Access
                           </h2>
                           <p className="mt-2 text-sm text-zinc-500">
-                            Service-role actions are still checked by the protected admin API.
+                            Changes below apply only to {selectedUser.fullName}. Service-role actions are still checked by the protected admin API.
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -1465,13 +1532,13 @@ export default function AdminPage() {
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <p className="text-sm font-semibold text-green-400">
-                            Profile Page Controls
+                            Step 5 &middot; Profile information
                           </p>
                           <h2 className="mt-2 text-3xl font-black tracking-tight">
                             Identity Information
                           </h2>
                           <p className="mt-2 text-sm text-zinc-500">
-                            Personal Details shown on the customer profile and dashboard.
+                            Personal details shown on {selectedUser.fullName}’s profile and dashboard.
                           </p>
                         </div>
                         <label

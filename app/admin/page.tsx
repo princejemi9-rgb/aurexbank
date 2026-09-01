@@ -1326,6 +1326,9 @@ export default function AdminPage() {
                       <p className="text-sm font-semibold text-green-400">Security Passcode</p>
                       <h2 className="mt-2 text-3xl font-black tracking-tight">Secondary login verification</h2>
                       <p className="mt-2 text-sm text-zinc-500">Status: <span className={selectedUser.securityPasscodeConfigured ? "font-black text-green-300" : "font-black text-yellow-200"}>{selectedUser.securityPasscodeConfigured ? "Configured" : "Not configured"}</span>. The passcode is hashed server-side and is never displayed.</p>
+                      <div className="mt-3 rounded-lg border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-200">
+                        Admin accounts bypass this step. Set and share the customer passcode securely outside the app; the customer must enter it during sign-in.
+                      </div>
                       <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
                         <input value={securityPasscode} onChange={(event) => setSecurityPasscode(event.target.value)} type="password" autoComplete="new-password" placeholder="Set a new passcode (6+ characters)" className="h-12 rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none focus:border-green-400" />
                         <button type="button" disabled={Boolean(busyAction) || securityPasscode.length < 6} onClick={() => { void runAdminAction("setSecurityPasscode", { passcode: securityPasscode }, `Security passcode updated for ${selectedUser.fullName}.`); setSecurityPasscode(""); }} className="rounded-lg bg-green-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60">Set / change</button>

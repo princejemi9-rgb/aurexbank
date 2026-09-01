@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { clearSecuritySession } from "../../../../src/lib/server/securitySession";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +27,6 @@ export async function POST(request: NextRequest) {
         sameSite: "strict",
         secure: process.env.NODE_ENV === "production",
       });
-      clearSecuritySession(res);
       return res;
     }
 

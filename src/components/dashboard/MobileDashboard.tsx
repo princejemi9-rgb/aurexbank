@@ -261,18 +261,6 @@ const MobileDashboard = memo(function MobileDashboard() {
               imageClassName="p-1.5"
               label="Aurex Bank home"
             />
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-green-400 text-base font-black text-black">
-              {currentProfile.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={currentProfile.avatar_url}
-                  alt={`${firstName} profile photo`}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                currentProfile.initials.slice(0, 2)
-              )}
-            </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-black">
                 Welcome back, <span className="text-green-400">{firstName}</span>
@@ -283,18 +271,37 @@ const MobileDashboard = memo(function MobileDashboard() {
             </span>
           </Link>
 
-          <Link
-            href="/notifications"
-            aria-label={`${unreadCount} unread notifications`}
-            className="relative flex h-12 w-11 shrink-0 items-center justify-center text-white transition-colors hover:text-green-300"
-          >
-            <AppIcon name="bell" className="h-7 w-7" strokeWidth={2.25} />
-            {unreadCount > 0 && (
-              <span className="absolute right-0 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--brand-background)] bg-green-400 px-1 text-[10px] font-black leading-none text-black">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/notifications"
+              aria-label={`${unreadCount} unread notifications`}
+              className="relative flex h-12 w-11 shrink-0 items-center justify-center text-white transition-colors hover:text-green-300"
+            >
+              <AppIcon name="bell" className="h-7 w-7" strokeWidth={2.25} />
+              {unreadCount > 0 && (
+                <span className="absolute right-0 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--brand-background)] bg-green-400 px-1 text-[10px] font-black leading-none text-black">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              href="/profile"
+              aria-label={`${firstName} profile`}
+              className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-green-400 text-base font-black text-black"
+            >
+              {currentProfile.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentProfile.avatar_url}
+                  alt={`${firstName} profile photo`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                currentProfile.initials.slice(0, 2)
+              )}
+            </Link>
+          </div>
         </header>
 
         <section className="mobile-dashboard-balance mt-5 rounded-[1.75rem] border border-green-200/15 bg-[#0b1711] p-4">

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { fetchWithRemoteTimeout } from "../../../../src/lib/server/remoteTimeout";
-import { clearSecuritySession } from "../../../../src/lib/server/securitySession";
 
 type SupabasePasswordSession = {
   access_token?: string;
@@ -208,9 +207,6 @@ export async function POST(request: NextRequest) {
     sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
   });
-  // A fresh password login always starts a new security-verification step.
-  clearSecuritySession(res);
-
   console.log("[AUTH API] Login cookie set, returning success response");
   return res;
 }

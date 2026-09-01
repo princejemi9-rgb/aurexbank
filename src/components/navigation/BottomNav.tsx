@@ -113,8 +113,8 @@ export default function BottomNav() {
         </div>
       )}
 
-      <nav className="mobile-bottom-navigation fixed inset-0 z-50 h-dvh pointer-events-none lg:hidden">
-        <div className="mobile-bottom-navigation-bar pointer-events-auto absolute inset-x-0 bottom-0 border-t border-white/[0.08] bg-[var(--brand-background)] px-2 pb-[env(safe-area-inset-bottom)] pt-2">
+      <nav className="mobile-bottom-navigation fixed inset-x-0 bottom-0 z-50 pointer-events-none lg:hidden">
+        <div className="pointer-events-auto mx-auto max-w-[430px] border-t border-white/[0.08] bg-[var(--brand-background)] px-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.28)]">
           <div
             className="grid gap-1"
             style={{ gridTemplateColumns: `repeat(${navItems.length + 1}, minmax(0, 1fr))` }}

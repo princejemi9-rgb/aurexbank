@@ -18,7 +18,7 @@ function getClockLabel(date: Date) {
 }
 
 export default function LiveBankingPulse({ compact = false }: LiveBankingPulseProps) {
-  const { alerts, balance, transactions } = useBanking();
+  const { alerts, balance, transactions, currentProfile } = useBanking();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -57,8 +57,8 @@ export default function LiveBankingPulse({ compact = false }: LiveBankingPulsePr
       icon: "check" as const,
     },
     {
-      label: "Client Since",
-      value: "2018",
+      label: "Account type",
+      value: currentProfile.accountType,
       icon: "shield" as const,
     },
   ];
@@ -77,7 +77,7 @@ export default function LiveBankingPulse({ compact = false }: LiveBankingPulsePr
             </p>
           </div>
           <h2 className="mt-2 text-xl font-black tracking-tight lg:text-2xl">
-            Network synced at {getClockLabel(now)}
+            Account snapshot at {getClockLabel(now)}
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-zinc-500">
             Cards, transfers, and security checks are moving in real time.

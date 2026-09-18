@@ -159,160 +159,11 @@ const FALLBACK_PROFILE: BankingProfile = {
   avatar_url: undefined,
 };
 
-const seedTransactions: BankTransaction[] = [
-  {
-    id: "legacy-2026-capital-distribution",
-    name: "Crestline Capital Partners",
-    type: "Investment Distribution",
-    amount: 2850000,
-    status: "Completed",
-    time: "Jun 28, 2026",
-    method: "Private Banking Wire",
-  },
-  {
-    id: "legacy-2026-property-acquisition",
-    name: "Meridian Property Group",
-    type: "Property Acquisition",
-    amount: -1275000,
-    status: "Completed",
-    time: "Jun 19, 2026",
-    method: "Aurex Escrow",
-  },
-  {
-    id: "legacy-2026-advisory",
-    name: "Northstar Holdings",
-    type: "Advisory Settlement",
-    amount: -640000,
-    status: "Completed",
-    time: "May 30, 2026",
-    method: "International Wire",
-  },
-  {
-    id: "legacy-2025-private-equity",
-    name: "Atlantic Private Equity",
-    type: "Fund Redemption",
-    amount: 1900000,
-    status: "Completed",
-    time: "Nov 14, 2025",
-    method: "SWIFT Priority",
-  },
-  {
-    id: "legacy-2025-family-office",
-    name: "Westbridge Family Office",
-    type: "Treasury Allocation",
-    amount: -875000,
-    status: "Completed",
-    time: "Jan 24, 2025",
-    method: "Private Client Transfer",
-  },
-  {
-    id: "legacy-2024-commercial-exit",
-    name: "Arden Commercial Ventures",
-    type: "Business Exit Proceeds",
-    amount: 3420000,
-    status: "Completed",
-    time: "Aug 8, 2024",
-    method: "Institutional Clearing",
-  },
-  {
-    id: "legacy-2023-estate",
-    name: "Belgrave Estates",
-    type: "Real Estate Settlement",
-    amount: -1180000,
-    status: "Completed",
-    time: "Mar 16, 2023",
-    method: "Aurex Escrow",
-  },
-  {
-    id: "legacy-2022-dividend",
-    name: "Sterling Infrastructure Fund",
-    type: "Annual Dividend",
-    amount: 760000,
-    status: "Completed",
-    time: "Dec 2, 2022",
-    method: "Custody Account",
-  },
-  {
-    id: "legacy-2021-acquisition",
-    name: "Horizon Technology Group",
-    type: "Strategic Acquisition",
-    amount: -2150000,
-    status: "Completed",
-    time: "Sep 10, 2021",
-    method: "Institutional Wire",
-  },
-  {
-    id: "legacy-2020-liquidity",
-    name: "Crown Liquidity Fund",
-    type: "Portfolio Redemption",
-    amount: 1650000,
-    status: "Completed",
-    time: "Jul 6, 2020",
-    method: "Private Banking Wire",
-  },
-  {
-    id: "legacy-2019-investment",
-    name: "Oakmont Growth Fund",
-    type: "Series C Investment",
-    amount: -925000,
-    status: "Completed",
-    time: "Oct 21, 2019",
-    method: "Capital Call",
-  },
-  {
-    id: "legacy-2018-opening",
-    name: "Founders Equity Trust",
-    type: "Opening Portfolio Transfer",
-    amount: 2400000,
-    status: "Completed",
-    time: "Apr 12, 2018",
-    method: "Wealth Transfer",
-  },
-];
-const retiredDemoTransactionIds = new Set([
-  "seed-netflix",
-  "seed-salary",
-  "seed-apple",
-]);
+const seedTransactions: BankTransaction[] = [];
+const retiredDemoTransactionIds = new Set(["seed-netflix", "seed-salary", "seed-apple", "legacy-2026-capital-distribution", "legacy-2026-property-acquisition", "legacy-2026-advisory", "legacy-2025-private-equity", "legacy-2025-family-office", "legacy-2024-commercial-exit", "legacy-2023-estate", "legacy-2022-dividend", "legacy-2021-acquisition", "legacy-2020-liquidity", "legacy-2019-investment", "legacy-2018-opening"]);
 
-const seedAlerts: BankAlert[] = [
-  {
-    id: "seed-payment",
-    type: "Payment",
-    title: "Capital distribution settled",
-    desc: "$2,850,000 credited to Aurex Checking",
-    time: "Jun 28",
-    status: "Completed",
-    unread: true,
-  },
-  {
-    id: "seed-security",
-    type: "Security",
-    title: "New login detected",
-    desc: "Windows device signed into your account",
-    time: "18 mins ago",
-    status: "Secure",
-    unread: true,
-  },
-  {
-    id: "seed-crypto",
-    type: "Crypto",
-    title: "Bitcoin price alert",
-    desc: "BTC moved above $68,000",
-    time: "35 mins ago",
-    status: "Market",
-    unread: false,
-  },
-  {
-    id: "seed-savings",
-    type: "Savings",
-    title: "Savings milestone reached",
-    desc: "72% of Dubai savings goal completed",
-    time: "3 hours ago",
-    status: "Goal",
-    unread: false,
-  },
-];
+const seedAlerts: BankAlert[] = [];
+const retiredDemoAlertIds = new Set(["seed-payment", "seed-security", "seed-crypto", "seed-savings"]);
 
 const BankingContext = createContext<BankingContextValue | null>(null);
 const REMOTE_OPERATION_TIMEOUT_MS = 8000;
@@ -416,7 +267,7 @@ function mergeTransactionHistory(transactions: BankTransaction[]) {
 function mergeAlertHistory(alerts: BankAlert[]) {
   const seedAlertIds = new Set(seedAlerts.map((alert) => alert.id));
   const storedById = new Map(alerts.map((alert) => [alert.id, alert]));
-  const currentAlerts = alerts.filter((alert) => !seedAlertIds.has(alert.id));
+  const currentAlerts = alerts.filter((alert) => !seedAlertIds.has(alert.id) && !retiredDemoAlertIds.has(alert.id));
 
   return [
     ...currentAlerts,
@@ -942,11 +793,9 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     const remoteBalance = readNonNegativeNumber(remoteMetrics?.balance);
     const remoteReserve = readNonNegativeNumber(remoteMetrics?.reserve);
     const remoteIncome = readNonNegativeNumber(remoteMetrics?.income);
-    const shouldSeedLegacyHistory = user && (remoteBalance ?? profileBalance ?? metadataBalance ?? STARTING_BALANCE) === STARTING_BALANCE;
     const storedTransactions = mergeTransactionHistory(
       getStoredItems(profileInfo.userId, "transactions", seedTransactions)
     );
-    const hasMeaningfulHistory = storedTransactions.some((transaction) => Math.abs(transaction.amount) > 0);
     // The profiles ledger is updated by admin actions and transfers. Auth
     // metadata is retained as a fallback for older accounts, but can remain
     // stale in an already-issued session.
@@ -955,9 +804,6 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     const storedAlerts = mergeAlertHistory(
       getStoredItems(profileInfo.userId, "alerts", seedAlerts)
     );
-    const richHistoryTransactions = shouldSeedLegacyHistory && !hasMeaningfulHistory
-      ? seedTransactions
-      : storedTransactions;
 
     setBalance(resolvedBalance);
     setReserve(
@@ -970,7 +816,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
         metadataIncome ??
         getStoredNumber(profileInfo.userId, "income", STARTING_INCOME)
     );
-    setTransactions(richHistoryTransactions);
+    setTransactions(storedTransactions);
     setAlerts(storedAlerts);
 
     if (profileBalance !== null && metadataBalance === null) {

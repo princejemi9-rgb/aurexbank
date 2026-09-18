@@ -74,6 +74,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Retry first-time profile setup after email confirmation or a previous network failure.
+      if (!session.user.user_metadata?.onboarded_at) {
+        void fetch("/api/auth/onboard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
+        }).catch(() => null);
+      }
       if (isInitialCheck) setSecurityLoading(true);
       const response = await fetch("/api/auth/security-status", {
         headers: { Authorization: `Bearer ${session.access_token}` },

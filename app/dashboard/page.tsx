@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import DesktopSidebar from "../../src/components/layout/DesktopSidebar";
 import BottomNav from "../../src/components/navigation/BottomNav";
 import Header from "../../src/components/layout/Header";
+import AccountOverview from "../../src/components/dashboard/AccountOverview";
 import MobileDashboard from "../../src/components/dashboard/MobileDashboard";
 
 import BalanceCard from "../../src/components/cards/BalanceCard";
@@ -14,7 +15,6 @@ import Transactions from "../../src/components/widgets/Transactions";
 import LiveCard from "../../src/components/widgets/LiveCard";
 import LiveBankingPulse from "../../src/components/widgets/LiveBankingPulse";
 import AIInsights from "../../src/components/widgets/AIInsights";
-import CryptoPortfolio from "../../src/components/widgets/CryptoPortfolio";
 import Analytics from "../../src/components/widgets/Analytics";
 import ActivityFeed from "../../src/components/widgets/ActivityFeed";
 import StatsGrid from "../../src/components/widgets/StatsGrid";
@@ -53,6 +53,7 @@ export default function DashboardPage() {
         <div className="app-content desktop-page-content">
           <div className="app-inner">
             <Header />
+            <AccountOverview />
 
             <div className="mt-6 grid min-w-0 items-start gap-5 xl:gap-6 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
               <div className="space-y-6 min-w-0">
@@ -76,7 +77,6 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex min-w-0 flex-col gap-6 [&>*:last-child]:flex-1">
-                <CryptoPortfolio />
                 <Analytics />
                 <ActivityFeed />
               </div>

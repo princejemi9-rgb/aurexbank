@@ -5,20 +5,10 @@ import { createClient } from "@supabase/supabase-js";
 type OnboardBody = {
   userId?: unknown;
   email?: unknown;
-  firstName?: unknown;
-  lastName?: unknown;
-  fullName?: unknown;
-  phone?: unknown;
-  country?: unknown;
 };
 
 function readText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function readNonNegativeNumber(value: unknown, fallback: number) {
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? Math.max(numberValue, 0) : fallback;
 }
 
 function getServiceRoleKey() {
@@ -70,9 +60,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const firstName = readText(body?.firstName);
-  const lastName = readText(body?.lastName);
-  const fullName = readText(body?.fullName) || `${firstName} ${lastName}`.trim() || email;
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
+  if (!token) return NextResponse.json({ ok: false, error: "Sign in to finish account setup" }, { status: 401 });
+
+
   const username = email;
   const now = new Date().toISOString();
   const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -85,9 +76,9 @@ export async function POST(request: NextRequest) {
   const {
     data: { user },
     error: userError,
-  } = await serviceClient.auth.admin.getUserById(userId);
+  } = await serviceClient.auth.getUser(token).catch(() => ({ data: { user: null }, error: true }));
 
-  if (userError || !user || readText(user.email).toLowerCase() !== email) {
+  if (userError || !user || user.id !== userId || readText(user.email).toLowerCase() !== email) {
     return NextResponse.json(
       { ok: false, error: "Unable to verify new account" },
       { status: 403 }
@@ -98,69 +89,39 @@ export async function POST(request: NextRequest) {
     user?.user_metadata && typeof user.user_metadata === "object"
       ? (user.user_metadata as Record<string, unknown>)
       : {};
-  const existingBalance = readNonNegativeNumber(currentMetadata.balance, 0);
-  const existingReserve = readNonNegativeNumber(currentMetadata.reserve, 0);
-  const existingIncome = readNonNegativeNumber(currentMetadata.income, 0);
-
-  await serviceClient.auth.admin
-    .updateUserById(userId, {
-      user_metadata: {
-        ...currentMetadata,
-        username,
-        first_name: firstName || readText(currentMetadata.first_name) || "",
-        last_name: lastName || readText(currentMetadata.last_name) || "",
-        full_name: fullName,
-        phone: readText(body?.phone) || readText(currentMetadata.phone) || "",
-        country: readText(body?.country) || readText(currentMetadata.country) || "",
-        balance: existingBalance,
-        reserve: existingReserve,
-        income: existingIncome,
-        account_status: "active",
-        transfer_frozen: false,
-        verification_status: readText(currentMetadata.verification_status) || "pending",
-        onboarded_at: readText(currentMetadata.onboarded_at) || now,
-      },
-    })
-    .catch(() => null);
-
-  let profileBalance = existingBalance;
-
+  if (currentMetadata.onboarded_at) return NextResponse.json({ ok: true });
+  const firstName = readText(currentMetadata.first_name);
+  const lastName = readText(currentMetadata.last_name);
+  const fullName = readText(currentMetadata.full_name) || `${firstName} ${lastName}`.trim() || email;
   try {
-    const { data: existingProfile } = await serviceClient
-      .from("profiles")
-      .select("balance")
-      .eq("username", username)
-      .limit(1)
-      .maybeSingle();
-
-    profileBalance = readNonNegativeNumber(
-      (existingProfile as { balance?: unknown } | null)?.balance,
-      existingBalance
-    );
-  } catch {}
-
-  try {
-    await serviceClient
+    const { error: profileError } = await serviceClient
       .from("profiles")
       .upsert(
         {
           username,
-          balance: profileBalance,
+          balance: 0,
           first_name: firstName,
           last_name: lastName,
           full_name: fullName,
           email,
-          phone: readText(body?.phone) || "",
-          country: readText(body?.country) || "",
-          account_type: "personal",
-          currency: "USD",
+          phone: readText(currentMetadata.phone) || "",
+          country: readText(currentMetadata.country) || "",
+          account_type: readText(currentMetadata.account_type) || "personal",
+          currency: readText(currentMetadata.currency) || "USD",
           account_status: "active",
           verification_status: "pending",
           onboarded_at: now,
         },
-        { onConflict: "username" }
+        { onConflict: "username", ignoreDuplicates: true }
       );
-  } catch {}
+    if (profileError) return NextResponse.json({ ok: false, error: "Account created, but profile setup needs to be retried" }, { status: 503 });
+  } catch {
+    return NextResponse.json({ ok: false, error: "Profile setup is temporarily unavailable" }, { status: 503 });
+  }
+  const { error: metadataError } = await serviceClient.auth.admin.updateUserById(userId, {
+    user_metadata: { ...currentMetadata, username, onboarded_at: now },
+  }).catch(() => ({ error: true }));
+  if (metadataError) return NextResponse.json({ ok: false, error: "Account setup needs to be retried" }, { status: 503 });
 
   const notification = `New user registered: ${fullName} (${email}). Account balance starts at $0.`;
   const rows = getAdminNotificationTargets().map((target) => ({

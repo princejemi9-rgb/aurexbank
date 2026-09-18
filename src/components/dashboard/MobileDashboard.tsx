@@ -3,6 +3,7 @@
 import { memo, useMemo } from "react";
 import Link from "next/link";
 
+import AccountOverview from "./AccountOverview";
 import AppIcon from "../ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 import { useBanking } from "../../context/BankingContext";
@@ -10,7 +11,6 @@ import ActivityChart from "../widgets/ActivityChart";
 import ActivityFeed from "../widgets/ActivityFeed";
 import AIInsights from "../widgets/AIInsights";
 import Analytics from "../widgets/Analytics";
-import CryptoPortfolio from "../widgets/CryptoPortfolio";
 import LiveCard from "../widgets/LiveCard";
 import UpcomingPayments from "../widgets/UpcomingPayments";
 import { AurexMark } from "../brand/AurexBrand";
@@ -26,72 +26,6 @@ function SectionHeader({ title, href }: { title: string; href?: string }) {
           View all
         </Link>
       )}
-    </div>
-  );
-}
-
-function TrendLine({ className = "h-20" }: { className?: string }) {
-  const trendPath =
-    "M8 72C20 68 27 58 40 59C53 60 58 48 70 46C84 44 87 30 101 29C114 28 121 39 133 35C147 31 153 20 172 13";
-  const interiorDots = [
-    [28, 73],
-    [45, 68],
-    [62, 61],
-    [62, 75],
-    [79, 55],
-    [79, 70],
-    [96, 44],
-    [96, 59],
-    [96, 74],
-    [113, 46],
-    [113, 61],
-    [113, 76],
-    [130, 49],
-    [130, 64],
-    [130, 79],
-    [147, 40],
-    [147, 55],
-    [147, 70],
-    [164, 28],
-    [164, 43],
-    [164, 58],
-    [164, 73],
-  ] as const;
-
-  return (
-    <div className={`mobile-dashboard-trend w-full ${className}`}>
-      <svg
-        role="img"
-        aria-label="Thirty-day balance trend, up 24.8 percent"
-        className="block h-full w-full"
-        viewBox="0 0 180 90"
-        fill="none"
-        preserveAspectRatio="none"
-      >
-        <path
-          d={`${trendPath}V88H8Z`}
-          fill="#0f3d24"
-        />
-        <g fill="#2c7046">
-          {interiorDots.map(([x, y], index) => (
-            <circle
-              key={`${x}-${y}`}
-              cx={x}
-              cy={y}
-              r={index % 3 === 0 ? 1.4 : 1}
-            />
-          ))}
-        </g>
-        <path
-          d={trendPath}
-          stroke="#4ade80"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="172" cy="13" r="5.5" fill="#14532d" />
-        <circle cx="172" cy="13" r="3" fill="#86efac" />
-      </svg>
     </div>
   );
 }
@@ -118,10 +52,10 @@ function MobilePulseSummary({
             </p>
           </div>
           <h2 className="mt-2 text-lg font-black tracking-tight">
-            Network synced
+            Account activity
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-            Cards, transfers, and security checks are moving in real time.
+            Review your recent transfers and account notifications.
           </p>
         </div>
 
@@ -245,10 +179,10 @@ const MobileDashboard = memo(function MobileDashboard() {
           />
         ),
       },
-      { label: "Client Since", value: "2018" },
+      { label: "Account type", value: currentProfile.accountType },
       { label: "Alerts", value: unreadCount ? `${unreadCount} unread` : "Clear" },
     ],
-    [income, reserve, unreadCount]
+    [income, reserve, unreadCount, currentProfile.accountType]
   );
 
   return (
@@ -321,20 +255,9 @@ const MobileDashboard = memo(function MobileDashboard() {
               >
                 <PrivateAmount value={balance} />
               </h1>
-              <div className="mt-4 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-lg bg-[#173c25] px-2.5 py-1.5 text-xs font-black text-green-300">
-                  <span aria-hidden="true">↑</span>
-                  +2.4%
-                </span>
-                <span className="whitespace-nowrap text-[11px] text-zinc-400">
-                  this month
-                </span>
-              </div>
+              <p className="mt-4 text-xs text-zinc-400">Available to use</p>
             </div>
-
-            <div className="min-w-0 pb-1">
-              <TrendLine className="h-24" />
-            </div>
+            <Link href="/profile" className="pb-1 text-right text-xs font-bold text-green-300">Account details &rarr;</Link>
           </div>
 
           <div className="mt-5 grid grid-cols-4 gap-2">
@@ -356,6 +279,8 @@ const MobileDashboard = memo(function MobileDashboard() {
             ))}
           </div>
         </section>
+
+        <AccountOverview />
 
         <section className="mt-5">
           <MobilePulseSummary
@@ -399,6 +324,7 @@ const MobileDashboard = memo(function MobileDashboard() {
         <section className="mt-5">
           <SectionHeader title="Recent Activity" href="/notifications" />
           <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.035]">
+            {primaryTransactions.length === 0 && <p className="p-5 text-sm text-zinc-400">No transactions yet. Your payments and transfers will appear here.</p>}
             {primaryTransactions.map((tx, index) => {
               const positive = tx.amount > 0;
               const code = tx.name.slice(0, 1).toUpperCase();
@@ -483,7 +409,6 @@ const MobileDashboard = memo(function MobileDashboard() {
           <div className="space-y-5">
             <ActivityChart />
             <AIInsights />
-            <CryptoPortfolio />
             <Analytics />
             <UpcomingPayments />
             <ActivityFeed />

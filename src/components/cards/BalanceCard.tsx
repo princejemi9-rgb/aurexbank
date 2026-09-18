@@ -54,10 +54,10 @@ export default function BalanceCard() {
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <span className="rounded-md bg-green-400 px-3 py-2 text-sm font-black text-black">
-                +2.4%
+                Account overview
               </span>
               <span className="text-sm font-semibold text-zinc-400">
-                monthly growth
+                Your funds at a glance
               </span>
             </div>
           </div>

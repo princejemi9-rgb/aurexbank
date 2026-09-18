@@ -494,15 +494,19 @@ async function updateTargetProfileDetails(
       ? (user.user_metadata as Record<string, unknown>)
       : {};
 
-  const firstName = readText(body.firstName) || readText(currentMetadata.first_name);
-  const lastName = readText(body.lastName) || readText(currentMetadata.last_name);
+  // A submitted empty field is intentional: admins must be able to remove
+  // outdated contact details instead of silently restoring the old value.
+  const submittedText = (value: unknown, fallbackValue: unknown) =>
+    value === undefined ? readText(fallbackValue) : readText(value);
+  const firstName = submittedText(body.firstName, currentMetadata.first_name);
+  const lastName = submittedText(body.lastName, currentMetadata.last_name);
   const fullName =
-    readText(body.fullName) ||
+    submittedText(body.fullName, currentMetadata.full_name) ||
     `${firstName} ${lastName}`.trim() ||
     fallback.fullName;
-  const phone = readText(body.phone) || readText(currentMetadata.phone);
-  const country = readText(body.country) || readText(currentMetadata.country);
-  const avatarUrl = readText(body.avatarUrl) || readText(currentMetadata.avatar_url);
+  const phone = submittedText(body.phone, currentMetadata.phone);
+  const country = submittedText(body.country, currentMetadata.country);
+  const avatarUrl = submittedText(body.avatarUrl, currentMetadata.avatar_url);
   const accountType =
     readText(body.accountType) || readText(currentMetadata.account_type) || fallback.accountType;
   const currency =

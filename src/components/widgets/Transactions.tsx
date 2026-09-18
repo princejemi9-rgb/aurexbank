@@ -13,9 +13,6 @@ export default function Transactions() {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-black tracking-tight">Recent Transactions</h2>
         <div className="flex items-center gap-2">
-          <button className="bank-button rounded-lg px-4 py-2 text-sm font-semibold">
-            Filters
-          </button>
           <Link
             href="/notifications"
             className="rounded-lg bg-green-400 px-4 py-2 text-sm font-black text-black transition-all hover:bg-green-300"
@@ -26,6 +23,7 @@ export default function Transactions() {
       </div>
 
       <div className="space-y-3">
+        {transactions.length === 0 && <div className="rounded-lg border border-dashed border-white/15 p-6"><h3 className="font-bold">No transactions yet</h3><p className="mt-2 text-sm text-zinc-400">Your payments and transfers will appear here. Start by reviewing your account funding details.</p><Link href="/receive" className="mt-4 inline-block text-sm font-bold text-green-300">Receive money &rarr;</Link></div>}
         {transactions.slice(0, 5).map((tx) => {
           const positive = tx.amount > 0;
           const code = tx.name

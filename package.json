@@ -19,7 +19,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check": "npm run lint && npm run build"
+    "check": "npm run lint && npm test && npm run build",
+    "test": "node --test scripts/registration.test.mjs"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.15.0",

@@ -773,6 +773,7 @@ export default function AdminPage() {
   }
 
   async function resetTarget() {
+    if (!selectedUser || !window.confirm(`Reset balance, reserve, and income for ${selectedUser.fullName} to zero?`)) return;
     await runAdminAction(
       "resetDemoData",
       {},
@@ -989,26 +990,6 @@ export default function AdminPage() {
                   >
                     {usersLoading ? "Refreshing..." : "Refresh Users"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={resetTarget}
-                    disabled={!selectedUser || Boolean(busyAction)}
-                    className="rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-200 transition-all hover:bg-red-500/15 disabled:opacity-60"
-                  >
-                    Reset Metrics
-                  </button>
-                  <button
-                    type="button"
-                    onClick={deleteSelectedUser}
-                    disabled={
-                      !selectedUser ||
-                      Boolean(busyAction) ||
-                      selectedUser.username === currentProfile.username
-                    }
-                    className="rounded-lg bg-red-500 px-4 py-3 text-sm font-black text-white transition-all hover:bg-red-400 disabled:opacity-60"
-                  >
-                    {busyAction === "deleteUser" ? "Deleting..." : "Delete User"}
-                  </button>
                 </div>
               </div>
 
@@ -1019,7 +1000,7 @@ export default function AdminPage() {
               )}
 
               {notice && (
-                <div
+                <div role="status" aria-live="polite"
                   className={`mt-5 rounded-lg border px-4 py-3 text-sm font-semibold ${
                     noticeIsError
                       ? "border-red-400/20 bg-red-500/10 text-red-200"
@@ -1031,6 +1012,8 @@ export default function AdminPage() {
               )}
             </section>
 
+            <details className="mb-6 rounded-lg border border-white/10 p-4">
+              <summary className="cursor-pointer font-bold">Bank appearance &mdash; name, logo and colors (all customers)</summary>
             <form
               key={`branding-${branding.updatedAt}`}
               onSubmit={saveBranding}
@@ -1168,6 +1151,7 @@ export default function AdminPage() {
                 </div>
               </div>
             </form>
+            </details>
 
             <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
               <aside className="min-w-0 space-y-6">
@@ -1176,7 +1160,13 @@ export default function AdminPage() {
                   <h2 className="mt-2 text-2xl font-black tracking-tight">
                     Choose one customer
                   </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">Click a customer once. Every action on the right applies only to that selected customer.</p>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">Click a customer once. Every action on the right applies only to that customer. Newly registered users appear here after you refresh the directory.</p>
+
+                  <div className="mt-5 grid gap-2 text-xs leading-relaxed text-zinc-400">
+                    <p className="rounded-lg border border-white/10 bg-black/20 p-3"><span className="font-black text-green-300">1. Select</span> a customer from this list.</p>
+                    <p className="rounded-lg border border-white/10 bg-black/20 p-3"><span className="font-black text-green-300">2. Choose</span> profile, balances, access, verification, or notification from the task bar.</p>
+                    <p className="rounded-lg border border-white/10 bg-black/20 p-3"><span className="font-black text-green-300">3. Save</span> the section you changed. A confirmation appears at the top of the page.</p>
+                  </div>
 
                   <input
                     value={search}
@@ -1353,6 +1343,31 @@ export default function AdminPage() {
                       </div>
                     </section>
 
+                    <details className="rounded-lg border border-red-400/20 p-4"><summary className="cursor-pointer text-sm font-bold text-red-200">Danger zone &mdash; reset balances or delete {selectedUser.fullName}</summary><div className="mt-4 flex flex-wrap gap-3">                  <button
+                    type="button"
+                    onClick={resetTarget}
+                    disabled={!selectedUser || Boolean(busyAction)}
+                    className="rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-200 transition-all hover:bg-red-500/15 disabled:opacity-60"
+                  >
+                    Reset customer balances
+                  </button>
+                  <button
+                    type="button"
+                    onClick={deleteSelectedUser}
+                    disabled={
+                      !selectedUser ||
+                      Boolean(busyAction) ||
+                      selectedUser.username === currentProfile.username
+                    }
+                    className="rounded-lg bg-red-500 px-4 py-3 text-sm font-black text-white transition-all hover:bg-red-400 disabled:opacity-60"
+                  >
+                    {busyAction === "deleteUser" ? "Deleting..." : "Delete User"}
+                  </button>
+</div></details>
+                    <nav aria-label="Customer tasks" className="sticky top-0 z-10 rounded-lg border border-white/10 bg-[var(--brand-background)] p-4">
+                      <p className="mb-3 text-sm font-bold">Step 2 &middot; Choose a task for {selectedUser.fullName}</p>
+                      <div className="flex flex-wrap gap-2">{[["customer-access", "1. Sign-in access"], ["customer-controls", "2. Account & verification"], ["customer-profile", "3. Profile details"], ["customer-money", "4. Balances"], ["customer-alerts", "5. Send notification"]].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-green-300 hover:bg-white/10">{label}</a>)}</div>
+                    </nav>
                     <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
                       {[
                         {
@@ -1378,14 +1393,14 @@ export default function AdminPage() {
                       ))}
                     </section>
 
-                    <section className="bank-surface rounded-lg p-6">
+                    <section id="customer-access" style={{ scrollMarginTop: "10rem" }} className="bank-surface rounded-lg p-6">
                       <p className="text-sm font-semibold text-green-400">Step 3 &middot; Sign-in passcode</p>
-                      <h2 className="mt-2 text-3xl font-black tracking-tight">Secondary login verification</h2>
+                      <h2 className="mt-2 text-3xl font-black tracking-tight">Customer sign-in passcode</h2>
                       <p className="mt-2 text-sm text-zinc-500">For <span className="font-bold text-zinc-300">{selectedUser.fullName}</span>: <span className={selectedUser.securityPasscodeConfigured ? "font-black text-green-300" : "font-black text-yellow-200"}>{selectedUser.securityPasscodeConfigured ? "Configured" : "Not configured"}</span>. Generate a code to set it, copy it, then send it to this customer. The saved passcode is hashed and cannot be viewed later.</p>
                       <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
-                        <input value={securityPasscode} onChange={(event) => setSecurityPasscode(event.target.value)} type="password" autoComplete="new-password" placeholder="Set a new passcode (6+ characters)" className="h-12 rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none focus:border-green-400" />
-                        <button type="button" disabled={Boolean(busyAction) || securityPasscode.length < 6} onClick={() => { void runAdminAction("setSecurityPasscode", { passcode: securityPasscode }, `Security passcode updated for ${selectedUser.fullName}.`).then((saved) => { if (saved) { setSecurityPasscode(""); setIssuedPasscode(""); setIssuedPasscodeUserId(""); setPasscodeCopied(false); } }); }} className="rounded-lg bg-green-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60">Set / change</button>
-                        <button type="button" disabled={Boolean(busyAction) || !selectedUser.securityPasscodeConfigured} onClick={() => void runAdminAction("resetSecurityPasscode", {}, `Security passcode reset for ${selectedUser.fullName}.`)} className="bank-button rounded-lg px-4 py-3 text-sm font-black text-red-200 disabled:opacity-60">Reset</button>
+                        <input aria-label="New customer security passcode" value={securityPasscode} onChange={(event) => setSecurityPasscode(event.target.value)} type="password" autoComplete="new-password" placeholder="Set a new passcode (6+ characters)" className="h-12 rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none focus:border-green-400" />
+                        <button type="button" disabled={Boolean(busyAction) || securityPasscode.length < 6} onClick={() => { void runAdminAction("setSecurityPasscode", { passcode: securityPasscode }, `Security passcode updated for ${selectedUser.fullName}.`).then((saved) => { if (saved) { setSecurityPasscode(""); setIssuedPasscode(""); setIssuedPasscodeUserId(""); setPasscodeCopied(false); } }); }} className="rounded-lg bg-green-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60">Save passcode</button>
+                        <button type="button" disabled={Boolean(busyAction) || !selectedUser.securityPasscodeConfigured} onClick={() => void runAdminAction("resetSecurityPasscode", {}, `Security passcode reset for ${selectedUser.fullName}.`)} className="bank-button rounded-lg px-4 py-3 text-sm font-black text-red-200 disabled:opacity-60">Remove passcode</button>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-3">
                         <button type="button" disabled={Boolean(busyAction)} onClick={() => void issueSecurityPasscode()} className="rounded-lg border border-green-400/40 bg-green-400/10 px-4 py-3 text-sm font-black text-green-300 transition hover:bg-green-400/20 disabled:opacity-60">Generate, set &amp; copy</button>
@@ -1397,11 +1412,11 @@ export default function AdminPage() {
                           </>
                         )}
                       </div>
-                      <p className="mt-3 text-xs leading-relaxed text-zinc-500">Generated passcodes are shown only in this session. The email action opens a prefilled draft addressed to the selected customer; review the recipient and send it, or use another secure channel.</p>
+                      <p className="mt-3 text-xs leading-relaxed text-zinc-500">A passcode is required for dashboard access. Removing it blocks sign-in until you issue a replacement. Generated passcodes are shown only in this session. The email action opens a prefilled draft addressed to the selected customer; review the recipient and send it, or use another secure channel.</p>
                       <button type="button" disabled={Boolean(busyAction) || !selectedUser.securityPasscodeConfigured} onClick={() => void runAdminAction("requireSecurityPasscode", {}, `Security verification will be required again for ${selectedUser.fullName}.`)} className="mt-3 text-sm font-bold text-zinc-400 transition hover:text-white disabled:opacity-60">Require verification again</button>
                     </section>
 
-                    <section className="bank-surface rounded-lg p-6">
+                    <section id="customer-controls" style={{ scrollMarginTop: "10rem" }} className="bank-surface rounded-lg p-6">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <p className="text-sm font-semibold text-green-400">
@@ -1411,7 +1426,7 @@ export default function AdminPage() {
                             Status and Access
                           </h2>
                           <p className="mt-2 text-sm text-zinc-500">
-                            Changes below apply only to {selectedUser.fullName}. Service-role actions are still checked by the protected admin API.
+                            Activate or suspend account access, freeze transfers, or record an identity review decision for {selectedUser.fullName}. These actions take effect immediately.
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -1525,6 +1540,7 @@ export default function AdminPage() {
                     </section>
 
                     <form
+                      id="customer-profile" style={{ scrollMarginTop: "10rem" }}
                       key={`profile-${selectedUser.username}-${selectedUser.fullName}-${selectedUser.phone}-${selectedUser.country}-${selectedUser.avatarUrl}`}
                       onSubmit={saveProfile}
                       className="bank-surface rounded-lg p-6"
@@ -1535,7 +1551,7 @@ export default function AdminPage() {
                             Step 5 &middot; Profile information
                           </p>
                           <h2 className="mt-2 text-3xl font-black tracking-tight">
-                            Identity Information
+                            Profile and photo
                           </h2>
                           <p className="mt-2 text-sm text-zinc-500">
                             Personal details shown on {selectedUser.fullName}’s profile and dashboard.
@@ -1549,7 +1565,7 @@ export default function AdminPage() {
                           }`}
                         >
                           <AppIcon name="profile" className="h-4 w-4" />
-                          {busyAction === "uploadAvatar" ? "Uploading..." : "Upload Photo"}
+                          {busyAction === "uploadAvatar" ? "Uploading..." : "Upload or replace photo"}
                           <input
                             type="file"
                             accept="image/*,.heic,.heif"
@@ -1561,6 +1577,16 @@ export default function AdminPage() {
                       </div>
 
                       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <label className="block md:col-span-2 xl:col-span-3">
+                          <span className="text-sm text-zinc-400">Login email</span>
+                          <input
+                            value={selectedUser.email}
+                            readOnly
+                            aria-describedby="login-email-note"
+                            className="mt-2 h-12 w-full cursor-not-allowed rounded-lg border border-white/10 bg-black/20 px-4 text-sm font-semibold text-zinc-500"
+                          />
+                          <span id="login-email-note" className="mt-2 block text-xs text-zinc-600">The email is the customer&apos;s sign-in identity and is not changed in this workspace.</span>
+                        </label>
                         <label className="block md:col-span-2 xl:col-span-3">
                           <span className="text-sm text-zinc-400">Full Name / Profile Name</span>
                           <input
@@ -1643,13 +1669,14 @@ export default function AdminPage() {
                         disabled={Boolean(busyAction)}
                         className="mt-6 w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60 sm:w-auto sm:px-8"
                       >
-                        {busyAction === "updateProfile" ? "Saving..." : "Save Profile Details"}
+                        {busyAction === "updateProfile" ? "Saving..." : "Save profile changes"}
                       </button>
                     </form>
 
                     <div className="grid min-w-0 items-stretch gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
                       <div className="flex min-w-0 flex-col gap-6">
                         <form
+                          id="customer-money" style={{ scrollMarginTop: "10rem" }}
                           key={`metrics-${selectedUser.username}-${selectedUser.balance}-${selectedUser.reserve}-${selectedUser.income}`}
                           onSubmit={saveMetrics}
                           className="bank-surface rounded-lg p-6"
@@ -1658,11 +1685,10 @@ export default function AdminPage() {
                             Financial Controls
                           </p>
                           <h2 className="mt-2 text-3xl font-black tracking-tight">
-                            Balance and Metrics
+                            Money and account amounts
                           </h2>
                           <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-                            Reserve controls the dashboard portfolio balance and asset allocations.
-                            Saved income and reserve values sync to the selected user account.
+                            Set the customer&apos;s available balance, reserve, and monthly income. These amounts appear in the customer dashboard after saving.
                           </p>
 
                           <div className="mt-6 grid gap-4">
@@ -1702,11 +1728,12 @@ export default function AdminPage() {
                             disabled={Boolean(busyAction)}
                             className="mt-6 w-full rounded-lg bg-green-400 py-4 text-sm font-black text-black transition-all hover:bg-green-300 disabled:opacity-60"
                           >
-                            {busyAction === "updateMetrics" ? "Saving..." : "Save Target Metrics"}
+                            {busyAction === "updateMetrics" ? "Saving..." : "Save customer balances"}
                           </button>
                         </form>
 
                         <form
+                          id="customer-alerts" style={{ scrollMarginTop: "10rem" }}
                           onSubmit={publishAlert}
                           className="bank-surface flex flex-1 flex-col rounded-lg p-6"
                         >

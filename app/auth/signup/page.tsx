@@ -1,5 +1,6 @@
 "use client";
 
+import type { Session, User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -200,7 +201,7 @@ export default function SignUpPage() {
         if (validateAddressStep()) setStep("kyc");
         break;
       case "kyc":
-        if (validateKycStep()) handleSignUp();
+        if (validateKycStep()) return handleSignUp();
         break;
     }
   };
@@ -222,7 +223,7 @@ export default function SignUpPage() {
 
   const getFullName = () => `${formData.firstName} ${formData.lastName}`.trim();
 
-  const getBaseMetadata = (kycSkipped = false) => ({
+  const getBaseMetadata = () => ({
     username: formData.email.trim().toLowerCase(),
     first_name: formData.firstName,
     middle_name: formData.middleName,
@@ -239,38 +240,43 @@ export default function SignUpPage() {
     transfer_frozen: false,
     verification_status: "pending",
     kyc_status: "pending",
-    kyc_skipped: kycSkipped,
+    kyc_skipped: false,
   });
 
-  const onboardCreatedUser = async (userId: string) => {
-    await fetch("/api/auth/onboard", {
+  const finishRegistration = async (user: User | null, session: Session | null) => {
+    if (!user || user.identities?.length === 0) {
+      throw new Error("Unable to finish registration. If you already have an account, sign in or reset your password.");
+    }
+    if (!session) {
+      setStep("complete");
+      setSuccess("Registration submitted. Check your email for a confirmation link, then sign in. Your administrator-issued security passcode is also required before dashboard access.");
+      return;
+    }
+    const response = await fetch("/api/auth/onboard", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId,
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        fullName: getFullName(),
-        phone: formData.phone,
-        country: formData.country,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ userId: user.id, email: user.email }),
     }).catch(() => null);
+    if (!response?.ok) {
+      setSuccess("Your login was created. Account setup will be retried when you sign in. Continue with security verification to access your dashboard.");
+    }
+    // AuthGate checks the independent security session before allowing dashboard access.
+    router.replace("/security/verify");
   };
 
   const handleSignUp = async () => {
+    if (loading || !validateAccountStep() || !validatePersonalStep() || !validateAddressStep()) return;
     setLoading(true);
     setError("");
 
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/signin`,
           data: {
-            ...getBaseMetadata(false),
+            ...getBaseMetadata(),
             date_of_birth: formData.dateOfBirth,
             place_of_birth: formData.placeOfBirth,
             nationality: formData.nationality,
@@ -298,50 +304,9 @@ export default function SignUpPage() {
         return;
       }
 
-      if (data.user) {
-        await onboardCreatedUser(data.user.id);
-        setStep("complete");
-        setSuccess(
-          "Account created successfully! Please verify your email to activate your account."
-        );
-      }
-    } catch {
-      setError("Failed to create account. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSkipKyc = async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            ...getBaseMetadata(true),
-          },
-        },
-      });
-
-      if (signUpError) {
-        setError(signUpError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (data.user) {
-        await onboardCreatedUser(data.user.id);
-        setStep("complete");
-        setSuccess(
-          "Account created. You can complete identity verification later in Settings."
-        );
-      }
-    } catch {
-      setError("Failed to create account. Please try again.");
+      await finishRegistration(data.user, data.session);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Failed to create account. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -989,13 +954,6 @@ export default function SignUpPage() {
                       </button>
                     </div>
 
-                    <button
-                      onClick={handleSkipKyc}
-                      disabled={loading}
-                      className="w-full h-12 rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] transition-all disabled:opacity-50"
-                    >
-                      Skip verification for now
-                    </button>
                   </div>
                 )}
 
@@ -1012,7 +970,7 @@ export default function SignUpPage() {
                     </div>
                     <h3 className="text-2xl font-black mt-6">Account Created!</h3>
                     <p className="text-zinc-500 mt-4">
-                      We&apos;ve sent a verification link to <strong className="text-white">{formData.email}</strong>
+                      Check for a verification link at <strong className="text-white">{formData.email}</strong>
                     </p>
                     <p className="text-zinc-500 mt-2 text-sm">
                       Please check your inbox and click the verification link to activate your Aurex Bank account.
@@ -1028,7 +986,7 @@ export default function SignUpPage() {
                       onClick={() => router.push("/login")}
                       className="mt-8 w-full h-14 rounded-2xl bg-green-400 text-black font-black text-lg hover:bg-green-300 transition-all"
                     >
-                      Go to Login
+                      Continue to sign in
                     </button>
                   </div>
                 )}

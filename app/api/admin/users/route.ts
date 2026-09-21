@@ -46,10 +46,7 @@ const ADMIN_ALERT_PREFIX = "__AUREX_ALERT__:";
 const ADMIN_TRANSACTION_PREFIX = "__AUREX_TX__:";
 
 function getAllowedAdminEmails() {
-  return Array.from(new Set([
-    "princejemi9@gmail.com",
-    ...(process.env.AUREX_ADMIN_EMAILS || "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean),
-  ]));
+  return ["princejemi9@gmail.com"];
 }
 
 function getServiceRoleKey() {

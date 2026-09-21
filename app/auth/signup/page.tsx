@@ -336,7 +336,7 @@ export default function SignUpPage() {
   const currentStepIndex = steps.findIndex((s) => s.id === step);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[var(--brand-background)] text-white">
+    <main className="relative min-h-screen overflow-x-hidden bg-[var(--brand-background)] text-white">
       {/* GRID */}
       <div className="relative z-10 grid min-h-screen min-w-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         {/* LEFT SIDE - Form */}
@@ -494,8 +494,8 @@ export default function SignUpPage() {
 
                 {step === "personal" && (
                   <div className="space-y-5">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="col-span-2">
+                    <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-3">
+                      <div className="min-[360px]:col-span-2">
                         <label className="text-sm text-zinc-400 font-medium">
                           First Name
                         </label>
@@ -553,7 +553,7 @@ export default function SignUpPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2">
                       <div>
                         <label className="text-sm text-zinc-400 font-medium">
                           Date of Birth
@@ -660,7 +660,7 @@ export default function SignUpPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2">
                       <div>
                         <label className="text-sm text-zinc-400 font-medium">
                           City
@@ -687,7 +687,7 @@ export default function SignUpPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2">
                       <div>
                         <label className="text-sm text-zinc-400 font-medium">
                           Postal/ZIP Code
@@ -764,7 +764,7 @@ export default function SignUpPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2">
                       <div>
                         <label className="text-sm text-zinc-400 font-medium">ID Type</label>
                         <select
@@ -791,7 +791,7 @@ export default function SignUpPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2">
                       <div>
                         <label className="text-sm text-zinc-400 font-medium">ID Expiry Date</label>
                         <input

@@ -48,12 +48,12 @@ export default function LiveBankingPulse({ compact = false }: LiveBankingPulsePr
   const metrics = [
     {
       label: "Ledger Volume",
-      value: <PrivateAmount value={activity.inbound + activity.outbound} />,
+      value: transactions.length ? <PrivateAmount value={activity.inbound + activity.outbound} /> : "No entries",
       icon: "activity" as const,
     },
     {
       label: "Settled",
-      value: `${activity.settled} items`,
+      value: transactions.length ? `${activity.settled} items` : "No entries",
       icon: "check" as const,
     },
     {

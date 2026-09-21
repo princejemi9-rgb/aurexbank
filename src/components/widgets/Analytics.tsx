@@ -7,6 +7,7 @@ import { PrivateAmount } from "../ui/PrivateAmount";
 
 export default function Analytics() {
   const { expenses, transactions } = useBanking();
+  const hasSpending = transactions.some((item) => item.amount < 0);
   const analytics = useMemo(() => {
     const spending = transactions.filter((item) => item.amount < 0);
     const total = spending.reduce((sum, item) => sum + Math.abs(item.amount), 0) || 1;
@@ -47,19 +48,13 @@ export default function Analytics() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm text-zinc-500">Monthly Spending</p>
-            <h3 className="mt-3 text-4xl font-black tracking-tight">
-              <PrivateAmount value={expenses} maximumFractionDigits={0} minimumFractionDigits={0} />
-            </h3>
+            <h3 className="mt-3 text-2xl font-black tracking-tight">{hasSpending ? <PrivateAmount value={expenses} maximumFractionDigits={0} minimumFractionDigits={0} /> : "No recorded spending"}</h3>
           </div>
-          <div className="text-right">
-            <div className="rounded-md bg-green-400/10 px-3 py-2 text-sm font-bold text-green-400">
-              -18%
-            </div>
-            <p className="mt-2 text-sm text-zinc-500">vs last month</p>
-          </div>
+          {hasSpending && <div className="text-right"><p className="mt-2 text-sm text-zinc-500">Recorded from completed transactions</p></div>}
         </div>
       </div>
 
+      {!hasSpending && <p className="mt-5 rounded-lg border border-dashed border-white/15 p-4 text-sm text-zinc-400">Spending categories will appear after an outgoing transaction is recorded.</p>}
       <div className="mt-5 space-y-3">
         {analytics.map((item) => (
           <div key={item.category} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">

@@ -29,16 +29,16 @@ export default function ActivityChart() {
             Your last seven outgoing transactions, from oldest to newest
           </p>
         </div>
-        <div className="bank-panel w-full rounded-lg px-3 py-2.5 sm:w-auto sm:px-4 sm:py-3">
+        {bars.length > 0 && <div className="bank-panel w-full rounded-lg px-3 py-2.5 sm:w-auto sm:px-4 sm:py-3">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500 sm:text-xs">
             Shown total
           </p>
           <h3 className="mt-1 text-lg font-black text-green-400 sm:text-xl"><PrivateAmount value={total} /></h3>
-        </div>
+        </div>}
       </div>
 
       {bars.length === 0 && <p className="mb-4 rounded-lg border border-dashed border-white/15 p-5 text-sm text-zinc-400">No outgoing payments yet. Your spending chart will grow with your activity.</p>}
-      <div className="flex h-40 items-end justify-between gap-1 overflow-hidden sm:h-56 sm:gap-2.5">
+      {bars.length > 0 && <div className="flex h-40 items-end justify-between gap-1 overflow-hidden sm:h-56 sm:gap-2.5">
         {bars.map((bar) => (
           <div title={bar.name} key={bar.day} className="flex h-full min-w-0 flex-1 flex-col items-center overflow-hidden">
             <p className="mb-2 max-w-full truncate text-[10px] font-semibold text-zinc-500 sm:text-xs">
@@ -57,9 +57,9 @@ export default function ActivityChart() {
             <p className="mt-2 text-[10px] font-bold text-zinc-400 sm:mt-3 sm:text-sm">{bar.day}</p>
           </div>
         ))}
-      </div>
+      </div>}
 
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:mt-6 sm:grid-cols-3">
+      {bars.length > 0 && <div className="mt-5 grid grid-cols-1 gap-3 sm:mt-6 sm:grid-cols-3">
         {[
           {
             label: "Largest payment",
@@ -75,7 +75,7 @@ export default function ActivityChart() {
             <h3 className="mt-2 truncate text-sm font-black sm:text-base lg:text-lg">{item.value}</h3>
           </div>
         ))}
-      </div>
+      </div>}
     </section>
   );
 }

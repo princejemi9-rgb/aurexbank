@@ -13,10 +13,7 @@ function readText(value: unknown) {
 }
 
 function getAllowedAdminEmails() {
-  return (process.env.AUREX_ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+  return ["princejemi9@gmail.com"];
 }
 
 function getServiceRoleKey() {

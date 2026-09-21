@@ -30,10 +30,7 @@ function getServiceRoleKey() {
 }
 
 function getAdminEmails() {
-  return (process.env.AUREX_ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+  return ["princejemi9@gmail.com"];
 }
 
 function jsonError(error: string, status: number) {

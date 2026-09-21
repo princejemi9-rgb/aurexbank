@@ -35,11 +35,13 @@ function MobilePulseSummary({
   settled,
   status,
   unreadCount,
+  transactionCount,
 }: {
   ledgerVolume: number;
   settled: number;
   status: string;
   unreadCount: number;
+  transactionCount: number;
 }) {
   return (
     <section className="mobile-dashboard-pulse rounded-lg border border-green-300/15 bg-white/[0.035] p-4">
@@ -69,8 +71,8 @@ function MobilePulseSummary({
 
       <div className="mt-4 grid grid-cols-3 gap-2">
         {[
-          { label: "Ledger Volume", value: <PrivateAmount value={ledgerVolume} /> },
-          { label: "Settled", value: `${settled} items` },
+          { label: "Ledger Volume", value: transactionCount ? <PrivateAmount value={ledgerVolume} /> : "No entries" },
+          { label: "Settled", value: settled ? `${settled} items` : "No entries" },
           { label: "Alerts", value: unreadCount ? `${unreadCount} open` : "Clear" },
         ].map((item) => (
           <div key={item.label} className="rounded-lg border border-white/[0.08] bg-black/25 p-3">
@@ -288,6 +290,7 @@ const MobileDashboard = memo(function MobileDashboard() {
             settled={pulse.settled}
             status={pulse.status}
             unreadCount={unreadCount}
+            transactionCount={transactions.length}
           />
         </section>
 

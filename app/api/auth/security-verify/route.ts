@@ -12,13 +12,7 @@ function isAdminEmail(email: string | null | undefined) {
   const normalized = email?.trim().toLowerCase();
   if (!normalized) return false;
 
-  return new Set([
-    "princejemi9@gmail.com",
-    ...(process.env.AUREX_ADMIN_EMAILS || "")
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  ]).has(normalized);
+  return normalized === "princejemi9@gmail.com";
 }
 
 export async function POST(request: NextRequest) {

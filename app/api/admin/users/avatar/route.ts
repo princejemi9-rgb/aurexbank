@@ -13,10 +13,7 @@ const IMAGE_TYPES: Record<string, string> = {
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"];
 
 function getAllowedAdminEmails() {
-  return (process.env.AUREX_ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+  return ["princejemi9@gmail.com"];
 }
 
 function getServiceRoleKey() {

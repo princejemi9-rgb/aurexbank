@@ -6,7 +6,7 @@ import { useBanking } from "../../context/BankingContext";
 import { PrivateAmount } from "../ui/PrivateAmount";
 
 export default function Transactions() {
-  const { transactions } = useBanking();
+  const { transactions, historyError } = useBanking();
 
   return (
     <section className="bank-surface rounded-lg p-5">
@@ -14,7 +14,7 @@ export default function Transactions() {
         <h2 className="text-2xl font-black tracking-tight">Recent Transactions</h2>
         <div className="flex items-center gap-2">
           <Link
-            href="/notifications"
+            href="/transactions"
             className="rounded-lg bg-green-400 px-4 py-2 text-sm font-black text-black transition-all hover:bg-green-300"
           >
             View All
@@ -23,6 +23,7 @@ export default function Transactions() {
       </div>
 
       <div className="space-y-3">
+        {historyError && <p role="alert" className="text-sm text-amber-200">{historyError}</p>}
         {transactions.length === 0 && <div className="rounded-lg border border-dashed border-white/15 p-6"><h3 className="font-bold">No transactions yet</h3><p className="mt-2 text-sm text-zinc-400">Your payments and transfers will appear here. Start by reviewing your account funding details.</p><Link href="/receive" className="mt-4 inline-block text-sm font-bold text-green-300">Receive money &rarr;</Link></div>}
         {transactions.slice(0, 5).map((tx) => {
           const positive = tx.amount > 0;
@@ -63,8 +64,8 @@ export default function Transactions() {
                 <PrivateAmount
                   value={Math.abs(tx.amount)}
                   prefix={positive ? "+$" : "-$"}
-                  maximumFractionDigits={0}
-                  minimumFractionDigits={0}
+                  maximumFractionDigits={2}
+                  minimumFractionDigits={2}
                 />
               </h3>
             </div>
@@ -73,7 +74,7 @@ export default function Transactions() {
       </div>
 
       <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
-        <p className="text-xs text-zinc-500">Latest verified banking transactions</p>
+        <p className="text-xs text-zinc-500">Latest account records</p>
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-green-400">Live</p>
       </div>
     </section>

@@ -1,52 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
-import { supabase } from "../../lib/supabase";
+import Image from "next/image";
+import { useBanking } from "../../context/BankingContext";
 
 export default function UserProfile() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (active) {
-        setUser(user);
-      }
-    }
-
-    getUser();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const fullName = String(user?.user_metadata?.full_name ?? "Aurex User");
-  const username = String(user?.user_metadata?.username ?? "aurexbank");
+  const { currentProfile } = useBanking();
+  const { fullName, username } = currentProfile;
 
   return (
     <div className="bank-surface mb-6 rounded-lg p-5">
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-green-400 text-2xl font-black text-black">
-          {fullName.charAt(0)}
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-green-400 text-2xl font-bold text-black">
+          {currentProfile.avatar_url ? <Image src={currentProfile.avatar_url} alt={`${fullName} profile photo`} width={64} height={64} unoptimized className="h-full w-full object-cover object-top" /> : currentProfile.initials}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <p className="text-sm text-zinc-400">
-            Logged In Account
+            Account profile
           </p>
 
-          <h2 className="text-2xl font-black">
+          <h2 className="break-words text-xl font-bold sm:text-2xl">
             {fullName}
           </h2>
 
-          <p className="text-sm text-zinc-500">
+          <p className="break-all text-sm text-zinc-400">
             @{username}
           </p>
         </div>

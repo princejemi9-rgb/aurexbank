@@ -322,7 +322,7 @@ const MobileDashboard = memo(function MobileDashboard() {
         </section>
 
         <section className="mt-5">
-          <SectionHeader title="Recent Activity" href="/notifications" />
+          <SectionHeader title="Recent Activity" href="/transactions" />
           <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.035]">
             {primaryTransactions.length === 0 && <p className="p-5 text-sm text-zinc-400">No transactions yet. Your payments and transfers will appear here.</p>}
             {primaryTransactions.map((tx, index) => {
@@ -331,8 +331,8 @@ const MobileDashboard = memo(function MobileDashboard() {
 
               return (
                 <Link
-                  key={tx.id}
-                  href="/notifications"
+                    key={tx.id}
+                    href="/transactions"
                   className={`flex items-center justify-between gap-3 p-3 ${
                     index ? "border-t border-white/10" : ""
                   }`}

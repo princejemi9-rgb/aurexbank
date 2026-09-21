@@ -82,7 +82,8 @@ function formatAccountType(value: string) {
 
 
 export default function ProfilePage() {
-  const { balance, currentProfile, income, refreshBanking, reserve } = useBanking();
+  const { balance, currentProfile, income, refreshBanking, reserve, verificationStatus } = useBanking();
+  const accountVerified = verificationStatus === "approved";
   const { isAdmin } = useAdminStatus();
   const [editOpen, setEditOpen] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<{ url: string; userId: string } | null>(null);
@@ -176,7 +177,7 @@ export default function ProfilePage() {
 
   function submitVerification() {
     if (!kycComplete) return;
-    updateKyc({ submitted: true, verified: true });
+    updateKyc({ submitted: true, verified: false });
   }
 
   const details = [
@@ -255,7 +256,7 @@ export default function ProfilePage() {
                 </h1>
                 <p className="mt-3 max-w-3xl text-base leading-relaxed text-zinc-400">
                   Manage identity verification, account preferences, login sessions,
-                  and premium Aurex Bank membership details.
+                  and your Aurex Bank account details.
                 </p>
               </div>
 
@@ -308,12 +309,12 @@ export default function ProfilePage() {
                           </h2>
                           <span
                             className={`inline-flex shrink-0 rounded-md border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] ${
-                              kycState.verified
+                              accountVerified
                                 ? "border-green-300/15 bg-green-400/10 text-green-300"
                                 : "border-yellow-300/20 bg-yellow-300/10 text-yellow-100"
                             }`}
                           >
-                            {kycState.verified ? "Verified" : "Verification pending"}
+                            {accountVerified ? "Verified" : "Verification pending"}
                           </span>
                         </div>
                         <p className="mt-2 break-words text-sm text-zinc-500">
@@ -322,9 +323,9 @@ export default function ProfilePage() {
 
                         <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-3">
                           {[
-                            { label: "Membership", value: "Aurex Black Premium" },
+                            { label: "Account type", value: formatAccountType(currentProfile.accountType) },
                             { label: "Username", value: currentProfile.username },
-                            { label: "KYC", value: kycState.verified ? "Complete" : `${completedKycCount}/4 steps` },
+                            { label: "KYC", value: accountVerified ? "Complete" : `${completedKycCount}/4 steps` },
                           ].map((item) => (
                             <div key={item.label} className="rounded-lg border border-white/10 bg-black/20 p-4">
                               <p className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">
@@ -385,24 +386,24 @@ export default function ProfilePage() {
                     <p className="text-sm font-semibold text-green-400">Identity Verification</p>
                     <h2 className="mt-1 text-3xl font-black tracking-tight">KYC Status</h2>
                     <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-500">
-                      {kycState.verified
-                        ? "Your profile has passed local Aurex verification checks for this app."
+                      {accountVerified
+                        ? "Your account verification status is approved."
                         : "Complete each step to unlock a verified banking profile. This demo stores the progress on this device."}
                     </p>
                   </div>
                   <div
                     className={`rounded-lg border px-5 py-4 ${
-                      kycState.verified
+                      accountVerified
                         ? "border-green-300/15 bg-green-400/10"
                         : "border-yellow-300/20 bg-yellow-300/10"
                     }`}
                   >
                     <p
                       className={`text-xs font-black uppercase tracking-[0.14em] ${
-                        kycState.verified ? "text-green-300" : "text-yellow-100"
+                        accountVerified ? "text-green-300" : "text-yellow-100"
                       }`}
                     >
-                      {kycState.verified ? "Verified" : "In progress"}
+                      {accountVerified ? "Verified" : "In progress"}
                     </p>
                     <h3 className="mt-2 text-3xl font-black">{completedKycCount}/4</h3>
                   </div>
@@ -453,7 +454,7 @@ export default function ProfilePage() {
                 <div className="mt-6 flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.025] p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-black text-white">
-                      {kycState.verified
+                      {accountVerified
                         ? "Verification complete"
                         : kycComplete
                           ? "Ready to submit"
@@ -468,10 +469,10 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={submitVerification}
-                    disabled={isAdmin || !kycComplete || kycState.verified}
+                    disabled={isAdmin || !kycComplete || accountVerified}
                     className="rounded-lg bg-green-400 px-5 py-3 text-sm font-black text-black transition-all hover:bg-green-300 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {kycState.verified ? "Approved" : "Submit Verification"}
+                    {accountVerified ? "Approved" : "Submit Verification"}
                   </button>
                 </div>
               </section>
@@ -547,13 +548,13 @@ export default function ProfilePage() {
 
             <aside className="min-w-0 space-y-6">
               <section className="rounded-lg border border-green-300/15 bg-[var(--brand-surface)] p-6 shadow-2xl">
-                <p className="text-sm font-semibold text-green-400">Membership Status</p>
-                <h2 className="mt-3 text-3xl font-black tracking-tight">Aurex Black</h2>
+                <p className="text-sm font-semibold text-green-400">Account details</p>
+                <h2 className="mt-3 text-2xl font-bold">{formatAccountType(currentProfile.accountType)}</h2>
                 <div className="mt-6 space-y-4">
                   {[
-                    { label: "Daily Transfer Limit", value: "$50,000" },
-                    { label: "Cashback Rewards", value: "3.5%" },
-                    { label: "Priority Support", value: "Enabled" },
+                    { label: "Currency", value: currentProfile.currency },
+                    { label: "Country", value: currentProfile.country },
+                    { label: "Identity review", value: verificationStatus },
                   ].map((item) => (
                     <div key={item.label} className="flex min-w-0 items-center justify-between gap-4">
                       <p className="min-w-0 truncate text-sm text-zinc-400">{item.label}</p>

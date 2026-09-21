@@ -12,6 +12,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../lib/supabase";
 import { accountTransferFilter } from "../lib/supabaseFilters";
+import { mapHistoryRecord } from "../lib/transactionHistory";
 
 export type BankAlert = {
   id: string;
@@ -31,6 +32,7 @@ export type BankTransaction = {
   status: string;
   time: string;
   method: string;
+  createdAt?: string;
 };
 
 export type BankingProfile = {
@@ -131,6 +133,7 @@ type BankingContextValue = {
   currentProfile: BankingProfile;
   alerts: BankAlert[];
   transactions: BankTransaction[];
+  historyError: string;
   unreadCount: number;
   refreshBanking: () => Promise<void>;
   submitTransfer: (input: TransferInput) => Promise<{ ok: boolean; message: string }>;
@@ -168,7 +171,6 @@ const retiredDemoAlertIds = new Set(["seed-payment", "seed-security", "seed-cryp
 const BankingContext = createContext<BankingContextValue | null>(null);
 const REMOTE_OPERATION_TIMEOUT_MS = 8000;
 const ADMIN_ALERT_PREFIX = "__AUREX_ALERT__:";
-const ADMIN_TRANSACTION_PREFIX = "__AUREX_TX__:";
 
 function formatMoney(value: number) {
   return value.toLocaleString("en-US", {
@@ -261,7 +263,7 @@ function mergeTransactionHistory(transactions: BankTransaction[]) {
   return [
     ...currentTransactions,
     ...seedTransactions.filter((transaction) => !transactionIds.has(transaction.id)),
-  ].slice(0, 24);
+  ];
 }
 
 function mergeAlertHistory(alerts: BankAlert[]) {
@@ -426,25 +428,6 @@ function parseAdminAlertMessage(
       time: formatRemoteAlertTime(record.created_at),
       status: readText(payload.status) || "Updated",
       unread: typeof payload.unread === "boolean" ? payload.unread : true,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function parseAdminTransactionDetails(value: unknown) {
-  const text = readText(value);
-  if (!text.startsWith(ADMIN_TRANSACTION_PREFIX)) return null;
-
-  try {
-    const payload = JSON.parse(
-      text.slice(ADMIN_TRANSACTION_PREFIX.length)
-    ) as Record<string, unknown>;
-
-    return {
-      name: readText(payload.name),
-      status: readText(payload.status),
-      method: readText(payload.method),
     };
   } catch {
     return null;
@@ -632,26 +615,6 @@ async function saveRemoteTransfer(input: TransferInput) {
   }
 }
 
-async function ensureRemoteProfile(profile: BankingProfile, balance: number) {
-  if (profile.userId === FALLBACK_PROFILE.userId) return;
-
-  const row = {
-    username: profile.username,
-    balance: toWholeDatabaseMoney(balance),
-  };
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .update({ balance: row.balance })
-    .eq("username", row.username)
-    .select("username")
-    .limit(1);
-
-  if (!error && data?.length) return;
-
-  await supabase.from("profiles").insert([row]);
-}
-
 function cleanFirstName(value: string, lastName = "") {
   const firstToken = value.trim().split(/[\s._-]+/)[0] ?? "";
   let cleaned = firstToken.replace(/\d+$/g, "");
@@ -739,6 +702,7 @@ function buildProfile(user: User | null): BankingProfile {
 export function BankingProvider({ children }: { children: React.ReactNode }) {
   const [currentProfile, setCurrentProfile] = useState(FALLBACK_PROFILE);
   const [balance, setBalance] = useState(() => getStoredBalance());
+  const [historyError, setHistoryError] = useState("");
   const [accountStatus, setAccountStatus] = useState<AccountStatus>("active");
   const [transferFrozen, setTransferFrozen] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState("pending");
@@ -819,54 +783,25 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     setTransactions(storedTransactions);
     setAlerts(storedAlerts);
 
-    if (profileBalance !== null && metadataBalance === null) {
-      await saveRemoteBalance(profileBalance).catch(() => {});
-    }
-
-    if (profileBalance === null) {
-      await ensureRemoteProfile(profileInfo, resolvedBalance).catch(() => {});
-    }
-
     const remoteAlerts = await getRemoteAlerts(username, storedAlerts).catch(() => storedAlerts);
     setAlerts(remoteAlerts);
 
-    const { data: transferData } = await supabase
-      .from("transfers")
-      .select("id, sender, receiver, amount, type, account_type, bank_name, created_at")
-      .or(accountTransferFilter(username))
-      .order("created_at", { ascending: false })
-      .limit(12);
-
-    if (transferData?.length) {
-      const mapped = transferData.map((item) => {
-        const sent = item.sender === username;
-        const accountType = String(item.account_type ?? "");
-        const rawAmount = Number(item.amount);
-        const amount = accountType.endsWith(":cents") ? rawAmount / 100 : rawAmount;
-        const adminDetails = parseAdminTransactionDetails(item.bank_name);
-        return {
-          id: String(item.id),
-          name:
-            adminDetails?.name ||
-            (sent ? String(item.receiver) : String(item.sender)),
-          type: `${String(item.type ?? "Transfer")} transfer`,
-          amount: sent ? -amount : amount,
-          status: adminDetails?.status || "Completed",
-          time: item.created_at
-            ? new Date(String(item.created_at)).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })
-            : "Live",
-          method:
-            adminDetails?.method ||
-            (item.bank_name ? String(item.bank_name) : "Aurex Secure"),
-        };
-      });
-
-      setTransactions(mergeTransactionHistory(mapped));
+    const mapped: BankTransaction[] = [];
+    for (let offset = 0; ; offset += 500) {
+      // Legacy deployments may not have optional type/account_type/bank_name columns.
+      const { data, error } = await supabase.from("transfers").select("*")
+        .or(accountTransferFilter(username))
+        .order("created_at", { ascending: false }).order("id", { ascending: false })
+        .range(offset, offset + 499);
+      if (error) {
+        setHistoryError("Transaction history could not be refreshed. Please try again.");
+        return;
+      }
+      mapped.push(...(data ?? []).map(item => mapHistoryRecord(item, username)));
+      if (!data || data.length < 500) break;
     }
+    setHistoryError("");
+    setTransactions(mergeTransactionHistory(mapped));
   }, []);
 
   useEffect(() => {
@@ -1225,6 +1160,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       currentProfile,
       alerts,
       transactions,
+      historyError,
       unreadCount: alerts.filter((item) => item.unread).length,
       refreshBanking,
       submitTransfer,
@@ -1247,6 +1183,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       resetAdminData,
       submitTransfer,
       transactions,
+      historyError,
       transferFrozen,
       updateAdminMetrics,
       verificationStatus,

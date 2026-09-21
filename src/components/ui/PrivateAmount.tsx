@@ -69,6 +69,7 @@ export function BalancePrivacyToggle({
     <button
       type="button"
       aria-label={balancesHidden ? "Show balances" : "Hide balances"}
+      aria-pressed={balancesHidden}
       title={balancesHidden ? "Show balances" : "Hide balances"}
       onClick={(event) => {
         event.stopPropagation();

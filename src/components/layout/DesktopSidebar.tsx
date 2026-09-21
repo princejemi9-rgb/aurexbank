@@ -13,6 +13,7 @@ export default function DesktopSidebar() {
 
   const navItems = [
     { name: "Dashboard", icon: "dashboard" as const, href: "/dashboard", section: "primary" as const },
+    { name: "Transactions", icon: "transfer" as const, href: "/transactions", section: "primary" as const },
     { name: "Send", icon: "transfer" as const, href: "/send", section: "primary" as const },
     { name: "Bill Pay", icon: "pay" as const, href: "/payments", section: "primary" as const },
     { name: "Receive", icon: "receive" as const, href: "/receive", section: "primary" as const },

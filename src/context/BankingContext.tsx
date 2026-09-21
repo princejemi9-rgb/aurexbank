@@ -46,6 +46,7 @@ export type BankingProfile = {
   accountType: string;
   currency: string;
   customerId: string;
+  accountNumber: string;
   initials: string;
   avatar_url?: string;
 };
@@ -152,21 +153,22 @@ const FALLBACK_PROFILE: BankingProfile = {
   username: "Aurex User",
   fullName: "Aurex User",
   firstName: "Aurex User",
-  email: "user@aurexbank.demo",
+  email: "user@aurexbank.local",
   phone: "Not provided",
   country: "Not provided",
   accountType: "personal",
   currency: "USD",
   customerId: "ARX-PENDING",
+  accountNumber: "",
   initials: "A",
   avatar_url: undefined,
 };
 
 const seedTransactions: BankTransaction[] = [];
-const retiredDemoTransactionIds = new Set(["seed-netflix", "seed-salary", "seed-apple", "legacy-2026-capital-distribution", "legacy-2026-property-acquisition", "legacy-2026-advisory", "legacy-2025-private-equity", "legacy-2025-family-office", "legacy-2024-commercial-exit", "legacy-2023-estate", "legacy-2022-dividend", "legacy-2021-acquisition", "legacy-2020-liquidity", "legacy-2019-investment", "legacy-2018-opening"]);
+const retiredTransactionIds = new Set(["seed-netflix", "seed-salary", "seed-apple", "legacy-2026-capital-distribution", "legacy-2026-property-acquisition", "legacy-2026-advisory", "legacy-2025-private-equity", "legacy-2025-family-office", "legacy-2024-commercial-exit", "legacy-2023-estate", "legacy-2022-dividend", "legacy-2021-acquisition", "legacy-2020-liquidity", "legacy-2019-investment", "legacy-2018-opening"]);
 
 const seedAlerts: BankAlert[] = [];
-const retiredDemoAlertIds = new Set(["seed-payment", "seed-security", "seed-crypto", "seed-savings"]);
+const retiredAlertIds = new Set(["seed-payment", "seed-security", "seed-crypto", "seed-savings"]);
 
 const BankingContext = createContext<BankingContextValue | null>(null);
 const REMOTE_OPERATION_TIMEOUT_MS = 8000;
@@ -254,7 +256,7 @@ function getStoredItems<T>(userId: string, key: string, fallback: T[]) {
 
 function mergeTransactionHistory(transactions: BankTransaction[]) {
   const currentTransactions = transactions.filter(
-    (transaction) => !retiredDemoTransactionIds.has(transaction.id)
+    (transaction) => !retiredTransactionIds.has(transaction.id)
   );
   const transactionIds = new Set(
     currentTransactions.map((transaction) => transaction.id)
@@ -269,7 +271,7 @@ function mergeTransactionHistory(transactions: BankTransaction[]) {
 function mergeAlertHistory(alerts: BankAlert[]) {
   const seedAlertIds = new Set(seedAlerts.map((alert) => alert.id));
   const storedById = new Map(alerts.map((alert) => [alert.id, alert]));
-  const currentAlerts = alerts.filter((alert) => !seedAlertIds.has(alert.id) && !retiredDemoAlertIds.has(alert.id));
+  const currentAlerts = alerts.filter((alert) => !seedAlertIds.has(alert.id) && !retiredAlertIds.has(alert.id));
 
   return [
     ...currentAlerts,
@@ -694,6 +696,7 @@ function buildProfile(user: User | null): BankingProfile {
       readText(cachedProfile?.currency).toUpperCase() ||
       "USD",
     customerId: `ARX-${user.id.slice(0, 8).toUpperCase()}`,
+    accountNumber: readText(metadata.account_number),
     initials,
     avatar_url,
   };

@@ -9,6 +9,7 @@ import AppIcon from "../../src/components/ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../../src/components/ui/PrivateAmount";
 import { useBanking } from "../../src/context/BankingContext";
 import { useBranding } from "../../src/context/BrandingContext";
+import { supabase } from "../../src/lib/supabase";
 import {
   completeTransferVerificationRequest,
   createTransferVerificationRequest,
@@ -359,6 +360,7 @@ export default function SendPage() {
   const [recipientContact, setRecipientContact] = useState("");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
+  const [accountLookup, setAccountLookup] = useState({ accountNumber: "", fullName: "", error: "" });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -417,6 +419,32 @@ export default function SendPage() {
   const cleanSwift = swift.trim().toUpperCase().replace(/\s/g, "");
   const cleanWallet = wallet.trim();
   const cleanContact = recipientContact.trim();
+
+  useEffect(() => {
+    let active = true;
+    if (accountDigits.length !== 10) {
+      return () => { active = false; };
+    }
+    async function lookupAccountHolder() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token || !active) return;
+      const response = await fetch(`/api/recipients/lookup?accountNumber=${accountDigits}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      }).catch(() => null);
+      const result = await response?.json().catch(() => null) as { ok?: boolean; matched?: boolean; fullName?: string } | null;
+      if (!active) return;
+      setAccountLookup({
+        accountNumber: accountDigits,
+        fullName: result?.ok && result.matched ? result.fullName || "Aurex account holder" : "",
+        error: result?.ok && !result.matched ? "No Aurex account matches this number." : "",
+      });
+    }
+    void lookupAccountHolder();
+    return () => { active = false; };
+  }, [accountDigits]);
+  const accountHolder = accountLookup.accountNumber === accountDigits ? accountLookup.fullName : "";
+  const accountLookupError = accountLookup.accountNumber === accountDigits ? accountLookup.error : "";
   const normalizedAccountStatus = accountStatus === "suspended" ? "Suspended" : "Active";
   const transferAvailability = transferFrozen
     ? "Transfers frozen"
@@ -1540,6 +1568,8 @@ export default function SendPage() {
                             }
                             className="mt-3 w-full rounded-lg border border-white/10 bg-black/30 px-5 py-4 outline-none placeholder:text-zinc-600 focus:border-green-400/40"
                           />
+                          {accountHolder && <p className="mt-2 text-sm font-semibold text-green-300">Account holder: {accountHolder}</p>}
+                          {accountLookupError && <p role="alert" className="mt-2 text-sm text-amber-200">{accountLookupError}</p>}
                         </div>
                         <div>
                           <label className="text-sm text-zinc-500">Routing / Sort Code</label>

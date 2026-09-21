@@ -775,7 +775,7 @@ export default function AdminPage() {
   async function resetTarget() {
     if (!selectedUser || !window.confirm(`Reset balance, reserve, and income for ${selectedUser.fullName} to zero?`)) return;
     await runAdminAction(
-      "resetDemoData",
+      "resetAccountData",
       {},
       `Account metrics reset for ${selectedUser?.fullName}.`
     );

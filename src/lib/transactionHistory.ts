@@ -7,7 +7,6 @@ export type HistoryTransaction = {
   time: string;
   method: string;
   createdAt?: string;
-  simulated?: boolean;
 };
 
 export function mapHistoryRecord(item: Record<string, unknown>, username: string): HistoryTransaction {

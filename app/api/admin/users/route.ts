@@ -981,7 +981,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (action === "resetDemoData") {
+  if (action === "resetAccountData") {
     const nextMetrics = {
       balance: STARTING_BALANCE,
       reserve: STARTING_RESERVE,

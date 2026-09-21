@@ -324,6 +324,7 @@ export default function ProfilePage() {
                         <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-3">
                           {[
                             { label: "Account type", value: formatAccountType(currentProfile.accountType) },
+                            { label: "Account number", value: currentProfile.accountNumber || "Not assigned" },
                             { label: "Username", value: currentProfile.username },
                             { label: "KYC", value: accountVerified ? "Complete" : `${completedKycCount}/4 steps` },
                           ].map((item) => (
@@ -388,7 +389,7 @@ export default function ProfilePage() {
                     <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-500">
                       {accountVerified
                         ? "Your account verification status is approved."
-                        : "Complete each step to unlock a verified banking profile. This demo stores the progress on this device."}
+                        : "Complete each step to submit your verification details for review."}
                     </p>
                   </div>
                   <div

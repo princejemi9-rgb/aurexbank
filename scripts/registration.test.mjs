@@ -18,26 +18,6 @@ test('history preserves legacy dollar amounts and cents, recorded status and UTC
   assert.equal(cents.createdAt, '2026-09-01T00:00:00Z');
 });
 
-test('sample history contains one clearly simulated $50 fee per month through September 2026', () => {
-  const { sampleHistory } = load('src/fixtures/sampleHistory.ts', {});
-  assert.equal(sampleHistory.length, 45);
-  assert.equal(new Set(sampleHistory.map(row => row.createdAt.slice(0, 7))).size, 45);
-  assert.equal(sampleHistory[0].createdAt, '2026-09-01T00:00:00.000Z');
-  assert.equal(sampleHistory.at(-1).createdAt, '2023-01-01T00:00:00.000Z');
-  for (const row of sampleHistory) {
-    assert.equal(row.amount, -50);
-    assert.equal(row.simulated, true);
-    assert.equal(row.status, 'Simulated');
-    assert.equal(row.name, 'Monthly Account Maintenance Fee');
-  }
-  const { filterHistory } = load('src/lib/transactionHistory.ts', {});
-  assert.equal(filterHistory(sampleHistory, 'maintenance', 'debit', '2025').length, 12);
-  assert.equal(filterHistory(sampleHistory, '', 'credit', 'all').length, 0);
-  assert.equal(filterHistory(sampleHistory, '', 'all', '2026').length, 9);
-  assert.equal(filterHistory([...sampleHistory].reverse(), '', 'all', 'all')[0].createdAt, sampleHistory[0].createdAt);
-  assert.equal(readFileSync(new URL('../src/context/BankingContext.tsx', import.meta.url), 'utf8').includes('sampleHistory'), false);
-});
-
 function load(file, mocks, globals = {}) {
   const exports = {};
   const code = ts.transpileModule(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), {

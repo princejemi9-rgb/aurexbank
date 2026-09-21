@@ -197,7 +197,7 @@ export default function ReceivePage() {
 
   const requestAmount = Number(amount);
   const validAmount = Number.isFinite(requestAmount) && requestAmount > 0;
-  const accountNumber = "0707100449";
+  const accountNumber = currentProfile.accountNumber || "Not assigned";
   const routingNumber = "110000001";
   const activeMethod = methods.find((item) => item.id === method) ?? methods[0];
   const activeWallet =

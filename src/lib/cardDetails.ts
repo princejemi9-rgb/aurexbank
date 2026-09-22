@@ -18,7 +18,7 @@ function withLuhnCheckDigit(prefix: string) {
 
 export function createCardDetails(userId: string): CardDetails {
   const seed = hash(userId.trim() || "aurex-card");
-  const body = String(seed).padStart(9, "0").slice(-9);
+  const body = String(seed).padStart(8, "0").slice(-8);
   const number = withLuhnCheckDigit(`5356${body}000`).replace(/(\d{4})/g, "$1 ").trim();
   return { id: `card-${seed.toString(36)}`, number, expiry: `09/${29 + (seed % 5)}`, cvv: String((seed % 900) + 100) };
 }

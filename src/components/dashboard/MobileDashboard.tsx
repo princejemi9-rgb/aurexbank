@@ -261,7 +261,7 @@ const MobileDashboard = memo(function MobileDashboard() {
               </h1>
               <p className="mt-4 text-xs text-zinc-400">Available to use</p>
             </div>
-            <Link href="/transactions" aria-label="Open transaction history" className="mt-0.5 min-h-9 justify-self-end rounded-lg border border-green-300/25 bg-green-400/[0.08] px-2.5 py-2 text-[11px] font-black text-green-200">History →</Link>
+            <Link href="/transactions" aria-label="Open transaction history" className="-mt-1.5 min-h-9 justify-self-end rounded-lg border border-green-300/25 bg-green-400/[0.08] px-2.5 py-2 text-[11px] font-black text-green-200">History →</Link>
           </div>
 
           <div className="mt-5 grid grid-cols-4 gap-2">

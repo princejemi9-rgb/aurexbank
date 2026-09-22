@@ -375,7 +375,7 @@ function readTransferFrozen(user: User | null) {
 
 function readVerificationStatus(user: User | null) {
   const value = user?.user_metadata?.verification_status;
-  return typeof value === "string" && value.length ? value : "pending";
+  return value === "rejected" ? "rejected" : "approved";
 }
 
 function formatRemoteAlertTime(value: string | null | undefined) {

@@ -284,6 +284,11 @@ const MobileDashboard = memo(function MobileDashboard() {
           </div>
         </section>
 
+        <section className="mt-5">
+          <SectionHeader title="Your Card" href="/cards" />
+          <LiveCard />
+        </section>
+
         <AccountOverview />
 
         <section className="mt-5">
@@ -367,11 +372,6 @@ const MobileDashboard = memo(function MobileDashboard() {
               );
             })}
           </div>
-        </section>
-
-        <section className="mt-5">
-          <SectionHeader title="Your Cards" href="/cards" />
-          <LiveCard />
         </section>
 
         {latestAlert && (

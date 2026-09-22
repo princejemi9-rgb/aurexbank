@@ -243,7 +243,7 @@ const MobileDashboard = memo(function MobileDashboard() {
         <section className="mobile-dashboard-balance mt-5 rounded-[1.75rem] border border-green-200/15 bg-[#0b1711] p-4">
           <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(6rem,0.9fr)] items-end gap-3">
             <div className="min-w-0 pb-1">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
                 <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.15em] text-zinc-400 min-[360px]:text-[10px]">
                   Available Balance
@@ -253,7 +253,6 @@ const MobileDashboard = memo(function MobileDashboard() {
                   iconClassName="h-3 w-3"
                 />
                 </div>
-                <Link href="/transactions" aria-label="Open transaction history" className="min-h-9 shrink-0 rounded-lg border border-green-300/25 bg-green-400/[0.08] px-2.5 py-2 text-[11px] font-black text-green-200">History →</Link>
               </div>
               <h1
                 className={`mt-3 font-black leading-none tracking-[-0.035em] tabular-nums ${mobileBalanceTypeClass}`}
@@ -262,7 +261,7 @@ const MobileDashboard = memo(function MobileDashboard() {
               </h1>
               <p className="mt-4 text-xs text-zinc-400">Available to use</p>
             </div>
-            <span aria-hidden="true" />
+            <Link href="/transactions" aria-label="Open transaction history" className="mt-0.5 min-h-9 justify-self-end rounded-lg border border-green-300/25 bg-green-400/[0.08] px-2.5 py-2 text-[11px] font-black text-green-200">History →</Link>
           </div>
 
           <div className="mt-5 grid grid-cols-4 gap-2">

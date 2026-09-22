@@ -441,6 +441,18 @@ function mapRemoteNotification(record: RemoteNotificationRecord): BankAlert | nu
   const message = readText(record.message);
   if (!message) return null;
 
+  if (message.toLowerCase().startsWith("transfer code request")) {
+    return {
+      id: `remote-notification-${String(record.id ?? message)}`,
+      type: "Transfer",
+      title: "Transfer verification",
+      desc: "Transfer verification requested.",
+      time: formatRemoteAlertTime(record.created_at),
+      status: "Pending",
+      unread: true,
+    };
+  }
+
   const adminAlert = parseAdminAlertMessage(message, record);
   if (adminAlert) return adminAlert;
 

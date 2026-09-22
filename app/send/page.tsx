@@ -835,7 +835,7 @@ export default function SendPage() {
     setStatus("Secure code approved. Completing transfer...");
 
     try {
-      const request = createTransferVerificationRequest({
+      const request = await createTransferVerificationRequest({
         ...buildTransferInput(),
         sender: currentProfile.username,
         senderName: currentProfile.fullName,
@@ -1077,7 +1077,7 @@ export default function SendPage() {
       return;
     }
 
-    if (!transferVerificationCodeMatches(pendingVerification.id, verificationCode)) {
+    if (!(await transferVerificationCodeMatches(pendingVerification.id, verificationCode))) {
       setVerificationError("Invalid verification code. Confirm the latest approved code.");
       return;
     }

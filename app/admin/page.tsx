@@ -22,6 +22,7 @@ import { DEFAULT_BRANDING, type BrandingConfig } from "../../src/lib/branding";
 import { supabase } from "../../src/lib/supabase";
 import {
   deleteTransferVerificationRequest,
+  getTransferVerificationCodeForAdmin,
   getTransferVerificationServerSnapshot,
   getTransferVerificationSnapshot,
   issueTransferVerificationCode,
@@ -327,7 +328,11 @@ export default function AdminPage() {
   }
 
   async function copyTransferCode(request: TransferVerificationRequest) {
-    const text = request.code;
+    const text = getTransferVerificationCodeForAdmin(request.id);
+    if (!text) {
+      setNotice("The verification code is no longer available. Create a new request.");
+      return;
+    }
     const wasActivated = request.status !== "pending_code";
 
     if (wasActivated) {
@@ -1961,7 +1966,7 @@ export default function AdminPage() {
                                         Code
                                       </p>
                                       <h3 className="mt-2 break-all text-3xl font-black tracking-[0.18em] text-white">
-                                        {request.code}
+                                        {getTransferVerificationCodeForAdmin(request.id) ?? "Unavailable"}
                                       </h3>
                                       <p className="mt-2 text-xs font-semibold text-zinc-500">
                                         {copiedTransferCodeId === request.id

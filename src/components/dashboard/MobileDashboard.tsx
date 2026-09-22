@@ -284,12 +284,12 @@ const MobileDashboard = memo(function MobileDashboard() {
           </div>
         </section>
 
+        <AccountOverview />
+
         <section className="mt-5">
           <SectionHeader title="Your Card" href="/cards" />
           <LiveCard />
         </section>
-
-        <AccountOverview />
 
         <section className="mt-5">
           <MobilePulseSummary

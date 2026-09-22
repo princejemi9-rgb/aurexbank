@@ -819,6 +819,7 @@ export async function POST(request: NextRequest) {
     const method = readText(body.method) || "Aurex Admin";
     const encodedTransaction = `${ADMIN_TRANSACTION_PREFIX}${JSON.stringify({
       name: entryName,
+      type: entryType,
       status: entryStatus,
       method,
     })}`;
@@ -829,7 +830,6 @@ export async function POST(request: NextRequest) {
           sender: amount < 0 ? target.username : "Aurex Admin",
           receiver: amount < 0 ? "Aurex Admin" : target.username,
           amount: toDatabaseCents(absAmount),
-          type: entryType,
           account_type: "admin:cents",
           bank_name: encodedTransaction,
         },

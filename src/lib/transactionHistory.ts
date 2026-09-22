@@ -23,7 +23,7 @@ export function mapHistoryRecord(item: Record<string, unknown>, username: string
   return {
     id: String(item.id),
     name: String(details.name || item.description || (sent ? item.receiver : item.sender) || "Transfer"),
-    type: String(item.type || "Transfer"),
+    type: String(details.type || item.type || "Transfer"),
     amount: sent ? -Math.abs(amount) : amount,
     status: String(item.status || details.status || "Not recorded"),
     createdAt,

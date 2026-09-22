@@ -159,13 +159,30 @@ async function updateUserBalanceMetadata(
   };
 
   if (hasServiceRole) {
-    await dbClient.auth.admin.updateUserById(user.id, {
+    const currentAppMetadata =
+      user.app_metadata && typeof user.app_metadata === "object"
+        ? user.app_metadata
+        : {};
+    const protectedMetrics =
+      currentAppMetadata.aurex_metrics && typeof currentAppMetadata.aurex_metrics === "object"
+        ? currentAppMetadata.aurex_metrics
+        : {};
+    const { error } = await dbClient.auth.admin.updateUserById(user.id, {
       user_metadata: nextMetadata,
+      app_metadata: {
+        ...currentAppMetadata,
+        aurex_metrics: {
+          ...protectedMetrics,
+          balance,
+          updated_at: new Date().toISOString(),
+        },
+      },
     });
+    if (error) throw error;
     return;
   }
 
-  await fetch(`${supabaseUrl}/auth/v1/user`, {
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
     method: "PUT",
     headers: {
       apikey: supabaseAnonKey,
@@ -174,6 +191,7 @@ async function updateUserBalanceMetadata(
     },
     body: JSON.stringify({ data: nextMetadata }),
   });
+  if (!response.ok) throw new Error("Unable to update the account balance.");
 }
 
 export async function POST(request: NextRequest) {
@@ -328,19 +346,23 @@ export async function POST(request: NextRequest) {
 
   const transactionId = `ARX-${Date.now()}`;
 
+  const encodedTransaction = `__AUREX_TX__:${JSON.stringify({
+    name: `Transfer to ${receiver}`,
+    type: transferType,
+    status: "Completed",
+    method: readText(body.bankName) || "Aurex transfer",
+  })}`;
+
   postTransferTasks.push(
-    Promise.resolve(
-      dbClient.from("transfers").insert([
-        {
-          sender,
-          receiver,
-          amount: toDatabaseCents(transferAmount),
-          type: transferType,
-          account_type: `${accountType}:cents`,
-          bank_name: readText(body.bankName),
-        },
-      ])
-    ),
+    Promise.resolve(dbClient.from("transfers").insert([
+      {
+        sender,
+        receiver,
+        amount: toDatabaseCents(transferAmount),
+        account_type: `${accountType}:cents`,
+        bank_name: encodedTransaction,
+      },
+    ]).throwOnError()),
     insertNotification(
       dbClient,
       sender,
@@ -350,7 +372,11 @@ export async function POST(request: NextRequest) {
     )
   );
 
-  await Promise.allSettled(postTransferTasks);
+  try {
+    await Promise.all(postTransferTasks);
+  } catch {
+    return jsonError("The transfer could not be recorded. Please try again.", 500);
+  }
 
   return NextResponse.json({
     ok: true,

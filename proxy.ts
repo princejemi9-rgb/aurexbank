@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_PATHS = new Set(["/login", "/auth/signin", "/auth/signup", "/auth/forgot-password", "/auth/reset-password", "/security/verify"]);
+const GOOGLE_VERIFICATION_PATH = "/googlebd22e182d858ed3b.html";
+const PUBLIC_PATHS = new Set(["/", "/login", "/auth/signin", "/auth/signup", "/auth/forgot-password", "/auth/reset-password", "/security/verify", "/robots.txt", "/sitemap.xml", GOOGLE_VERIFICATION_PATH]);
 const PUBLIC_API_PATHS = new Set(["/api/auth/signin", "/api/auth/session", "/api/auth/onboard", "/api/auth/security-status", "/api/auth/security-verify"]);
 
 const SECURITY_HEADERS = {
@@ -81,15 +82,6 @@ async function hasVerifiedSecuritySession(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
-
-  if (url.pathname === "/") {
-    url.pathname = await hasVerifiedSecuritySession(request)
-      ? "/dashboard"
-      : request.cookies.get("sb_logged_in")?.value === "1"
-        ? "/security/verify"
-        : "/login";
-    return applySecurityHeaders(NextResponse.redirect(url), request);
-  }
 
   const isPublic = PUBLIC_PATHS.has(url.pathname) || PUBLIC_API_PATHS.has(url.pathname);
   const hasSession = await hasVerifiedSecuritySession(request);

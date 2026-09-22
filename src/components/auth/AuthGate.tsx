@@ -10,6 +10,7 @@ const SESSION_TIMEOUT_MS = 8000;
 const PRESENCE_TIMEOUT_MS = 8000;
 
 const PUBLIC_ROUTES = [
+  "/",
   "/login",
   "/auth/signin",
   "/auth/signup",

@@ -11,8 +11,16 @@ import AuthGate from "../src/components/auth/AuthGate";
 import BackButton from "../src/components/navigation/BackButton";
 
 export const metadata: Metadata = {
-  title: "Aurex Bank",
-  description: "Modern Digital Banking Platform",
+  metadataBase: new URL("https://aurexbank.vercel.app"),
+  title: {
+    default: "Aurex Bank",
+    template: "%s | Aurex Bank",
+  },
+  description: "Aurex Bank provides a digital account dashboard for managing balances, transfers, cards, profile details, and account activity.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

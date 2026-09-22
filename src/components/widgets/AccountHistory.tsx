@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import type { BankTransaction } from "../../context/BankingContext";
 import { useBanking } from "../../context/BankingContext";
-import { buildIllustrativeHistory, illustrativeHistoryPeriod, type IllustrativeTransaction } from "../../lib/illustrativeHistory";
+import { buildIllustrativeHistory, illustrativeHistoryPeriod } from "../../lib/illustrativeHistory";
 import { filterHistory } from "../../lib/transactionHistory";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 
-type TimelineRecord = BankTransaction & Partial<IllustrativeTransaction>;
+type TimelineRecord = BankTransaction & { illustrative?: boolean; reference?: string };
 
 export default function AccountHistory() {
   const { currentProfile, transactions, historyError, refreshBanking } = useBanking();
@@ -17,6 +17,7 @@ export default function AccountHistory() {
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<TimelineRecord | null>(null);
   const illustrative = useMemo(() => buildIllustrativeHistory(currentProfile.fullName, currentProfile.username), [currentProfile.fullName, currentProfile.username]);
+  const illustrativeIds = useMemo(() => new Set(illustrative.map(record => record.id)), [illustrative]);
   const records = useMemo(() => [...transactions, ...illustrative], [transactions, illustrative]);
   const filtered = filterHistory(records, query, direction, year);
   const years = [...new Set(records.map(record => record.createdAt?.slice(0, 4)).filter(Boolean))].sort().reverse();
@@ -35,10 +36,10 @@ export default function AccountHistory() {
     </div>
     <p className="my-4 text-xs text-zinc-500">{filtered.length} records · Newest first · Dates in UTC</p>
     <div className="divide-y divide-white/10">
-      {filtered.slice(visiblePage * 20, (visiblePage + 1) * 20).map(record => <button type="button" key={record.id} className="grid w-full min-w-0 gap-2 py-4 text-left transition hover:bg-white/[0.03] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" onClick={() => setSelected(record)}>
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="break-words text-sm font-semibold">{record.name}</h3><span className="rounded border border-white/15 px-2 py-0.5 text-xs text-zinc-400">{record.status}</span>{record.illustrative && <span className="rounded border border-amber-300/30 px-2 py-0.5 text-xs text-amber-200">Illustrative</span>}</div><p className="mt-1 break-words text-xs text-zinc-400"><time dateTime={record.createdAt}>{record.time}</time> · {record.type} · {record.method}</p></div>
+      {filtered.slice(visiblePage * 20, (visiblePage + 1) * 20).map(record => { const isIllustrative = illustrativeIds.has(record.id); return <button type="button" key={record.id} className="grid w-full min-w-0 gap-2 py-4 text-left transition hover:bg-white/[0.03] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" onClick={() => setSelected({ ...record, illustrative: isIllustrative })}>
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="break-words text-sm font-semibold">{record.name}</h3><span className="rounded border border-white/15 px-2 py-0.5 text-xs text-zinc-400">{record.status}</span>{isIllustrative && <span className="rounded border border-amber-300/30 px-2 py-0.5 text-xs text-amber-200">Illustrative</span>}</div><p className="mt-1 break-words text-xs text-zinc-400"><time dateTime={record.createdAt}>{record.time}</time> · {record.type} · {record.method}</p></div>
         <p className={`whitespace-nowrap text-base font-semibold tabular-nums ${record.amount < 0 ? "text-red-300" : "text-green-300"}`}><PrivateAmount value={Math.abs(record.amount)} prefix={record.amount < 0 ? "-$" : "+$"} /></p>
-      </button>)}
+      </button>; })}
       {!filtered.length && <p className="py-8 text-sm text-zinc-400">{historyError ? "History is currently unavailable." : "No transactions match these filters."}</p>}
     </div>
     {lastPage > 0 && <nav className="mt-4 flex items-center justify-between gap-2 text-sm" aria-label="History pages"><button className="rounded-lg border border-white/15 px-3 py-2 disabled:opacity-40" disabled={visiblePage === 0} onClick={() => setPage(visiblePage - 1)}>Previous</button><span className="text-zinc-400">{visiblePage + 1} / {lastPage + 1}</span><button className="rounded-lg border border-white/15 px-3 py-2 disabled:opacity-40" disabled={visiblePage === lastPage} onClick={() => setPage(visiblePage + 1)}>Next</button></nav>}

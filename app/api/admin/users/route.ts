@@ -214,10 +214,11 @@ function buildAdminUser(user: User | null, profile?: ProfileRecord | null) {
     accountType: readMetadataText(user, "account_type") || "personal",
     currency: readMetadataText(user, "currency") || "USD",
     customerId: getCustomerId(user?.id, username),
-    balance:
-      profileBalance ??
-      metadataBalance ??
-      STARTING_BALANCE,
+    balance: readAccountMetric(
+      user,
+      "balance",
+      profileBalance ?? metadataBalance ?? STARTING_BALANCE
+    ),
     reserve: readAccountMetric(user, "reserve", STARTING_RESERVE),
     income: readAccountMetric(user, "income", STARTING_INCOME),
     accountStatus: readAccountStatus(user),

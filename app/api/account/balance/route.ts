@@ -134,7 +134,11 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(
     {
       ok: true,
-      balance: profileBalance ?? readNonNegativeNumber(metadata.balance) ?? 0,
+      balance:
+        readNonNegativeNumber(protectedMetrics.balance) ??
+        profileBalance ??
+        readNonNegativeNumber(metadata.balance) ??
+        0,
       reserve:
         readNonNegativeNumber(protectedMetrics.reserve) ??
         readNonNegativeNumber(metadata.reserve) ??

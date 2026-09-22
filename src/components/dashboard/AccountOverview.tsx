@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useBanking } from "../../context/BankingContext";
 
 export default function AccountOverview() {
-  const { currentProfile, verificationStatus, accountStatus, transferFrozen, transactions, unreadCount } = useBanking();
+  const { currentProfile, verificationStatus, accountStatus, transferFrozen, unreadCount } = useBanking();
   const items = [
     { title: "Your profile", detail: "Keep your contact details current so you can receive account updates.", href: "/profile", action: "Review profile" },
     { title: "Receive money", detail: "Find your account details and available ways to fund your account.", href: "/receive", action: "View deposit details" },
@@ -13,8 +13,8 @@ export default function AccountOverview() {
   ];
   return <section className="mt-6 rounded-2xl border border-green-300/15 bg-green-400/[0.04] p-5 sm:p-6" aria-labelledby="account-overview-title">
     <p className="text-xs font-bold uppercase tracking-widest text-green-300">Your banking essentials</p>
-    <h2 id="account-overview-title" className="mt-2 text-2xl font-black">{transactions.length ? "Stay on top of your account" : "Make yourself at home"}</h2>
-    <p className="mt-2 text-sm text-zinc-400">{transactions.length ? "Review your account status and choose what to do next." : "Your account starts with a clean slate. Explore your details, cards, and support while you get set up."}</p>
+    <h2 id="account-overview-title" className="mt-2 text-2xl font-black">Your banking, all in one place.</h2>
+    <p className="mt-2 text-sm text-zinc-400">Review your account status, identity review, and available services.</p>
     <dl className="my-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
       {[["Account", accountStatus], ["Identity review", verificationStatus], ["Transfers", transferFrozen ? "Frozen" : "Not frozen"], ["Notifications", `${unreadCount} unread`]].map(([label, value]) => <div key={label} className="rounded-lg bg-black/20 p-3"><dt className="text-xs text-zinc-400">{label}</dt><dd className="mt-1 text-sm font-bold capitalize">{value}</dd></div>)}
     </dl>

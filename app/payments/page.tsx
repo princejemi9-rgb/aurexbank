@@ -16,6 +16,7 @@ import {
 import {
   getCardPreferencesServerSnapshot,
   getCardPreferencesSnapshot,
+  setCardPreferencesAccount,
   subscribeCardPreferences,
 } from "../../src/lib/cardPreferences";
 
@@ -167,6 +168,7 @@ function localDate() {
 
 export default function PaymentsPage() {
   const { balance, currentProfile, submitTransfer, transactions } = useBanking();
+  setCardPreferencesAccount(currentProfile.userId);
   const cardPreferences = useSyncExternalStore(
     subscribeCardPreferences,
     getCardPreferencesSnapshot,

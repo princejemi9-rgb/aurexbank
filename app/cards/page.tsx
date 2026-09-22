@@ -12,6 +12,7 @@ import {
   getCardPreferencesServerSnapshot,
   getCardPreferencesSnapshot,
   saveCardPreferences,
+  setCardPreferencesAccount,
   subscribeCardPreferences,
   type CardPreferences,
 } from "../../src/lib/cardPreferences";
@@ -48,6 +49,7 @@ function maskedCardNumber(value: string) {
 
 export default function CardsPage() {
   const { balance, currentProfile, reserve, transactions } = useBanking();
+  setCardPreferencesAccount(currentProfile.userId);
   const [selectedCardId, setSelectedCardId] = useState("black");
   const [showDetails, setShowDetails] = useState(false);
   const preferences = useSyncExternalStore(

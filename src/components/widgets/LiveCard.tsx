@@ -8,6 +8,7 @@ import {
   getCardPreferencesServerSnapshot,
   getCardPreferencesSnapshot,
   saveCardPreferences,
+  setCardPreferencesAccount,
   subscribeCardPreferences,
   type CardPreferences,
 } from "../../lib/cardPreferences";
@@ -38,6 +39,7 @@ function lastFour(value: string) {
 
 export default function LiveCard() {
   const { currentProfile } = useBanking();
+  setCardPreferencesAccount(currentProfile.userId);
   const channelId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const [liveCard, setCard] = useState<CardRecord | null>(null);
   const [showDetails, setShowDetails] = useState(false);

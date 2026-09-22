@@ -20,6 +20,19 @@ const DEFAULT_CARD_PREFERENCES: CardPreferences = {
 };
 
 let cachedPreferences: CardPreferences | null = null;
+let activeAccountKey = "pending";
+
+function storageKey() {
+  return `${CARD_PREFERENCES_KEY}:${activeAccountKey}`;
+}
+
+export function setCardPreferencesAccount(userId: string) {
+  const nextAccountKey = userId.trim() || "pending";
+  if (nextAccountKey === activeAccountKey) return;
+  activeAccountKey = nextAccountKey;
+  cachedPreferences = null;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CARD_PREFERENCES_EVENT));
+}
 
 export function createDefaultCardPreferences(): CardPreferences {
   return {
@@ -38,7 +51,7 @@ export function loadCardPreferences(): CardPreferences {
   }
 
   try {
-    const rawPreferences = window.localStorage.getItem(CARD_PREFERENCES_KEY);
+    const rawPreferences = window.localStorage.getItem(storageKey());
     if (!rawPreferences) {
       cachedPreferences = createDefaultCardPreferences();
       return cachedPreferences;
@@ -82,7 +95,7 @@ export function saveCardPreferences(preferences: CardPreferences) {
     frozenCards: [...preferences.frozenCards],
   };
 
-  window.localStorage.setItem(CARD_PREFERENCES_KEY, JSON.stringify(cachedPreferences));
+  window.localStorage.setItem(storageKey(), JSON.stringify(cachedPreferences));
   window.dispatchEvent(
     new CustomEvent<CardPreferences>(CARD_PREFERENCES_EVENT, { detail: cachedPreferences })
   );
@@ -94,7 +107,7 @@ export function subscribeCardPreferences(onStoreChange: () => void) {
   }
 
   function handleStorage(event: StorageEvent) {
-    if (!event.key || event.key === CARD_PREFERENCES_KEY) {
+    if (!event.key || event.key === storageKey()) {
       cachedPreferences = null;
       onStoreChange();
     }

@@ -18,6 +18,17 @@ test('history preserves legacy dollar amounts and cents, recorded status and UTC
   assert.equal(cents.createdAt, '2026-09-01T00:00:00Z');
 });
 
+test('illustrative history covers every month through September 2026 without entering the live ledger', () => {
+  const { buildIllustrativeHistory } = load('src/lib/illustrativeHistory.ts', {});
+  const records = buildIllustrativeHistory('Franco Vercelli');
+  const fees = records.filter(record => record.type === 'Illustrative service fee');
+  assert.equal(fees.length, 57);
+  assert.equal(fees[0].createdAt.slice(0, 7), '2026-09');
+  assert.equal(fees.at(-1).createdAt.slice(0, 7), '2022-01');
+  assert.equal(fees.every(record => record.amount === -50 && record.illustrative === true), true);
+  assert.equal(records.some(record => record.status !== 'Illustrative'), false);
+});
+
 function load(file, mocks, globals = {}) {
   const exports = {};
   const code = ts.transpileModule(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), {

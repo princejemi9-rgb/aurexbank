@@ -111,7 +111,10 @@ const MobileDashboard = memo(function MobileDashboard() {
           ? "whitespace-nowrap text-[clamp(1.05rem,5vw,1.35rem)]"
         : "whitespace-nowrap text-[clamp(1.65rem,8vw,2rem)]";
   const primaryTransactions = useMemo(() => transactions.slice(0, 3), [transactions]);
-  const latestAlert = alerts[0];
+  const latestSecurityAlert = useMemo(
+    () => alerts.find((alert) => alert.type === "Security"),
+    [alerts]
+  );
 
   const quickActions = useMemo(
     () => [
@@ -374,13 +377,13 @@ const MobileDashboard = memo(function MobileDashboard() {
           </div>
         </section>
 
-        {latestAlert && (
+        {latestSecurityAlert && (
           <section className="mt-5 rounded-lg border border-green-300/15 bg-green-400/[0.07] p-4">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-green-300">
               Security status
             </p>
-            <h2 className="mt-2 text-base font-black">{latestAlert.title}</h2>
-            <p className="mt-1 text-xs leading-relaxed text-zinc-400">{latestAlert.desc}</p>
+            <h2 className="mt-2 text-base font-black">{latestSecurityAlert.title}</h2>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-400">{latestSecurityAlert.desc}</p>
           </section>
         )}
 

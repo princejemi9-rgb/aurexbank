@@ -14,7 +14,7 @@ export default function AccountHistory() {
   const [page, setPage] = useState(0);
   const [source, setSource] = useState<"recorded" | "illustrative">("recorded");
   const [selected, setSelected] = useState<IllustrativeTransaction | null>(null);
-  const illustrativeRecords = useMemo(() => buildIllustrativeHistory(currentProfile.fullName), [currentProfile.fullName]);
+  const illustrativeRecords = useMemo(() => buildIllustrativeHistory(currentProfile.fullName, currentProfile.username), [currentProfile.fullName, currentProfile.username]);
   const records = source === "recorded" ? transactions : illustrativeRecords;
   const filtered = filterHistory(records, query, direction, year);
   const years = [...new Set(records.map(record => record.createdAt?.slice(0, 4)).filter(Boolean))].sort().reverse();

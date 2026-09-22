@@ -3,10 +3,12 @@
 import Link from "next/link";
 
 import { useBanking } from "../../context/BankingContext";
+import { getIllustrativePresentation } from "../../lib/illustrativeHistory";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 
 export default function BalanceCard() {
-  const { balance, expenses, income, reserve } = useBanking();
+  const { balance, currentProfile, expenses } = useBanking();
+  const presentation = getIllustrativePresentation(currentProfile.fullName, currentProfile.username);
   const balanceDisplayLength = `$${balance.toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -20,9 +22,9 @@ export default function BalanceCard() {
 
   const metrics = [
     { label: "Available", value: <PrivateAmount value={balance} /> },
-    { label: "Income", value: <PrivateAmount value={income} prefix="+$" maximumFractionDigits={0} minimumFractionDigits={0} /> },
+    { label: "Income", value: <PrivateAmount value={presentation.income} prefix="+$" maximumFractionDigits={0} minimumFractionDigits={0} />, note: "Illustrative" },
     { label: "Expenses", value: <PrivateAmount value={expenses} prefix="-$" maximumFractionDigits={0} minimumFractionDigits={0} /> },
-    { label: "Reserve", value: <PrivateAmount value={reserve} maximumFractionDigits={0} minimumFractionDigits={0} /> },
+    { label: "Reserve", value: <PrivateAmount value={presentation.reserve} maximumFractionDigits={0} minimumFractionDigits={0} />, note: "Illustrative" },
   ];
 
   return (
@@ -32,11 +34,16 @@ export default function BalanceCard() {
       <div className="relative z-10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
               <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
               <p className="text-xs font-black uppercase tracking-[0.22em] text-green-300">
                 Primary Checking
               </p>
+              </div>
+              <Link href="/transactions" aria-label="Open transaction history" className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg border border-green-300/25 bg-green-400/[0.08] px-3 text-sm font-bold text-green-200 transition hover:bg-green-400/15 focus-visible:outline-2 focus-visible:outline-green-300">
+                History <span aria-hidden="true">→</span>
+              </Link>
             </div>
 
             <div className="mt-6 flex items-center gap-3">
@@ -52,14 +59,7 @@ export default function BalanceCard() {
               <PrivateAmount value={balance} />
             </h2>
 
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <span className="rounded-md bg-green-400 px-3 py-2 text-sm font-black text-black">
-                Account overview
-              </span>
-              <span className="text-sm font-semibold text-zinc-400">
-                Your funds at a glance
-              </span>
-            </div>
+            <p className="mt-5 text-sm font-semibold text-zinc-400">Available funds</p>
           </div>
 
           <div className="w-full rounded-lg border border-white/10 bg-white/[0.045] p-4 lg:w-[230px]">
@@ -67,9 +67,7 @@ export default function BalanceCard() {
               Account Status
             </p>
             <h3 className="mt-3 text-2xl font-black text-green-300">Active</h3>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-              Private client since 2018. Instant settlement and card controls are online.
-            </p>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-400">Account services and card controls are available.</p>
           </div>
         </div>
 
@@ -79,6 +77,7 @@ export default function BalanceCard() {
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
                 {item.label}
               </p>
+              {item.note && <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200">{item.note}</p>}
               <h3 className="mt-2 break-words text-lg font-black">
                 {item.value}
               </h3>

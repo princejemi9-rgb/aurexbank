@@ -7,6 +7,7 @@ import AccountOverview from "./AccountOverview";
 import AppIcon from "../ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 import { useBanking } from "../../context/BankingContext";
+import { getIllustrativePresentation } from "../../lib/illustrativeHistory";
 import ActivityChart from "../widgets/ActivityChart";
 import ActivityFeed from "../widgets/ActivityFeed";
 import AIInsights from "../widgets/AIInsights";
@@ -92,12 +93,11 @@ const MobileDashboard = memo(function MobileDashboard() {
     alerts,
     balance,
     currentProfile,
-    income,
-    reserve,
     transactions,
     unreadCount,
   } = useBanking();
   const firstName = currentProfile.firstName;
+  const presentation = getIllustrativePresentation(currentProfile.fullName, currentProfile.username);
   const balanceDisplayLength = `$${balance.toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -134,11 +134,11 @@ const MobileDashboard = memo(function MobileDashboard() {
       {
         name: "Reserve Savings",
         meta: "Goal account",
-        amount: reserve,
+        amount: presentation.reserve,
         icon: "spark" as const,
       },
     ],
-    [balance, currentProfile.customerId, reserve]
+    [balance, currentProfile.customerId, presentation.reserve]
   );
 
   const pulse = useMemo(() => {
@@ -165,7 +165,7 @@ const MobileDashboard = memo(function MobileDashboard() {
         label: "Income",
         value: (
           <PrivateAmount
-            value={income}
+            value={presentation.income}
             maximumFractionDigits={0}
             minimumFractionDigits={0}
           />
@@ -175,7 +175,7 @@ const MobileDashboard = memo(function MobileDashboard() {
         label: "Reserve",
         value: (
           <PrivateAmount
-            value={reserve}
+            value={presentation.reserve}
             maximumFractionDigits={0}
             minimumFractionDigits={0}
           />
@@ -184,7 +184,7 @@ const MobileDashboard = memo(function MobileDashboard() {
       { label: "Account type", value: currentProfile.accountType },
       { label: "Alerts", value: unreadCount ? `${unreadCount} unread` : "Clear" },
     ],
-    [income, reserve, unreadCount, currentProfile.accountType]
+    [presentation.income, presentation.reserve, unreadCount, currentProfile.accountType]
   );
 
   return (
@@ -243,7 +243,8 @@ const MobileDashboard = memo(function MobileDashboard() {
         <section className="mobile-dashboard-balance mt-5 rounded-[1.75rem] border border-green-200/15 bg-[#0b1711] p-4">
           <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(6rem,0.9fr)] items-end gap-3">
             <div className="min-w-0 pb-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
                 <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.15em] text-zinc-400 min-[360px]:text-[10px]">
                   Available Balance
                 </p>
@@ -251,6 +252,8 @@ const MobileDashboard = memo(function MobileDashboard() {
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#11231a] text-zinc-300"
                   iconClassName="h-3 w-3"
                 />
+                </div>
+                <Link href="/transactions" aria-label="Open transaction history" className="min-h-9 shrink-0 rounded-lg border border-green-300/25 bg-green-400/[0.08] px-2.5 py-2 text-[11px] font-black text-green-200">History →</Link>
               </div>
               <h1
                 className={`mt-3 font-black leading-none tracking-[-0.035em] tabular-nums ${mobileBalanceTypeClass}`}
@@ -259,7 +262,7 @@ const MobileDashboard = memo(function MobileDashboard() {
               </h1>
               <p className="mt-4 text-xs text-zinc-400">Available to use</p>
             </div>
-            <Link href="/profile" className="pb-1 text-right text-xs font-bold text-green-300">Account details &rarr;</Link>
+            <Link href="/profile" className="pb-1 text-right text-xs font-bold text-green-300">Account details →</Link>
           </div>
 
           <div className="mt-5 grid grid-cols-4 gap-2">

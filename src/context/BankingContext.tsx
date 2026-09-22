@@ -113,6 +113,7 @@ type RemoteTransferResponse = {
   fee?: number;
   totalDebit?: number;
   receiverCredited?: boolean;
+  duplicate?: boolean;
 };
 
 type RemoteAccountMetrics = {
@@ -589,6 +590,7 @@ async function saveRemoteTransfer(input: TransferInput) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
+        ...(input.reference ? { "Idempotency-Key": input.reference } : {}),
       },
       body: JSON.stringify(input),
       signal: controller.signal,
@@ -952,8 +954,10 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     let transactionId = `local-${Date.now()}`;
 
     if (user) {
+      const idempotencyKey = input.reference || crypto.randomUUID();
       const remoteTransfer = await saveRemoteTransfer({
         ...input,
+        reference: idempotencyKey,
         amount: debitAmount,
         transferAmount: sentAmount,
         fee: feeAmount,
@@ -971,6 +975,11 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
           ok: false,
           message: remoteTransfer.error || "Unable to complete transfer.",
         };
+      }
+
+      if (remoteTransfer.duplicate) {
+        await refreshBanking();
+        return { ok: true, message: "This transfer was already recorded." };
       }
 
       availableBalance = readFiniteNumber(remoteTransfer.balanceBefore) ?? balance;
@@ -1017,7 +1026,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       ok: true,
       message: "Transfer completed successfully.",
     };
-  }, [balance]);
+  }, [balance, refreshBanking]);
 
   const updateAdminMetrics = useCallback(async (input: AdminMetricsInput) => {
     const nextBalance = readNonNegativeNumber(input.balance);

@@ -6,6 +6,7 @@ export type HistoryTransaction = {
   status: string;
   time: string;
   method: string;
+  reference?: string;
   createdAt?: string;
 };
 
@@ -29,10 +30,11 @@ export function mapHistoryRecord(item: Record<string, unknown>, username: string
     createdAt,
     time: date && Number.isFinite(date.getTime()) ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : "Date not recorded",
     method: String(details.method || (bank.startsWith("__AUREX_TX__:") ? "" : bank) || "Not recorded"),
+    reference: typeof details.reference === "string" ? details.reference : undefined,
   };
 }
 
-export function filterHistory(records: HistoryTransaction[], search: string, direction: string, year: string) {
+export function filterHistory<T extends HistoryTransaction>(records: T[], search: string, direction: string, year: string): T[] {
   const query = search.trim().toLowerCase();
   return records.filter(record =>
     (!query || `${record.name} ${record.type} ${record.status} ${record.method}`.toLowerCase().includes(query)) &&

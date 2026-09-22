@@ -252,6 +252,7 @@ export async function POST(request: NextRequest) {
   const fee = readMoney(body.fee, Math.max(debitAmount - transferAmount, 0));
   const transferType = readText(body.transferType) || "transfer";
   const accountType = readText(body.accountType) || "checking";
+  const reference = readText(body.reference) || request.headers.get("idempotency-key") || "";
   const receiver =
     readText(body.receiver) ||
     readText(body.accountNumber) ||
@@ -261,6 +262,10 @@ export async function POST(request: NextRequest) {
 
   if (debitAmount <= 0 || transferAmount <= 0 || transferAmount > debitAmount) {
     return jsonError("Enter a valid transfer amount.", 400);
+  }
+
+  if (!reference || reference.length > 128) {
+    return jsonError("A valid transaction reference is required.", 400);
   }
 
   const serviceRoleKey = getServiceRoleKey();
@@ -298,6 +303,25 @@ export async function POST(request: NextRequest) {
       },
       { status: 400 }
     );
+  }
+
+  const encodedTransaction = `__AUREX_TX__:${JSON.stringify({
+    name: `Transfer to ${receiver}`,
+    type: transferType,
+    status: "Completed",
+    method: readText(body.bankName) || "Aurex transfer",
+    reference,
+    fee,
+  })}`;
+  const { data: duplicate } = await dbClient
+    .from("transfers")
+    .select("id")
+    .eq("sender", sender)
+    .eq("bank_name", encodedTransaction)
+    .limit(1)
+    .maybeSingle();
+  if (duplicate) {
+    return NextResponse.json({ ok: true, duplicate: true, balance: currentBalance, balanceBefore: currentBalance, transactionId: String(duplicate.id), transferAmount, fee, totalDebit: debitAmount });
   }
 
   const nextBalance = Math.round((currentBalance - debitAmount) * 100) / 100;
@@ -346,19 +370,12 @@ export async function POST(request: NextRequest) {
 
   const transactionId = `ARX-${Date.now()}`;
 
-  const encodedTransaction = `__AUREX_TX__:${JSON.stringify({
-    name: `Transfer to ${receiver}`,
-    type: transferType,
-    status: "Completed",
-    method: readText(body.bankName) || "Aurex transfer",
-  })}`;
-
   postTransferTasks.push(
     Promise.resolve(dbClient.from("transfers").insert([
       {
         sender,
         receiver,
-        amount: toDatabaseCents(transferAmount),
+        amount: toDatabaseCents(debitAmount),
         account_type: `${accountType}:cents`,
         bank_name: encodedTransaction,
       },

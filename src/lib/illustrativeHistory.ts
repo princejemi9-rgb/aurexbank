@@ -35,10 +35,10 @@ export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): Illu
   while (cursor <= end) {
     const stamp = cursor.toISOString().slice(0, 7);
     const income = profile.monthlyIncome + ((monthIndex % 3) - 1) * 350;
-    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), `Illustrative monthly income for ${ownerName}`, "Illustrative income", income, `ILL-INC-${stamp.replace("-", "")}`));
-    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), "Illustrative reserve savings allocation", "Illustrative savings allocation", -profile.monthlyReserve, `ILL-SAV-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), "Monthly Income", "Illustrative income", income, `ILL-INC-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), "Reserve Savings", "Illustrative savings allocation", -profile.monthlyReserve, `ILL-SAV-${stamp.replace("-", "")}`));
     records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, "Monthly Account Maintenance Fee", "Illustrative service fee", -MONTHLY_FEE, `ILL-FEE-${stamp.replace("-", "")}`));
-    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), "Illustrative scheduled payment", "Illustrative debit", -profile.monthlyPayment, `ILL-DB-${stamp.replace("-", "")}`));
+    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), "Scheduled Payment", "Illustrative debit", -profile.monthlyPayment, `ILL-DB-${stamp.replace("-", "")}`));
     cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
     monthIndex += 1;
   }

@@ -21,7 +21,7 @@ function dateLabel(date: Date) {
 }
 
 function record(id: string, date: Date, name: string, type: string, amount: number, reference: string): IllustrativeTransaction {
-  return { id, name, type, amount, status: "Illustrative", method: "Illustrative presentation record", createdAt: date.toISOString(), time: dateLabel(date), illustrative: true, reference };
+  return { id, name, type, amount, status: "Presentation", method: "Generated history", createdAt: date.toISOString(), time: dateLabel(date), illustrative: true, reference };
 }
 
 function keyFor(ownerKey: string) { return ownerKey.trim().toLowerCase(); }
@@ -35,10 +35,10 @@ export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): Illu
   while (cursor <= end) {
     const stamp = cursor.toISOString().slice(0, 7);
     const income = profile.monthlyIncome + ((monthIndex % 3) - 1) * 350;
-    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), "Monthly Income", "Illustrative income", income, `ILL-INC-${stamp.replace("-", "")}`));
-    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), "Reserve Savings", "Illustrative savings allocation", -profile.monthlyReserve, `ILL-SAV-${stamp.replace("-", "")}`));
-    records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, "Monthly Account Maintenance Fee", "Illustrative service fee", -MONTHLY_FEE, `ILL-FEE-${stamp.replace("-", "")}`));
-    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), "Scheduled Payment", "Illustrative debit", -profile.monthlyPayment, `ILL-DB-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), "Monthly Income", "Income", income, `ILL-INC-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), "Reserve Savings", "Savings allocation", -profile.monthlyReserve, `ILL-SAV-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, "Monthly Account Maintenance Fee", "Service fee", -MONTHLY_FEE, `ILL-FEE-${stamp.replace("-", "")}`));
+    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), "Scheduled Payment", "Payment", -profile.monthlyPayment, `ILL-DB-${stamp.replace("-", "")}`));
     cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
     monthIndex += 1;
   }
@@ -48,8 +48,8 @@ export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): Illu
 export function getIllustrativePresentation(ownerName: string, ownerKey = "") {
   const records = buildIllustrativeHistory(ownerName, ownerKey);
   const latestMonth = "2026-09";
-  const income = records.filter(record => record.type === "Illustrative income" && record.createdAt?.startsWith(latestMonth)).reduce((sum, record) => sum + record.amount, 0);
-  const reserve = records.filter(record => record.type === "Illustrative savings allocation").reduce((sum, record) => sum + Math.abs(record.amount), 0);
+  const income = records.filter(record => record.type === "Income" && record.createdAt?.startsWith(latestMonth)).reduce((sum, record) => sum + record.amount, 0);
+  const reserve = records.filter(record => record.type === "Savings allocation").reduce((sum, record) => sum + Math.abs(record.amount), 0);
   return { records, income, reserve };
 }
 

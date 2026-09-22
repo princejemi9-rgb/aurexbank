@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const record = readSecurityPasscode(auth.user.app_metadata?.[PASSCODE_METADATA_KEY]);
     if (!record) {
       return NextResponse.json(
-        { ok: false, error: "A security passcode has not been configured for this account. Contact an administrator." },
+        { ok: false, error: "Your security passcode hasn't been set up. Please contact support." },
         { status: 403 }
       );
     }

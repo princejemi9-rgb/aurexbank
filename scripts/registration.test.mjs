@@ -21,19 +21,19 @@ test('history preserves legacy dollar amounts and cents, recorded status and UTC
 test('illustrative history covers every month through September 2026 without entering the live ledger', () => {
   const { buildIllustrativeHistory, getIllustrativePresentation } = load('src/lib/illustrativeHistory.ts', {});
   const records = buildIllustrativeHistory('Franco Vercelli', 'francovercelli647@gmail.com');
-  const fees = records.filter(record => record.type === 'Illustrative service fee');
+  const fees = records.filter(record => record.type === 'Service fee');
   assert.equal(fees.length, 57);
   assert.equal(fees[0].createdAt.slice(0, 7), '2026-09');
   assert.equal(fees.at(-1).createdAt.slice(0, 7), '2022-01');
   assert.equal(fees.every(record => record.amount === -50 && record.illustrative === true), true);
-  assert.equal(records.some(record => record.status !== 'Illustrative'), false);
+  assert.equal(records.some(record => record.status !== 'Presentation'), false);
   const accounts = [
     ['Franco Vercelli', 'francovercelli647@gmail.com'], ['Leonardo Dante', 'leonardodante731@gmail.com'],
     ['Antonio Sergio', 'antonioserg79@gmail.com'], ['Donald Lwie', 'donaldlwie441@gmail.com'], ['Prince Jemigbe', 'princejemi9@gmail.com'],
   ].map(([name, email]) => getIllustrativePresentation(name, email));
   assert.equal(new Set(accounts.map(account => account.income)).size, 5);
   assert.equal(new Set(accounts.map(account => account.reserve)).size, 5);
-  assert.equal(accounts.every(account => account.records.filter(record => record.type === 'Illustrative service fee').length === 57), true);
+  assert.equal(accounts.every(account => account.records.filter(record => record.type === 'Service fee').length === 57), true);
 });
 
 function load(file, mocks, globals = {}) {

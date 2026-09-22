@@ -241,7 +241,7 @@ const MobileDashboard = memo(function MobileDashboard() {
         </header>
 
         <section className="mobile-dashboard-balance mt-5 rounded-[1.75rem] border border-green-200/15 bg-[#0b1711] p-4">
-          <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(6rem,0.9fr)] items-end gap-3">
+          <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(6rem,0.9fr)] items-start gap-3">
             <div className="min-w-0 pb-1">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">

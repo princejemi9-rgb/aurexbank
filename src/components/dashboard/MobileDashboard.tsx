@@ -262,7 +262,7 @@ const MobileDashboard = memo(function MobileDashboard() {
               </h1>
               <p className="mt-4 text-xs text-zinc-400">Available to use</p>
             </div>
-            <Link href="/profile" className="pb-1 text-right text-xs font-bold text-green-300">Account details →</Link>
+            <span aria-hidden="true" />
           </div>
 
           <div className="mt-5 grid grid-cols-4 gap-2">

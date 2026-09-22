@@ -178,7 +178,14 @@ export default function CardsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-14">
+                      <div className="mt-10 flex items-center justify-between gap-4">
+                        <div className="h-11 w-14 rounded-md border border-amber-100/35 bg-gradient-to-br from-amber-100 via-amber-400 to-amber-800 shadow-inner">
+                          <div className="mx-auto h-full w-px bg-amber-900/35" />
+                        </div>
+                        {card.physical && <span className="text-2xl font-light tracking-[-0.35em] text-white/75" aria-label="Contactless enabled">)))</span>}
+                      </div>
+
+                      <div className="mt-8">
                         <p className="text-sm uppercase tracking-wide text-white/50">
                           Available Balance
                         </p>
@@ -204,6 +211,10 @@ export default function CardsPage() {
                         <div>
                           <p className="text-xs uppercase text-white/50">Expires</p>
                           <h3 className="mt-2 font-black">{card.expiry}</h3>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-xs uppercase text-white/50">Cardholder</p>
+                          <h3 className="mt-2 truncate font-black uppercase tracking-[0.12em]">{card.holder}</h3>
                         </div>
                       </div>
                     </button>

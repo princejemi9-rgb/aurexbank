@@ -34,16 +34,11 @@ export default function BalanceCard() {
       <div className="relative z-10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
               <p className="text-xs font-black uppercase tracking-[0.22em] text-green-300">
                 Primary Checking
               </p>
-              </div>
-              <Link href="/transactions" aria-label="Open transaction history" className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg border border-green-300/25 bg-green-400/[0.08] px-3 text-sm font-bold text-green-200 transition hover:bg-green-400/15 focus-visible:outline-2 focus-visible:outline-green-300">
-                History <span aria-hidden="true">→</span>
-              </Link>
             </div>
 
             <div className="mt-6 flex items-center gap-3">
@@ -63,9 +58,7 @@ export default function BalanceCard() {
           </div>
 
           <div className="w-full rounded-lg border border-white/10 bg-white/[0.045] p-4 lg:w-[230px]">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
-              Account Status
-            </p>
+            <div className="flex items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Account Status</p><Link href="/transactions" aria-label="Open transaction history" className="inline-flex min-h-10 items-center rounded-lg border border-green-300/25 bg-green-400/[0.08] px-2.5 text-xs font-black text-green-200 transition hover:bg-green-400/15 focus-visible:outline-2 focus-visible:outline-green-300">History →</Link></div>
             <h3 className="mt-3 text-2xl font-black text-green-300">Active</h3>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">Account services and card controls are available.</p>
           </div>

@@ -11,7 +11,7 @@ type TimelineRecord = BankTransaction & { illustrative: boolean; reference?: str
 
 function TransactionIcon({ amount, generated }: { amount: number; generated: boolean }) {
   const style = generated ? "bg-amber-300/10 text-amber-200" : amount < 0 ? "bg-red-400/10 text-red-200" : "bg-green-400/10 text-green-200";
-  const label = generated ? "Generated history record" : amount < 0 ? "Debit" : "Credit";
+  const label = amount < 0 ? "Debit" : "Credit";
   return <span aria-label={label} className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold ${style}`}>{generated ? <>&bull;</> : amount < 0 ? <>&uarr;</> : <>&darr;</>}</span>;
 }
 
@@ -32,7 +32,6 @@ export default function AccountHistory() {
 
   return <section className="bank-surface mt-6 min-w-0 rounded-xl p-4 sm:p-6" aria-label="Transaction history">
     <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Transaction history</h2><p className="mt-1 text-sm text-zinc-400">All activity, newest first.</p></div><BalancePrivacyToggle /></div>
-    <p className="mt-3 text-xs text-zinc-500"><span className="mr-1 inline-block size-1.5 rounded-full bg-amber-300 align-middle" />Generated history is presentation data and never changes live balances.</p>
     {historyError && <div role="alert" className="mt-4 text-sm text-amber-200">{historyError} <button type="button" className="underline" onClick={() => void refreshBanking()}>Retry</button></div>}
     <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
       <label className="grid gap-1 text-xs text-zinc-400">Search<input className={fieldClass} value={query} placeholder="Search activity" onChange={event => { setQuery(event.target.value); setPage(0); }} /></label>

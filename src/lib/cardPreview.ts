@@ -1,22 +1,22 @@
 ﻿export type CardPreview = {
   id: string;
-  identifier: string;
+  number: string;
+  expiry: string;
+  cvv: string;
   holder: string;
-  status: "Preview";
+  status: "Digital debit";
   issuerCard: false;
 };
 
-function digest(value: string) {
-  let hash = 2166136261;
-  for (const char of value) {
-    hash ^= char.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36).toUpperCase().padStart(7, "0").slice(-7);
-}
-
-/** A non-payment UI record. It contains no PAN, CVV, expiry, or PIN. */
 export function createCardPreview(userId: string, holder: string): CardPreview {
   const key = userId.trim() || "pending";
-  return { id: `preview-${digest(key)}`, identifier: `ARX-PRV-${digest(`${key}:card`)}`, holder: holder.trim() || "Aurex customer", status: "Preview", issuerCard: false };
+  return {
+    id: `digital-${key}`,
+    number: "0000 0000 0000 0000",
+    expiry: "12/29",
+    cvv: "000",
+    holder: holder.trim() || "Aurex customer",
+    status: "Digital debit",
+    issuerCard: false,
+  };
 }

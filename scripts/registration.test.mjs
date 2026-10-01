@@ -208,7 +208,7 @@ test('Dubley history is deterministic, spans five years, and stops before March 
   assert.equal(merged.length, records.length + 1);
 });
 
-test('Dubley uses an account-specific preview without payment credentials', () => {
+test('Dubley uses account-specific digital debit display fields', () => {
   const { getAccountExperience } = load('src/lib/accountExperience.ts', {});
   const { createCardPreview } = load('src/lib/cardPreview.ts', {});
   assert.equal(getAccountExperience(' DUDBRYAN54@GMAIL.COM ').previewCard, true);
@@ -216,12 +216,14 @@ test('Dubley uses an account-specific preview without payment credentials', () =
   const card = createCardPreview('2aba957e-bbf0-4fca-bb54-0525592c6e4b', 'DUBLEY BRYAN');
   assert.equal(card.holder, 'DUBLEY BRYAN');
   assert.equal(card.issuerCard, false);
-  for (const field of ['number', 'cvv', 'pin', 'expiry', 'token']) assert.equal(field in card, false);
-  assert.notEqual(card.identifier, createCardPreview('another-account', 'Another customer').identifier);
+  assert.equal(card.number, '0000 0000 0000 0000');
+  assert.equal(card.expiry, '12/29');
+  assert.equal(card.cvv, '000');
+  for (const field of ['pin', 'token']) assert.equal(field in card, false);
 });
 
 
-test('Dubley compact card links to management and both card sizes show a credential-free preview', () => {
+test('Dubley compact card links to management and the card page shows complete fields', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   const profile = { userId: '2aba957e-bbf0-4fca-bb54-0525592c6e4b', email: 'dudbryan54@gmail.com', fullName: 'DUBLEY BRYAN' };
@@ -234,14 +236,15 @@ test('Dubley compact card links to management and both card sizes show a credent
     '../../lib/cardDetails': { createCardDetails: () => { throw new Error('Preview must never generate payment credentials'); } },
     '../../lib/cardPreferences': {},
     '../brand/AurexBrand': { AurexMark: () => null },
-    '../ui/AppIcon': { default: () => null },
+    '../ui/AppIcon': () => null,
   });
   for (const compact of [true, false]) {
     const html = renderToStaticMarkup(React.createElement(BankCard, { compact }));
     assert.match(html, /DUBLEY BRYAN/);
     assert.match(html, /Aurex Bank/);
-    assert.match(html, /No payment card has been issued/);
-    assert.doesNotMatch(html, /Valid thru|View details|Freeze card/);
+    assert.match(html, /0000 0000 0000 0000|•••• •••• •••• 0000/);
+    assert.match(html, /Valid thru/);
+    assert.doesNotMatch(html, /Awaiting issuer|Preview|Illustrative/);
     if (compact) assert.match(html, /href="\/cards"/);
   }
 });

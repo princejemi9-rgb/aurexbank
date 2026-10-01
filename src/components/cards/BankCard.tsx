@@ -22,21 +22,23 @@ function PreviewCard({ compact }: { compact: boolean }) {
   const { currentProfile } = useBanking();
   const { branding } = useBranding();
   const card = createCardPreview(currentProfile.userId, currentProfile.fullName);
+  const [revealed, setRevealed] = useState(false);
+  const [back, setBack] = useState(false);
+  const maskedNumber = `•••• •••• •••• ${card.number.slice(-4)}`;
   const face = <div className="relative min-h-[236px] overflow-hidden rounded-2xl border border-emerald-200/30 bg-gradient-to-br from-zinc-950 via-emerald-950 to-black p-5 text-white shadow-[0_24px_70px_rgba(0,0,0,0.42)] sm:p-6">
     <span className="absolute -right-10 -top-16 size-52 rounded-full bg-green-300/15 blur-3xl" />
-    <div className="relative flex min-h-[188px] flex-col">
-      <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><AurexMark className="size-8 rounded-md border-white/20 bg-white/10" imageClassName="p-1" label={branding.bankName} /><p className="font-serif text-base font-bold">{branding.bankName}</p></div><span className="text-xs font-bold text-green-200">Preview</span></div>
-      <div className="mt-7 size-10 rounded-md border border-amber-100/40 bg-gradient-to-br from-amber-100 via-amber-400 to-amber-700" />
-      <p className="mt-5 break-all font-mono text-sm tracking-wider">{card.identifier}</p>
-      <div className="mt-auto pt-4"><p className="text-[9px] font-bold uppercase tracking-widest text-white/45">Cardholder</p><p className="mt-1 break-words text-sm font-bold uppercase tracking-wide">{card.holder}</p></div>
-    </div>
+    {!back ? <div className="relative flex min-h-[188px] flex-col">
+      <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><AurexMark className="size-8 rounded-md border-white/20 bg-white/10" imageClassName="p-1" label={branding.bankName} /><div><p className="font-serif text-base font-bold">{branding.bankName}</p><p className="text-[9px] font-bold uppercase tracking-[.18em] text-white/55">Debit</p></div></div><span className="text-[10px] font-black uppercase tracking-widest text-green-200">Digital</span></div>
+      <div className="mt-7 flex size-10 items-center rounded-md border border-amber-100/40 bg-gradient-to-br from-amber-100 via-amber-400 to-amber-700"><span className="h-full w-1/3 border-r border-amber-800/40" /><span className="h-full w-1/3 border-r border-amber-800/40" /></div>
+      <p className="mt-5 font-mono text-lg font-medium tracking-[.12em] sm:text-xl">{revealed ? card.number : maskedNumber}</p>
+      <div className="mt-auto flex items-end justify-between gap-3"><div><p className="text-[9px] font-bold uppercase tracking-[.16em] text-white/45">Cardholder</p><p className="mt-1 break-words text-sm font-bold uppercase tracking-[.08em]">{card.holder}</p></div><div className="text-right"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-white/45">Valid thru</p><p className="mt-1 text-sm font-bold">{card.expiry}</p></div></div>
+    </div> : <div className="relative flex min-h-[188px] flex-col"><div className="-mx-5 mt-4 h-11 bg-black sm:-mx-6" /><div className="mt-5 rounded bg-white/80 px-3 py-2 text-right font-mono text-sm tracking-[.16em] text-zinc-900">{revealed ? card.cvv : "•••"}</div><div className="mt-auto flex items-center justify-between"><p className="text-[10px] uppercase tracking-[.16em] text-white/45">{branding.bankName}</p><p className="text-xs font-bold">Digital debit</p></div></div>}
   </div>;
   return <div className={compact ? "w-full" : "max-w-xl"}>
     {compact ? <Link href="/cards" aria-label="Open card management" className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-green-300">{face}</Link> : face}
-    <p className="mt-3 text-xs text-zinc-400">Card preview only. No payment card has been issued.</p>
-    {!compact && <p className="mt-2 text-sm text-zinc-400">Payment credentials and card controls will be available after issuance.</p>}
+    {!compact && <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => setRevealed(value => !value)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"><AppIcon name={revealed ? "eyeOff" : "eye"} className="size-4" />{revealed ? "Hide details" : "View details"}</button><button type="button" onClick={() => setBack(value => !value)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"><AppIcon name="card" className="size-4" />{back ? "View front" : "View back"}</button></div>}
     {!compact && <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-      {[["Cardholder", card.holder], ["Bank", branding.bankName], ["Card number", "Not issued"], ["Expiration", "Not issued"], ["Security code", "Not issued"], ["Issuance status", "Awaiting issuer"]].map(([label, value]) => <div key={label} className="min-w-0 rounded-lg border border-white/10 p-3"><dt className="text-xs text-zinc-400">{label}</dt><dd className="mt-1 break-words text-sm font-semibold">{value}</dd></div>)}
+      {[["Cardholder", card.holder], ["Bank", branding.bankName], ["Card number", card.number], ["Expiration", card.expiry], ["Security code", card.cvv], ["Card type", card.status]].map(([label, value]) => <div key={label} className="min-w-0 rounded-lg border border-white/10 p-3"><dt className="text-xs text-zinc-400">{label}</dt><dd className="mt-1 break-words text-sm font-semibold">{value}</dd></div>)}
     </dl>}
   </div>;
 }

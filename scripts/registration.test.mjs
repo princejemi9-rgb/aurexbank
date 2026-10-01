@@ -193,8 +193,10 @@ test('Dubley history is deterministic, spans five years, and stops before March 
   assert.equal(new Set(records.map(record => record.createdAt.slice(0, 7))).size, 60);
   assert.equal(new Set(records.map(record => record.id)).size, records.length);
   assert.ok(records.every(record => record.illustrative && record.status === 'Presentation' && record.createdAt < '2026-03-01'));
-  assert.ok(records.some(record => record.name === 'Northstar Consulting Payroll'));
-  assert.ok(records.some(record => record.name === 'Greenwood Property Management'));
+  assert.ok(!records.some(record => record.name === 'Aurex Reserve Transfer'));
+  assert.equal(new Set(records.filter(record => record.type === 'Income').map(record => record.name)).size, 60);
+  assert.equal(new Set(records.filter(record => record.type === 'Savings allocation').map(record => record.name)).size, 60);
+  assert.ok(records.some(record => record.name === 'Avery Bennett — Client payment'));
   assert.ok(records.every(record => Math.abs(record.amount) >= 5000));
   assert.ok(new Set(records.filter(record => record.amount > 0).map(record => record.amount)).size >= 5);
   assert.ok(new Set(records.filter(record => record.amount < 0).map(record => record.amount)).size >= 8);

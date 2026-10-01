@@ -291,10 +291,8 @@ body {
     height: auto !important;
     max-height: none !important;
     transform: none !important;
-  }
-
-  .mobile-bottom-navigation-bar {
-    position: absolute;
-    inset: auto 0 0;
+    translate: none !important;
+    isolation: isolate;
+    will-change: auto;
   }
 }

@@ -15,6 +15,8 @@ const accountPresentations: Record<string, AccountPresentation> = {
 };
 const fallbackPresentation: AccountPresentation = { monthlyIncome: 9500, monthlyReserve: 2800, monthlyPayment: 1500 };
 const MONTHLY_FEE = 50;
+const dubleyFirstNames = ["Avery", "Caleb", "Elena", "Marcus", "Naomi", "Owen", "Priya", "Russell", "Serena", "Thomas", "Valerie", "Wesley"];
+const dubleyLastNames = ["Bennett", "Carter", "Dawson", "Ellis", "Foster"];
 
 function dateLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -25,6 +27,11 @@ function record(id: string, date: Date, name: string, type: string, amount: numb
 }
 
 function keyFor(ownerKey: string) { return ownerKey.trim().toLowerCase(); }
+
+function dubleyCounterparty(monthIndex: number, offset: number) {
+  const sequence = monthIndex + offset;
+  return `${dubleyFirstNames[sequence % dubleyFirstNames.length]} ${dubleyLastNames[Math.floor(sequence / dubleyFirstNames.length) % dubleyLastNames.length]}`;
+}
 
 /** Presentation-only records. They never enter the live ledger or financial calculations. */
 export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): IllustrativeTransaction[] {
@@ -50,10 +57,14 @@ export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): Illu
     const payment = dubleySchedule
       ? 8500 + (monthIndex % 4) * 1250
       : profile.monthlyPayment;
-    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), "Northstar Consulting Payroll", "Income", income, `ILL-INC-${stamp.replace("-", "")}`));
-    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), "Aurex Reserve Transfer", "Savings allocation", -reserve, `ILL-SAV-${stamp.replace("-", "")}`));
-    records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, "Aurex Account Service", "Service fee", -service, `ILL-FEE-${stamp.replace("-", "")}`));
-    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), "Greenwood Property Management", "Payment", -payment, `ILL-DB-${stamp.replace("-", "")}`));
+    const incomeName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 0)} — Client payment` : "Northstar Consulting Payroll";
+    const reserveName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 17)} — Investment allocation` : "Aurex Reserve Transfer";
+    const serviceName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 31)} — Financial services` : "Aurex Account Service";
+    const paymentName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 43)} — Contract payment` : "Greenwood Property Management";
+    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), incomeName, "Income", income, `ILL-INC-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), reserveName, "Savings allocation", -reserve, `ILL-SAV-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, serviceName, "Service fee", -service, `ILL-FEE-${stamp.replace("-", "")}`));
+    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), paymentName, "Payment", -payment, `ILL-DB-${stamp.replace("-", "")}`));
     cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
     monthIndex += 1;
   }

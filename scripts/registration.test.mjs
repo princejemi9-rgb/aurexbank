@@ -193,6 +193,8 @@ test('Dubley history is deterministic, spans five years, and stops before March 
   assert.equal(new Set(records.map(record => record.createdAt.slice(0, 7))).size, 60);
   assert.equal(new Set(records.map(record => record.id)).size, records.length);
   assert.ok(records.every(record => record.illustrative && record.status === 'Presentation' && record.createdAt < '2026-03-01'));
+  assert.ok(records.some(record => record.name === 'Northstar Consulting Payroll'));
+  assert.ok(records.some(record => record.name === 'Greenwood Property Management'));
   assert.equal(JSON.stringify(records), JSON.stringify(buildIllustrativeHistory('Updated name', ' DUDBRYAN54@GMAIL.COM ')));
   const stored = getAccountOverviewMetrics('DUBLEY BRYAN', 'dudbryan54@gmail.com', { income: 123, reserve: 456 });
   assert.equal(stored.income, 123);
@@ -241,6 +243,7 @@ test('Dubley compact card links to management and the card page shows complete f
     const html = renderToStaticMarkup(React.createElement(BankCard, { compact }));
     assert.match(html, /DUBLEY BRYAN/);
     assert.match(html, /Aurex Bank/);
+    assert.match(html, /mastercard/);
     assert.match(html, /•••• •••• •••• 4827/);
     assert.match(html, /Valid thru/);
     assert.doesNotMatch(html, /Awaiting issuer|Preview|Illustrative/);

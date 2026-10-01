@@ -216,10 +216,9 @@ test('Dubley uses account-specific digital debit display fields', () => {
   const card = createCardPreview('2aba957e-bbf0-4fca-bb54-0525592c6e4b', 'DUBLEY BRYAN');
   assert.equal(card.holder, 'DUBLEY BRYAN');
   assert.equal(card.issuerCard, false);
-  assert.equal(card.number, '0000 0000 0000 0000');
+  assert.equal(card.number, '•••• •••• •••• 4827');
   assert.equal(card.expiry, '12/29');
-  assert.equal(card.cvv, '000');
-  for (const field of ['pin', 'token']) assert.equal(field in card, false);
+  for (const field of ['pin', 'token', 'cvv']) assert.equal(field in card, false);
 });
 
 
@@ -242,7 +241,7 @@ test('Dubley compact card links to management and the card page shows complete f
     const html = renderToStaticMarkup(React.createElement(BankCard, { compact }));
     assert.match(html, /DUBLEY BRYAN/);
     assert.match(html, /Aurex Bank/);
-    assert.match(html, /0000 0000 0000 0000|•••• •••• •••• 0000/);
+    assert.match(html, /•••• •••• •••• 4827/);
     assert.match(html, /Valid thru/);
     assert.doesNotMatch(html, /Awaiting issuer|Preview|Illustrative/);
     if (compact) assert.match(html, /href="\/cards"/);

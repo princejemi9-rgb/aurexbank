@@ -7,7 +7,7 @@ import BottomNav from "../../src/components/navigation/BottomNav";
 import AppIcon from "../../src/components/ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../../src/components/ui/PrivateAmount";
 import { useBanking } from "../../src/context/BankingContext";
-import { getIllustrativePresentation } from "../../src/lib/illustrativeHistory";
+import { getAccountOverviewMetrics } from "../../src/lib/illustrativeHistory";
 import { useAdminStatus } from "../../src/context/AdminStatusContext";
 import EditProfileModal from "../../src/components/profile/EditProfileModal";
 import AvatarUploader from "../../src/components/profile/AvatarUploader";
@@ -83,8 +83,8 @@ function formatAccountType(value: string) {
 
 
 export default function ProfilePage() {
-  const { balance, currentProfile, refreshBanking, verificationStatus } = useBanking();
-  const presentation = getIllustrativePresentation(currentProfile.fullName, currentProfile.username);
+  const { balance, income, reserve, currentProfile, refreshBanking, verificationStatus } = useBanking();
+  const presentation = getAccountOverviewMetrics(currentProfile.fullName, currentProfile.username, { income, reserve }, currentProfile.email);
   const accountVerified = verificationStatus === "approved";
   const { isAdmin } = useAdminStatus();
   const [editOpen, setEditOpen] = useState(false);
@@ -366,8 +366,8 @@ export default function ProfilePage() {
                 <div className="mt-6 grid min-w-0 gap-4 lg:grid-cols-3">
                   {[
                     { label: "Available Balance", value: balance },
-                    { label: "Reserve", value: presentation.reserve, illustrative: true },
-                    { label: "Monthly Income", value: presentation.income, illustrative: true },
+                    { label: "Reserve", value: presentation.reserve, illustrative: presentation.illustrative },
+                    { label: "Monthly Income", value: presentation.income, illustrative: presentation.illustrative },
                   ].map((item) => (
                     <div key={item.label} className="bank-panel rounded-lg p-5">
                       <p className="text-sm text-zinc-500">{item.label}</p>

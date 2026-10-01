@@ -1,18 +1,18 @@
 "use client";
 
 import { useBanking } from "../../context/BankingContext";
-import { getIllustrativePresentation } from "../../lib/illustrativeHistory";
+import { getAccountOverviewMetrics } from "../../lib/illustrativeHistory";
 import { PrivateAmount } from "../ui/PrivateAmount";
 
 export default function StatsGrid() {
-  const { balance, currentProfile, expenses } = useBanking();
-  const presentation = getIllustrativePresentation(currentProfile.fullName, currentProfile.username);
+  const { balance, income, reserve, currentProfile, expenses } = useBanking();
+  const presentation = getAccountOverviewMetrics(currentProfile.fullName, currentProfile.username, { income, reserve }, currentProfile.email);
   const stats = [
     {
       title: "Income",
       value: <PrivateAmount value={presentation.income} maximumFractionDigits={0} minimumFractionDigits={0} />,
-      growth: "Illustrative",
-      desc: "September 2026 income",
+      growth: presentation.illustrative ? "Illustrative" : "Live",
+      desc: presentation.illustrative ? "September 2026 income" : "Monthly income",
       tone: "text-green-400",
     },
     {
@@ -25,8 +25,8 @@ export default function StatsGrid() {
     {
       title: "Reserve",
       value: <PrivateAmount value={presentation.reserve} maximumFractionDigits={0} minimumFractionDigits={0} />,
-      growth: "Illustrative",
-      desc: "Scheduled savings allocations",
+      growth: presentation.illustrative ? "Illustrative" : "Live",
+      desc: presentation.illustrative ? "Scheduled savings allocations" : "Reserve savings",
       tone: "text-green-300",
     },
     {

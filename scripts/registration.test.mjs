@@ -41,7 +41,7 @@ function load(file, mocks, globals = {}) {
   const code = ts.transpileModule(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
   }).outputText;
-  vm.runInNewContext(code, { exports, require: name => name in mocks ? mocks[name] : require(name), ...globals });
+  vm.runInNewContext(code, { exports, require: name => name in mocks ? mocks[name] : name === './accountExperience' ? load('src/lib/accountExperience.ts', {}) : require(name), ...globals });
   return exports;
 }
 
@@ -181,4 +181,67 @@ test('dashboard authorization requires a security session matching both user and
   assert.equal((await route.GET(request)).body.verified, false);
   session = { userId: 'user-1', revision: 'revision-1' };
   assert.equal((await route.GET(request)).body.verified, true);
+});
+
+
+test('Dubley history is deterministic, spans five years, and stops before March 2026', () => {
+  const { buildIllustrativeHistory, getAccountOverviewMetrics } = load('src/lib/illustrativeHistory.ts', {});
+  const records = buildIllustrativeHistory('DUBLEY BRYAN', 'dudbryan54@gmail.com');
+  assert.equal(records.length, 195);
+  assert.equal(records.at(-1).createdAt, '2021-03-01T00:00:00.000Z');
+  assert.equal(records[0].createdAt, '2026-02-18T00:00:00.000Z');
+  assert.equal(new Set(records.map(record => record.createdAt.slice(0, 7))).size, 60);
+  assert.equal(new Set(records.map(record => record.id)).size, records.length);
+  assert.ok(records.every(record => record.illustrative && record.status === 'Presentation' && record.createdAt < '2026-03-01'));
+  assert.equal(JSON.stringify(records), JSON.stringify(buildIllustrativeHistory('Updated name', ' DUDBRYAN54@GMAIL.COM ')));
+  const stored = getAccountOverviewMetrics('DUBLEY BRYAN', 'dudbryan54@gmail.com', { income: 123, reserve: 456 });
+  assert.equal(stored.income, 123);
+  assert.equal(stored.reserve, 456);
+  assert.equal(stored.illustrative, false);
+  const legacyAlias = getAccountOverviewMetrics('', 'antonioserg79', { income: 0, reserve: 0 }, 'antonioserg79@gmail.com');
+  assert.equal(legacyAlias.income, load('src/lib/illustrativeHistory.ts', {}).getIllustrativePresentation('', 'antonioserg79').income);
+  assert.equal(getAccountOverviewMetrics('', 'dudbryan54@gmail.com', { income: 0, reserve: 0 }).income, 0);
+  const { filterHistory } = load('src/lib/transactionHistory.ts', {});
+  const real = { id: 'posted-after-cutoff', name: 'Actual transfer', amount: 12, type: 'Income', status: 'Completed', method: 'Transfer', createdAt: '2026-09-30T12:00:00.000Z', time: 'Sep 30, 2026' };
+  const merged = filterHistory([...records, real], '', 'all', 'all');
+  assert.equal(merged[0].id, real.id);
+  assert.equal(merged.length, records.length + 1);
+});
+
+test('Dubley uses an account-specific preview without payment credentials', () => {
+  const { getAccountExperience } = load('src/lib/accountExperience.ts', {});
+  const { createCardPreview } = load('src/lib/cardPreview.ts', {});
+  assert.equal(getAccountExperience(' DUDBRYAN54@GMAIL.COM ').previewCard, true);
+  assert.equal(getAccountExperience('francovercelli647@gmail.com').previewCard, false);
+  const card = createCardPreview('2aba957e-bbf0-4fca-bb54-0525592c6e4b', 'DUBLEY BRYAN');
+  assert.equal(card.holder, 'DUBLEY BRYAN');
+  assert.equal(card.issuerCard, false);
+  for (const field of ['number', 'cvv', 'pin', 'expiry', 'token']) assert.equal(field in card, false);
+  assert.notEqual(card.identifier, createCardPreview('another-account', 'Another customer').identifier);
+});
+
+
+test('Dubley compact card links to management and both card sizes show a credential-free preview', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const profile = { userId: '2aba957e-bbf0-4fca-bb54-0525592c6e4b', email: 'dudbryan54@gmail.com', fullName: 'DUBLEY BRYAN' };
+  const { default: BankCard } = load('src/components/cards/BankCard.tsx', {
+    'next/link': ({ children, ...props }) => React.createElement('a', props, children),
+    '../../context/BankingContext': { useBanking: () => ({ currentProfile: profile }) },
+    '../../context/BrandingContext': { useBranding: () => ({ branding: { bankName: 'Aurex Bank' } }) },
+    '../../lib/accountExperience': load('src/lib/accountExperience.ts', {}),
+    '../../lib/cardPreview': load('src/lib/cardPreview.ts', {}),
+    '../../lib/cardDetails': { createCardDetails: () => { throw new Error('Preview must never generate payment credentials'); } },
+    '../../lib/cardPreferences': {},
+    '../brand/AurexBrand': { AurexMark: () => null },
+    '../ui/AppIcon': { default: () => null },
+  });
+  for (const compact of [true, false]) {
+    const html = renderToStaticMarkup(React.createElement(BankCard, { compact }));
+    assert.match(html, /DUBLEY BRYAN/);
+    assert.match(html, /Aurex Bank/);
+    assert.match(html, /No payment card has been issued/);
+    assert.doesNotMatch(html, /Valid thru|View details|Freeze card/);
+    if (compact) assert.match(html, /href="\/cards"/);
+  }
 });

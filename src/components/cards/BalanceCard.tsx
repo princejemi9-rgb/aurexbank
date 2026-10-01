@@ -3,12 +3,12 @@
 import Link from "next/link";
 
 import { useBanking } from "../../context/BankingContext";
-import { getIllustrativePresentation } from "../../lib/illustrativeHistory";
+import { getAccountOverviewMetrics } from "../../lib/illustrativeHistory";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 
 export default function BalanceCard() {
-  const { balance, currentProfile, expenses } = useBanking();
-  const presentation = getIllustrativePresentation(currentProfile.fullName, currentProfile.username);
+  const { balance, income, reserve, currentProfile, expenses } = useBanking();
+  const presentation = getAccountOverviewMetrics(currentProfile.fullName, currentProfile.username, { income, reserve }, currentProfile.email);
   const balanceDisplayLength = `$${balance.toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -22,9 +22,9 @@ export default function BalanceCard() {
 
   const metrics = [
     { label: "Available", value: <PrivateAmount value={balance} /> },
-    { label: "Income", value: <PrivateAmount value={presentation.income} prefix="+$" maximumFractionDigits={0} minimumFractionDigits={0} />, note: "Illustrative" },
+    { label: "Income", value: <PrivateAmount value={presentation.income} prefix="+$" maximumFractionDigits={0} minimumFractionDigits={0} />, note: presentation.illustrative ? "Illustrative" : "Live" },
     { label: "Expenses", value: <PrivateAmount value={expenses} prefix="-$" maximumFractionDigits={0} minimumFractionDigits={0} /> },
-    { label: "Reserve", value: <PrivateAmount value={presentation.reserve} maximumFractionDigits={0} minimumFractionDigits={0} />, note: "Illustrative" },
+    { label: "Reserve", value: <PrivateAmount value={presentation.reserve} maximumFractionDigits={0} minimumFractionDigits={0} />, note: presentation.illustrative ? "Illustrative" : "Live" },
   ];
 
   return (

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { getAccountExperience } from "../../lib/accountExperience";
+import { createCardPreview } from "../../lib/cardPreview";
 import { AurexMark } from "../brand/AurexBrand";
 import AppIcon from "../ui/AppIcon";
 import { useBranding } from "../../context/BrandingContext";
@@ -9,6 +12,33 @@ import { createCardDetails } from "../../lib/cardDetails";
 import { getCardPreferencesServerSnapshot, getCardPreferencesSnapshot, saveCardPreferences, setCardPreferencesAccount, subscribeCardPreferences } from "../../lib/cardPreferences";
 
 export default function BankCard({ compact = false }: { compact?: boolean }) {
+  const { currentProfile } = useBanking();
+  return getAccountExperience(currentProfile.email).previewCard
+    ? <PreviewCard compact={compact} />
+    : <LegacyBankCard compact={compact} />;
+}
+
+function PreviewCard({ compact }: { compact: boolean }) {
+  const { currentProfile } = useBanking();
+  const { branding } = useBranding();
+  const card = createCardPreview(currentProfile.userId, currentProfile.fullName);
+  const face = <div className="relative min-h-[236px] overflow-hidden rounded-2xl border border-emerald-200/30 bg-gradient-to-br from-zinc-950 via-emerald-950 to-black p-5 text-white shadow-[0_24px_70px_rgba(0,0,0,0.42)] sm:p-6">
+    <span className="absolute -right-10 -top-16 size-52 rounded-full bg-green-300/15 blur-3xl" />
+    <div className="relative flex min-h-[188px] flex-col">
+      <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><AurexMark className="size-8 rounded-md border-white/20 bg-white/10" imageClassName="p-1" label={branding.bankName} /><p className="font-serif text-base font-bold">{branding.bankName}</p></div><span className="text-xs font-bold text-green-200">Preview</span></div>
+      <div className="mt-7 size-10 rounded-md border border-amber-100/40 bg-gradient-to-br from-amber-100 via-amber-400 to-amber-700" />
+      <p className="mt-5 break-all font-mono text-sm tracking-wider">{card.identifier}</p>
+      <div className="mt-auto pt-4"><p className="text-[9px] font-bold uppercase tracking-widest text-white/45">Cardholder</p><p className="mt-1 break-words text-sm font-bold uppercase tracking-wide">{card.holder}</p></div>
+    </div>
+  </div>;
+  return <div className={compact ? "w-full" : "max-w-xl"}>
+    {compact ? <Link href="/cards" aria-label="Open card management" className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-green-300">{face}</Link> : face}
+    <p className="mt-3 text-xs text-zinc-400">Card preview only. No payment card has been issued.</p>
+    {!compact && <p className="mt-2 text-sm text-zinc-400">Payment credentials and card controls will be available after issuance.</p>}
+  </div>;
+}
+
+function LegacyBankCard({ compact = false }: { compact?: boolean }) {
   const { currentProfile } = useBanking(); const { branding } = useBranding(); const [revealed, setRevealed] = useState(false); const [back, setBack] = useState(false);
   setCardPreferencesAccount(currentProfile.userId);
   const preferences = useSyncExternalStore(subscribeCardPreferences, getCardPreferencesSnapshot, getCardPreferencesServerSnapshot);

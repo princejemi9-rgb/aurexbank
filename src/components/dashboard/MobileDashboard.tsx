@@ -7,7 +7,7 @@ import AccountOverview from "./AccountOverview";
 import AppIcon from "../ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../ui/PrivateAmount";
 import { useBanking } from "../../context/BankingContext";
-import { getIllustrativePresentation } from "../../lib/illustrativeHistory";
+import { getAccountOverviewMetrics } from "../../lib/illustrativeHistory";
 import ActivityChart from "../widgets/ActivityChart";
 import ActivityFeed from "../widgets/ActivityFeed";
 import AIInsights from "../widgets/AIInsights";
@@ -92,12 +92,14 @@ const MobileDashboard = memo(function MobileDashboard() {
   const {
     alerts,
     balance,
+    income,
+    reserve,
     currentProfile,
     transactions,
     unreadCount,
   } = useBanking();
   const firstName = currentProfile.firstName;
-  const presentation = getIllustrativePresentation(currentProfile.fullName, currentProfile.username);
+  const presentation = getAccountOverviewMetrics(currentProfile.fullName, currentProfile.username, { income, reserve }, currentProfile.email);
   const balanceDisplayLength = `$${balance.toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,

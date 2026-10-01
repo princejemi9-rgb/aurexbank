@@ -225,6 +225,7 @@ test('Dubley uses account-specific digital debit display fields', () => {
   assert.equal(card.issuerCard, false);
   assert.equal(card.number, '•••• •••• •••• 4827');
   assert.equal(card.expiry, '12/29');
+  assert.equal(card.securityCode, '581');
   for (const field of ['pin', 'token', 'cvv']) assert.equal(field in card, false);
 });
 

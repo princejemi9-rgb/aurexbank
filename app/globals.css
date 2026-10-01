@@ -290,9 +290,11 @@ body {
     width: 100% !important;
     height: auto !important;
     max-height: none !important;
-    transform: none !important;
+    transform: translate3d(0, 0, 0) !important;
+    -webkit-transform: translate3d(0, 0, 0) !important;
     translate: none !important;
     isolation: isolate;
-    will-change: auto;
+    will-change: transform;
+    backface-visibility: hidden;
   }
 }

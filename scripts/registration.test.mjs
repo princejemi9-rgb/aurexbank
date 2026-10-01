@@ -195,6 +195,9 @@ test('Dubley history is deterministic, spans five years, and stops before March 
   assert.ok(records.every(record => record.illustrative && record.status === 'Presentation' && record.createdAt < '2026-03-01'));
   assert.ok(records.some(record => record.name === 'Northstar Consulting Payroll'));
   assert.ok(records.some(record => record.name === 'Greenwood Property Management'));
+  assert.ok(records.every(record => Math.abs(record.amount) >= 5000));
+  assert.ok(new Set(records.filter(record => record.amount > 0).map(record => record.amount)).size >= 5);
+  assert.ok(new Set(records.filter(record => record.amount < 0).map(record => record.amount)).size >= 8);
   assert.equal(JSON.stringify(records), JSON.stringify(buildIllustrativeHistory('Updated name', ' DUDBRYAN54@GMAIL.COM ')));
   const stored = getAccountOverviewMetrics('DUBLEY BRYAN', 'dudbryan54@gmail.com', { income: 123, reserve: 456 });
   assert.equal(stored.income, 123);

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import DesktopSidebar from "../../src/components/layout/DesktopSidebar";
 import BottomNav from "../../src/components/navigation/BottomNav";
+import AccountAccessSummary from "../../src/components/profile/AccountAccessSummary";
 import AppIcon from "../../src/components/ui/AppIcon";
 import { BalancePrivacyToggle, PrivateAmount } from "../../src/components/ui/PrivateAmount";
 import { useBanking } from "../../src/context/BankingContext";
@@ -371,12 +372,10 @@ export default function ProfilePage() {
                   ].map((item) => (
                     <div key={item.label} className="bank-panel rounded-lg p-5">
                       <p className="text-sm text-zinc-500">{item.label}</p>
-                      {item.illustrative && <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200">Illustrative</p>}
+                      {item.illustrative && <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200">Generated estimate</p>}
                       <h3 className="mt-3 break-words text-2xl font-black">
                         <PrivateAmount
                           value={item.value}
-                          maximumFractionDigits={0}
-                          minimumFractionDigits={0}
                         />
                       </h3>
                     </div>
@@ -524,29 +523,10 @@ export default function ProfilePage() {
               <section className="bank-surface rounded-lg p-6">
                 <p className="text-sm font-semibold text-green-400">Login Activity</p>
                 <h2 className="mt-1 text-3xl font-black tracking-tight">
-                  Recent Sessions
+                  Sign-in Details
                 </h2>
 
-                <div className="mt-6 space-y-3">
-                  {[
-                    { device: "Windows Workstation", location: "Lagos, Nigeria", status: "Current" },
-                    { device: "iPhone 15 Pro", location: "Lagos, Nigeria", status: "Trusted" },
-                    { device: "Chrome Browser", location: "Abuja, Nigeria", status: "Verified" },
-                  ].map((session) => (
-                    <div
-                      key={session.device}
-                      className="grid min-w-0 gap-3 rounded-lg border border-white/10 bg-white/[0.025] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                    >
-                      <div className="min-w-0">
-                        <h3 className="truncate text-lg font-black">{session.device}</h3>
-                        <p className="mt-1 text-sm text-zinc-500">{session.location}</p>
-                      </div>
-                      <span className="inline-flex w-fit max-w-full rounded-md border border-green-300/15 bg-green-400/10 px-3 py-2 text-xs font-black text-green-300 sm:justify-self-end">
-                        {session.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <AccountAccessSummary />
               </section>
             </div>
 

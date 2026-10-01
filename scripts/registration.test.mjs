@@ -245,3 +245,57 @@ test('Dubley compact card links to management and both card sizes show a credent
     if (compact) assert.match(html, /href="\/cards"/);
   }
 });
+
+
+test('administrative account updates preserve exact cents, unrelated metadata and unspecified metrics', async () => {
+  const { accountUpdatePlan } = await import('./account-update-plan.mjs');
+  const user = {
+    user_metadata: { full_name: 'DUBLEY BRYAN', country: '', phone: '', balance: 0, reserve: 10, income: 20, account_status: 'active', transfer_frozen: false },
+    app_metadata: { aurex_security_passcode: { revision: 'keep' }, aurex_metrics: { balance: 0, reserve: 125.25, income: 250.75 } },
+  };
+  const snapshot = JSON.stringify(user);
+  const plan = accountUpdatePlan(user, { balance: 0 }, { balance: 7675896.68, country: 'United States', phone: '+13099067589' });
+  assert.equal(plan.app_metadata.aurex_metrics.balance, 7675896.68);
+  assert.equal(plan.user_metadata.balance, 7675896.68);
+  assert.equal(plan.profileBalance, 7675897);
+  assert.equal(plan.app_metadata.aurex_metrics.reserve, 125.25);
+  assert.equal(plan.app_metadata.aurex_metrics.income, 250.75);
+  assert.equal(plan.user_metadata.country, 'United States');
+  assert.equal(plan.user_metadata.phone, '+13099067589');
+  assert.equal(plan.app_metadata.aurex_security_passcode.revision, 'keep');
+  assert.equal(JSON.stringify(user), snapshot);
+  assert.equal(accountUpdatePlan(plan, { balance: plan.profileBalance }, { balance: 7675896.68 }).changed, false);
+  for (const value of [NaN, Infinity, -1, Number.MAX_SAFE_INTEGER]) assert.throws(() => accountUpdatePlan(user, { balance: 0 }, { balance: value }));
+});
+
+test('access summary uses recorded sign-in time and never infers login location from residence', () => {
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const React = require('react');
+  const { default: Summary } = load('src/components/profile/AccountAccessSummary.tsx', {
+    react: { ...React, useEffect: () => {}, useState: () => [{ userId: 'dubley', signedInAt: '2026-02-28T12:30:00.000Z', error: false }, () => {}] },
+    '../../context/BankingContext': { useBanking: () => ({ currentProfile: { userId: 'dubley', country: 'United States' } }) },
+    '../../lib/supabase': {},
+  });
+  const html = renderToStaticMarkup(React.createElement(Summary));
+  assert.match(html, /2026-02-28T12:30:00.000Z/);
+  assert.match(html, /Location unavailable/);
+  assert.doesNotMatch(html, /Nigeria|United States|Trusted|Secure/);
+});
+
+
+test('available balance overview renders all cents without generated labels for Dubley', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const amounts = load('src/components/ui/PrivateAmount.tsx', {
+    '../../context/BalancePrivacyContext': { useBalancePrivacy: () => ({ balancesHidden: false }) },
+    './AppIcon': () => null,
+  });
+  const { default: Stats } = load('src/components/widgets/StatsGrid.tsx', {
+    '../../context/BankingContext': { useBanking: () => ({ balance: 7675896.68, income: 0, reserve: 0, expenses: 0, currentProfile: { fullName: 'DUBLEY BRYAN', email: 'dudbryan54@gmail.com', username: 'dudbryan54@gmail.com' } }) },
+    '../../lib/illustrativeHistory': load('src/lib/illustrativeHistory.ts', {}),
+    '../ui/PrivateAmount': amounts,
+  });
+  const html = renderToStaticMarkup(React.createElement(Stats));
+  assert.match(html, /\$7,675,896\.68/);
+  assert.doesNotMatch(html, /Generated estimate|Illustrative/);
+});

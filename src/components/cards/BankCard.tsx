@@ -35,6 +35,9 @@ function PreviewCard({ compact }: { compact: boolean }) {
     {compact ? <Link href="/cards" aria-label="Open card management" className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-green-300">{face}</Link> : face}
     <p className="mt-3 text-xs text-zinc-400">Card preview only. No payment card has been issued.</p>
     {!compact && <p className="mt-2 text-sm text-zinc-400">Payment credentials and card controls will be available after issuance.</p>}
+    {!compact && <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+      {[["Cardholder", card.holder], ["Bank", branding.bankName], ["Card number", "Not issued"], ["Expiration", "Not issued"], ["Security code", "Not issued"], ["Issuance status", "Awaiting issuer"]].map(([label, value]) => <div key={label} className="min-w-0 rounded-lg border border-white/10 p-3"><dt className="text-xs text-zinc-400">{label}</dt><dd className="mt-1 break-words text-sm font-semibold">{value}</dd></div>)}
+    </dl>}
   </div>;
 }
 

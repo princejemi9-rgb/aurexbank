@@ -11,7 +11,7 @@ export default function StatsGrid() {
     {
       title: "Income",
       value: <PrivateAmount value={presentation.income} maximumFractionDigits={0} minimumFractionDigits={0} />,
-      growth: presentation.illustrative ? "Illustrative" : "Live",
+      growth: presentation.illustrative ? "Generated estimate" : "Live",
       desc: presentation.illustrative ? "September 2026 income" : "Monthly income",
       tone: "text-green-400",
     },
@@ -25,13 +25,13 @@ export default function StatsGrid() {
     {
       title: "Reserve",
       value: <PrivateAmount value={presentation.reserve} maximumFractionDigits={0} minimumFractionDigits={0} />,
-      growth: presentation.illustrative ? "Illustrative" : "Live",
+      growth: presentation.illustrative ? "Generated estimate" : "Live",
       desc: presentation.illustrative ? "Scheduled savings allocations" : "Reserve savings",
       tone: "text-green-300",
     },
     {
       title: "Available",
-      value: <PrivateAmount value={balance} maximumFractionDigits={0} minimumFractionDigits={0} />,
+      value: <PrivateAmount value={balance} />,
       growth: "Live",
       desc: "Available funds",
       tone: "text-green-400",
@@ -54,7 +54,7 @@ export default function StatsGrid() {
                 {stat.growth}
               </span>
             </div>
-            <h3 className="mt-4 text-3xl font-black tracking-tight">{stat.value}</h3>
+            <h3 className="mt-4 break-all text-xl font-black tracking-tight sm:text-3xl">{stat.value}</h3>
             <p className={`mt-3 text-sm font-bold ${stat.tone}`}>{stat.desc}</p>
           </div>
         ))}

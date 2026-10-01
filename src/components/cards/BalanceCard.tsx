@@ -22,9 +22,9 @@ export default function BalanceCard() {
 
   const metrics = [
     { label: "Available", value: <PrivateAmount value={balance} /> },
-    { label: "Income", value: <PrivateAmount value={presentation.income} prefix="+$" maximumFractionDigits={0} minimumFractionDigits={0} />, note: presentation.illustrative ? "Illustrative" : "Live" },
+    { label: "Income", value: <PrivateAmount value={presentation.income} prefix="+$" maximumFractionDigits={0} minimumFractionDigits={0} />, note: presentation.illustrative ? "Generated estimate" : "Live" },
     { label: "Expenses", value: <PrivateAmount value={expenses} prefix="-$" maximumFractionDigits={0} minimumFractionDigits={0} /> },
-    { label: "Reserve", value: <PrivateAmount value={presentation.reserve} maximumFractionDigits={0} minimumFractionDigits={0} />, note: presentation.illustrative ? "Illustrative" : "Live" },
+    { label: "Reserve", value: <PrivateAmount value={presentation.reserve} maximumFractionDigits={0} minimumFractionDigits={0} />, note: presentation.illustrative ? "Generated estimate" : "Live" },
   ];
 
   return (

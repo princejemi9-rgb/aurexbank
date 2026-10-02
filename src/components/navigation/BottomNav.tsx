@@ -117,7 +117,7 @@ export default function BottomNav() {
         className="mobile-bottom-navigation fixed inset-x-0 bottom-0 z-50 pointer-events-none lg:hidden"
         style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50 }}
       >
-        <div className="pointer-events-auto mx-auto max-w-[430px] border-t border-white/[0.08] bg-[var(--brand-background)] px-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.28)]">
+        <div className="pointer-events-auto mx-auto max-w-[430px] border-t border-white/[0.08] bg-[var(--brand-background)] px-2 pb-3 pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.28)]">
           <div
             className="grid gap-1"
             style={{ gridTemplateColumns: `repeat(${navItems.length + 1}, minmax(0, 1fr))` }}

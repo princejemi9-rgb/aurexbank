@@ -197,9 +197,13 @@ test('Dubley history is deterministic, spans five years, and stops before March 
   assert.equal(new Set(records.filter(record => record.type === 'Income').map(record => record.name)).size, 60);
   assert.equal(new Set(records.filter(record => record.type === 'Savings allocation').map(record => record.name)).size, 60);
   assert.ok(records.some(record => record.name === 'Avery Bennett'));
-  assert.ok(records.every(record => Math.abs(record.amount) >= 5000));
-  assert.ok(new Set(records.filter(record => record.amount > 0).map(record => record.amount)).size >= 5);
-  assert.ok(new Set(records.filter(record => record.amount < 0).map(record => record.amount)).size >= 8);
+  assert.ok(records.filter(record => record.type === 'Service fee').every(record => record.amount === -50));
+  assert.ok(records.filter(record => record.type !== 'Service fee').every(record => Math.abs(record.amount) >= 5000));
+  assert.ok(records.some(record => Math.abs(record.amount) >= 50000));
+  assert.ok(records.some(record => Math.abs(record.amount) >= 100000));
+  assert.ok(records.some(record => Math.abs(record.amount) >= 200000));
+  assert.ok(new Set(records.filter(record => record.amount > 0).map(record => record.amount)).size >= 10);
+  assert.ok(new Set(records.filter(record => record.amount < 0 && record.type !== 'Service fee').map(record => record.amount)).size >= 10);
   assert.equal(JSON.stringify(records), JSON.stringify(buildIllustrativeHistory('Updated name', ' DUDBRYAN54@GMAIL.COM ')));
   const stored = getAccountOverviewMetrics('DUBLEY BRYAN', 'dudbryan54@gmail.com', { income: 123, reserve: 456 });
   assert.equal(stored.income, 123);
@@ -223,7 +227,8 @@ test('Dubley uses account-specific digital debit display fields', () => {
   const card = createCardPreview('2aba957e-bbf0-4fca-bb54-0525592c6e4b', 'DUBLEY BRYAN');
   assert.equal(card.holder, 'DUBLEY BRYAN');
   assert.equal(card.issuerCard, false);
-  assert.equal(card.number, '•••• •••• •••• 4827');
+  assert.equal(card.number, '•••• •••• •••• 2464');
+  assert.match(card.previewIdentifier, /^PRVW \d{4} \d{4} 2464$/);
   assert.equal(card.expiry, '12/29');
   assert.equal(card.securityCode, '581');
   for (const field of ['pin', 'token', 'cvv']) assert.equal(field in card, false);
@@ -250,9 +255,10 @@ test('Dubley compact card links to management and the card page shows complete f
     assert.match(html, /DUBLEY BRYAN/);
     assert.match(html, /Aurex Bank/);
     assert.match(html, /mastercard/);
-    assert.match(html, /•••• •••• •••• 4827/);
+    assert.match(html, /•••• •••• •••• 2464/);
     assert.match(html, /Valid thru/);
-    assert.doesNotMatch(html, /Awaiting issuer|Preview|Illustrative/);
+    assert.doesNotMatch(html, /Awaiting issuer|Illustrative/);
+    if (!compact) assert.match(html, /Preview identifier/);
     if (compact) assert.match(html, /href="\/cards"/);
   }
 });

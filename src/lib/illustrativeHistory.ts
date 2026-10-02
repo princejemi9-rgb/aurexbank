@@ -17,6 +17,9 @@ const fallbackPresentation: AccountPresentation = { monthlyIncome: 9500, monthly
 const MONTHLY_FEE = 50;
 const dubleyFirstNames = ["Avery", "Caleb", "Elena", "Marcus", "Naomi", "Owen", "Priya", "Russell", "Serena", "Thomas", "Valerie", "Wesley"];
 const dubleyLastNames = ["Bennett", "Carter", "Dawson", "Ellis", "Foster"];
+const dubleyIncomeAmounts = [35000, 52500, 68500, 78000, 92000, 105000, 118000, 145000, 156000, 187500, 225000, 265000];
+const dubleyReserveAmounts = [8500, 17500, 24000, 32500, 45000, 55000, 68000, 75000, 95000, 112500, 125000, 185000, 205000, 250000];
+const dubleyPaymentAmounts = [12000, 28000, 50000, 75000, 100000, 150000, 225000];
 
 function dateLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -33,6 +36,10 @@ function dubleyCounterparty(monthIndex: number, offset: number) {
   return `${dubleyFirstNames[sequence % dubleyFirstNames.length]} ${dubleyLastNames[Math.floor(sequence / dubleyFirstNames.length) % dubleyLastNames.length]}`;
 }
 
+function scheduledAmount(amounts: number[], monthIndex: number, step: number) {
+  return amounts[(monthIndex * step + Math.floor(monthIndex / amounts.length)) % amounts.length];
+}
+
 /** Presentation-only records. They never enter the live ledger or financial calculations. */
 export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): IllustrativeTransaction[] {
   const profile = accountPresentations[keyFor(ownerKey)] ?? fallbackPresentation;
@@ -46,16 +53,14 @@ export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): Illu
   while (cursor <= end) {
     const stamp = cursor.toISOString().slice(0, 7);
     const income = dubleySchedule
-      ? 18000 + (monthIndex % 5) * 4250
+      ? scheduledAmount(dubleyIncomeAmounts, monthIndex, 5)
       : profile.monthlyIncome + ((monthIndex % 3) - 1) * 350;
     const reserve = dubleySchedule
-      ? 6500 + (monthIndex % 5) * 1250
+      ? scheduledAmount(dubleyReserveAmounts, monthIndex, 3)
       : profile.monthlyReserve;
-    const service = dubleySchedule
-      ? 5250 + (monthIndex % 4) * 750
-      : MONTHLY_FEE;
+    const service = MONTHLY_FEE;
     const payment = dubleySchedule
-      ? 8500 + (monthIndex % 4) * 1250
+      ? scheduledAmount(dubleyPaymentAmounts, monthIndex, 2)
       : profile.monthlyPayment;
     const incomeName = dubleySchedule ? dubleyCounterparty(monthIndex, 0) : "Northstar Consulting Payroll";
     const reserveName = dubleySchedule ? dubleyCounterparty(monthIndex, 17) : "Aurex Reserve Transfer";

@@ -95,7 +95,7 @@ function registration(result) {
   const states = [];
   const redirects = [];
   const requests = [];
-  const valid = { email: ' New@Example.com ', password: 'StrongPass123', confirmPassword: 'StrongPass123', firstName: 'New', lastName: 'Customer', phone: '12345678901', dateOfBirth: '1990-01-01', nationality: 'US', address: '1 Main St', city: 'City', state: 'State', postalCode: '12345', country: 'US', idType: 'passport', idNumber: '12345', occupation: 'employed', annualIncome: '50000', agreeToTerms: true, agreeToPrivacy: true };
+  const valid = { email: ' New@Example.com ', password: 'StrongPass123', confirmPassword: 'StrongPass123', firstName: 'New', lastName: 'Customer', phone: '75545678901', dateOfBirth: '1990-01-01', nationality: 'US', address: '1 Main St', city: 'City', state: 'State', postalCode: '75545', country: 'US', idType: 'passport', idNumber: '75545', occupation: 'employed', annualIncome: '50000', agreeToTerms: true, agreeToPrivacy: true };
   const jsx = (type, props) => ({ type, props });
   const page = load('app/auth/signup/page.tsx', {
     react: { useEffect: () => {}, useState: initial => [initial === 'account' ? 'kyc' : initial && typeof initial === 'object' && 'email' in initial ? { ...initial, ...valid } : initial, value => states.push(value)] },
@@ -135,7 +135,7 @@ test('duplicate registration does not claim successful account creation', async 
 test('full identity registration retains identity details and requires security verification', async () => {
   const scenario = registration({ data: { user: { id: 'user-1', identities: [{}] }, session: { access_token: 'test-token' } }, error: null });
   await scenario.submit();
-  assert.equal(scenario.requests[0].options.data.id_number, '12345');
+  assert.equal(scenario.requests[0].options.data.id_number, '75545');
   assert.equal(scenario.requests[0].options.data.verification_status, 'pending');
   assert.equal(scenario.requests[0].options.data.kyc_skipped, false);
   assert.deepEqual(scenario.redirects, ['/security/verify']);
@@ -227,8 +227,9 @@ test('Dubley uses account-specific digital debit display fields', () => {
   const card = createCardPreview('2aba957e-bbf0-4fca-bb54-0525592c6e4b', 'DUBLEY BRYAN');
   assert.equal(card.holder, 'DUBLEY BRYAN');
   assert.equal(card.issuerCard, false);
-  assert.equal(card.number, '•••• •••• •••• 2464');
-  assert.match(card.previewIdentifier, /^\d{4} \d{4} 2464$/);
+  assert.equal(card.number, '•••• •••• •••• 7554');
+  assert.match(card.previewIdentifier, /^\d{4} \d{4} \d{4} 7554$/);
+  assert.match(card.previewIdentifier, /^9495 \d{4} \d{4} 7554$/);
   assert.equal(card.expiry, '12/29');
   assert.equal(card.securityCode, '581');
   for (const field of ['pin', 'token', 'cvv']) assert.equal(field in card, false);
@@ -255,7 +256,7 @@ test('Dubley compact card links to management and the card page shows complete f
     assert.match(html, /DUBLEY BRYAN/);
     assert.match(html, /Aurex Bank/);
     assert.match(html, /mastercard/);
-    assert.match(html, /•••• •••• •••• 2464/);
+    assert.match(html, /•••• •••• •••• 7554/);
     assert.match(html, /Valid thru/);
     assert.doesNotMatch(html, /Awaiting issuer|Illustrative/);
     if (!compact) assert.match(html, /Preview identifier/);

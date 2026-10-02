@@ -16,7 +16,7 @@ export function createCardPreview(userId: string, holder: string): CardPreview {
   return {
     id: `digital-${key}`,
     number: "•••• •••• •••• 2464",
-    previewIdentifier: `PRVW ${group(0)} ${group(4)} 2464`,
+    previewIdentifier: `${group(0)} ${group(4)} 2464`,
     expiry: "12/29",
     securityCode: "581",
     holder: holder.trim() || "Aurex customer",

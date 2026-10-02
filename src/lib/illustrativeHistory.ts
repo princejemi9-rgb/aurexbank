@@ -57,10 +57,10 @@ export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): Illu
     const payment = dubleySchedule
       ? 8500 + (monthIndex % 4) * 1250
       : profile.monthlyPayment;
-    const incomeName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 0)} — Client payment` : "Northstar Consulting Payroll";
-    const reserveName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 17)} — Investment allocation` : "Aurex Reserve Transfer";
-    const serviceName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 31)} — Financial services` : "Aurex Account Service";
-    const paymentName = dubleySchedule ? `${dubleyCounterparty(monthIndex, 43)} — Contract payment` : "Greenwood Property Management";
+    const incomeName = dubleySchedule ? dubleyCounterparty(monthIndex, 0) : "Northstar Consulting Payroll";
+    const reserveName = dubleySchedule ? dubleyCounterparty(monthIndex, 17) : "Aurex Reserve Transfer";
+    const serviceName = dubleySchedule ? dubleyCounterparty(monthIndex, 31) : "Aurex Account Service";
+    const paymentName = dubleySchedule ? dubleyCounterparty(monthIndex, 43) : "Greenwood Property Management";
     records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), incomeName, "Income", income, `ILL-INC-${stamp.replace("-", "")}`));
     records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), reserveName, "Savings allocation", -reserve, `ILL-SAV-${stamp.replace("-", "")}`));
     records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, serviceName, "Service fee", -service, `ILL-FEE-${stamp.replace("-", "")}`));

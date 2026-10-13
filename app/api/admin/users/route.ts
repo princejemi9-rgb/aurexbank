@@ -38,7 +38,6 @@ type AdminActionBody = {
   country?: unknown;
   avatarUrl?: unknown;
   accountType?: unknown;
-  currency?: unknown;
   passcode?: unknown;
 };
 

@@ -28,7 +28,12 @@ export function mapHistoryRecord(item: Record<string, unknown>, username: string
     amount: sent ? -Math.abs(amount) : amount,
     status: String(item.status || details.status || "Not recorded"),
     createdAt,
-    time: date && Number.isFinite(date.getTime()) ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : "Date not recorded",
+    time: (() => {
+      const effectiveAt = typeof details.effectiveAt === "string" ? new Date(details.effectiveAt) : date;
+      return effectiveAt && Number.isFinite(effectiveAt.getTime())
+        ? effectiveAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+        : "Date not recorded";
+    })(),
     method: String(details.method || (bank.startsWith("__AUREX_TX__:") ? "" : bank) || "Not recorded"),
     reference: typeof details.reference === "string" ? details.reference : undefined,
   };

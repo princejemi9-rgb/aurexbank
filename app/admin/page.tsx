@@ -289,6 +289,10 @@ export default function AdminPage() {
   const [transactionAmount, setTransactionAmount] = useState("2500");
   const [transactionMethod, setTransactionMethod] = useState("Aurex Admin");
   const [transactionStatus, setTransactionStatus] = useState("Completed");
+  const [transactionCategory, setTransactionCategory] = useState("Balance adjustment");
+  const [transactionReference, setTransactionReference] = useState("");
+  const [transactionEffectiveAt, setTransactionEffectiveAt] = useState("");
+  const [transactionCurrency, setTransactionCurrency] = useState("USD");
 
   const selectedUser =
     users.find((user) => user.username === selectedUsername) ?? users[0] ?? null;
@@ -772,6 +776,10 @@ export default function AdminPage() {
         amount: transactionDirection === "debit" ? -rawAmount : rawAmount,
         status: transactionStatus.trim() || "Completed",
         method: transactionMethod.trim() || "Aurex Admin",
+        category: transactionCategory.trim() || "Balance adjustment",
+        reference: transactionReference.trim(),
+        effectiveAt: transactionEffectiveAt,
+        currency: transactionCurrency,
       },
       `Transaction posted for ${selectedUser?.fullName}.`
     );
@@ -1876,13 +1884,60 @@ export default function AdminPage() {
                             </div>
 
                             <label className="block">
-                              <span className="text-sm text-zinc-400">Category</span>
+                              <span className="text-sm text-zinc-400">Transaction type</span>
                               <input
                                 value={transactionType}
                                 onChange={(event) => setTransactionType(event.target.value)}
                                 className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
                               />
                             </label>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Category</span>
+                                <input
+                                  value={transactionCategory}
+                                  onChange={(event) => setTransactionCategory(event.target.value)}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Currency</span>
+                                <select
+                                  value={transactionCurrency}
+                                  onChange={(event) => setTransactionCurrency(event.target.value)}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                >
+                                  <option value="USD">USD</option>
+                                  <option value="EUR">EUR</option>
+                                  <option value="GBP">GBP</option>
+                                  <option value="NGN">NGN</option>
+                                </select>
+                              </label>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Effective date</span>
+                                <input
+                                  type="datetime-local"
+                                  max={new Date().toISOString().slice(0, 16)}
+                                  value={transactionEffectiveAt}
+                                  onChange={(event) => setTransactionEffectiveAt(event.target.value)}
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                              <label className="block">
+                                <span className="text-sm text-zinc-400">Reference (optional)</span>
+                                <input
+                                  value={transactionReference}
+                                  onChange={(event) => setTransactionReference(event.target.value)}
+                                  maxLength={96}
+                                  placeholder="Generated if blank"
+                                  className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition-all focus:border-green-400"
+                                />
+                              </label>
+                            </div>
 
                             <label className="block">
                               <span className="text-sm text-zinc-400">Method</span>
@@ -1893,6 +1948,10 @@ export default function AdminPage() {
                               />
                             </label>
                           </div>
+
+                          <p className="mt-4 text-xs leading-5 text-zinc-400">
+                            Simulated entry. The effective date controls how it appears in account history; the posting timestamp remains preserved for audit.
+                          </p>
 
                           <button
                             type="submit"

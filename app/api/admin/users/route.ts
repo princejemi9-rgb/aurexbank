@@ -20,6 +20,10 @@ type AdminActionBody = {
   type?: unknown;
   status?: unknown;
   method?: unknown;
+  category?: unknown;
+  reference?: unknown;
+  effectiveAt?: unknown;
+  currency?: unknown;
   alertType?: unknown;
   title?: unknown;
   desc?: unknown;
@@ -46,7 +50,14 @@ const ADMIN_ALERT_PREFIX = "__AUREX_ALERT__:";
 const ADMIN_TRANSACTION_PREFIX = "__AUREX_TX__:";
 
 function getAllowedAdminEmails() {
-  return ["princejemi9@gmail.com"];
+  const configured = (process.env.AUREX_ADMIN_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  // Kept for backwards compatibility with existing deployments until the
+  // documented AUREX_ADMIN_EMAILS variable is configured.
+  return configured.length ? configured : ["princejemi9@gmail.com"];
 }
 
 function getServiceRoleKey() {
@@ -817,11 +828,30 @@ export async function POST(request: NextRequest) {
     const entryType = readText(body.type) || "Administrative posting";
     const entryStatus = readText(body.status) || "Completed";
     const method = readText(body.method) || "Aurex Admin";
+    const category = readText(body.category) || "Balance adjustment";
+    const reference = readText(body.reference) || `ADM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const currency = readText(body.currency).toUpperCase() || "USD";
+    const effectiveAtText = readText(body.effectiveAt);
+    const effectiveAt = effectiveAtText ? new Date(effectiveAtText) : new Date();
+
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      return jsonError("Currency must be a three-letter code", 400);
+    }
+
+    if (Number.isNaN(effectiveAt.getTime()) || effectiveAt.getTime() > Date.now() + 60_000) {
+      return jsonError("Choose a valid current or historical effective date", 400);
+    }
+
     const encodedTransaction = `${ADMIN_TRANSACTION_PREFIX}${JSON.stringify({
       name: entryName,
       type: entryType,
       status: entryStatus,
       method,
+      category,
+      reference,
+      currency,
+      effectiveAt: effectiveAt.toISOString(),
+      simulated: true,
     })}`;
     const { data: insertedTransfer, error: transferError } = await admin.dbClient
       .from("transfers")

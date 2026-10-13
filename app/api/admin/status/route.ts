@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSupabaseUser } from "../../../../src/lib/server/supabaseAuth";
 
-const ADMIN_EMAIL = "princejemi9@gmail.com";
+function getAllowedAdminEmails() {
+  const configured = (process.env.AUREX_ADMIN_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  return configured.length ? configured : ["princejemi9@gmail.com"];
+}
 
 export async function GET(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -43,7 +50,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, isAdmin: false }, { status: 401 });
   }
 
-  const isAdmin = user.email.trim().toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = getAllowedAdminEmails().includes(user.email.trim().toLowerCase());
 
   return NextResponse.json({ ok: true, isAdmin });
 }

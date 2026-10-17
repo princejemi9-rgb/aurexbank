@@ -70,6 +70,21 @@ type AdminUsersResponse = {
   deletedUsername?: string;
   serviceRoleConfigured?: boolean;
   error?: string;
+  historicalTransactions?: HistoricalScenario[];
+};
+
+type HistoricalScenario = {
+  id: string;
+  direction: "credit" | "debit" | "reversal";
+  amount: number | string;
+  currency: string;
+  category: string;
+  description: string;
+  counterparty_label: string;
+  reference: string;
+  status: string;
+  effective_at: string;
+  created_at: string;
 };
 
 type BrandingResponse = {
@@ -297,6 +312,8 @@ export default function AdminPage() {
   const [transactionReference, setTransactionReference] = useState("");
   const [transactionEffectiveAt, setTransactionEffectiveAt] = useState("");
   const [transactionCurrency, setTransactionCurrency] = useState("USD");
+  const [historicalScenarios, setHistoricalScenarios] = useState<HistoricalScenario[]>([]);
+  const [historicalScenariosLoading, setHistoricalScenariosLoading] = useState(false);
 
   const selectedUser =
     users.find((user) => getAdminUserKey(user) === selectedUserKey) ?? users[0] ?? null;
@@ -417,6 +434,36 @@ export default function AdminPage() {
     return session?.access_token ?? "";
   }
 
+  const loadHistoricalScenarios = useCallback(async (target = selectedUser) => {
+    if (!target?.userId) {
+      setHistoricalScenarios([]);
+      return;
+    }
+
+    setHistoricalScenariosLoading(true);
+    try {
+      const token = await getAdminToken();
+      if (!token) return;
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          action: "listHistoricalTransactions",
+          userId: target.userId,
+          username: target.username,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as AdminUsersResponse | null;
+      if (!response.ok || !data?.ok) {
+        setNotice(data?.error || "Unable to load historical scenarios.");
+        return;
+      }
+      setHistoricalScenarios(data.historicalTransactions ?? []);
+    } finally {
+      setHistoricalScenariosLoading(false);
+    }
+  }, [selectedUser]);
+
   const loadUsers = useCallback(
     async (preferredUserKey?: string) => {
       setUsersLoading(true);
@@ -492,6 +539,13 @@ export default function AdminPage() {
       window.clearTimeout(timer);
     };
   }, [loadUsers]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadHistoricalScenarios();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadHistoricalScenarios]);
 
   useEffect(() => {
     const refreshWhenVisible = () => {
@@ -808,6 +862,23 @@ export default function AdminPage() {
       },
       `Transaction posted for ${selectedUser?.fullName}.`
     );
+  }
+
+  async function saveHistoricalScenario(event: FormEvent<HTMLFormElement>, scenario: HistoricalScenario) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const saved = await runAdminAction(
+      "updateHistoricalTransaction",
+      {
+        historicalId: scenario.id,
+        counterpartyLabel: readFormText(formData.get("counterpartyLabel")),
+        description: readFormText(formData.get("description")),
+        category: readFormText(formData.get("category")),
+        effectiveAt: readFormText(formData.get("effectiveAt")),
+      },
+      `Historical scenario updated for ${selectedUser?.fullName}.`
+    );
+    if (saved) await loadHistoricalScenarios();
   }
 
   async function resetTarget() {
@@ -1997,6 +2068,40 @@ export default function AdminPage() {
                             {busyAction === "postTransaction" ? "Posting..." : "Post Transaction"}
                           </button>
                         </form>
+
+                        <section className="bank-surface rounded-lg p-4 sm:p-6">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-green-400">Historical scenarios</p>
+                              <h2 className="mt-2 text-2xl font-black tracking-tight">Manage simulated history</h2>
+                              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">Edit only scenario names, descriptions, categories, and effective dates. Amounts, references, creation times, and the live account balance are never changed here. Every saved edit is audited.</p>
+                            </div>
+                            <button type="button" onClick={() => void loadHistoricalScenarios()} disabled={historicalScenariosLoading || Boolean(busyAction)} className="bank-button rounded-lg px-4 py-3 text-sm font-black disabled:opacity-60">Refresh</button>
+                          </div>
+
+                          <div className="mt-5 space-y-4">
+                            {historicalScenariosLoading ? <p className="text-sm text-zinc-400">Loading historical scenarios…</p> : null}
+                            {!historicalScenariosLoading && !historicalScenarios.length ? <p className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-zinc-400">No simulated historical scenarios are stored for this customer.</p> : null}
+                            {historicalScenarios.map((scenario) => (
+                              <form key={scenario.id} onSubmit={(event) => void saveHistoricalScenario(event, scenario)} className="rounded-lg border border-amber-300/20 bg-amber-300/[0.04] p-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-200">Simulated scenario · {scenario.direction}</p>
+                                    <p className="mt-1 text-sm font-bold text-zinc-200">{scenario.reference}</p>
+                                  </div>
+                                  <span className="text-sm font-black text-zinc-300">{scenario.currency} {Number(scenario.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                  <label className="grid gap-1 text-xs text-zinc-400">Counterparty<input name="counterpartyLabel" defaultValue={scenario.counterparty_label} required className="h-11 rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-green-400" /></label>
+                                  <label className="grid gap-1 text-xs text-zinc-400">Category<input name="category" defaultValue={scenario.category} required className="h-11 rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-green-400" /></label>
+                                  <label className="grid gap-1 text-xs text-zinc-400 sm:col-span-2">Description<input name="description" defaultValue={scenario.description} required className="h-11 rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-green-400" /></label>
+                                  <label className="grid gap-1 text-xs text-zinc-400">Effective date<input name="effectiveAt" type="datetime-local" defaultValue={scenario.effective_at.slice(0, 16)} min="2021-10-01T00:00" max="2026-03-31T23:59" required className="h-11 rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-green-400" /></label>
+                                </div>
+                                <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-zinc-500">Created {formatDate(scenario.created_at)} · Audit preserved</p><button type="submit" disabled={Boolean(busyAction)} className="rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-black text-black disabled:opacity-60">Save scenario</button></div>
+                              </form>
+                            ))}
+                          </div>
+                        </section>
 
                         <section className="bank-surface flex flex-1 flex-col rounded-lg p-6">
                           <p className="text-sm font-semibold text-green-400">

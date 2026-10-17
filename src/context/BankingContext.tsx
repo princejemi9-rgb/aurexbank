@@ -12,7 +12,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../lib/supabase";
 import { accountTransferFilter } from "../lib/supabaseFilters";
-import { mapHistoryRecord } from "../lib/transactionHistory";
+import { mapHistoryRecord, mapSimulatedHistoryRecord } from "../lib/transactionHistory";
 
 export type BankAlert = {
   id: string;
@@ -33,6 +33,8 @@ export type BankTransaction = {
   time: string;
   method: string;
   createdAt?: string;
+  effectiveAt?: string;
+  category?: string;
 };
 
 export type BankingProfile = {
@@ -817,8 +819,20 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       mapped.push(...(data ?? []).map(item => mapHistoryRecord(item, username)));
       if (!data || data.length < 500) break;
     }
+    const { data: simulatedHistory, error: simulatedHistoryError } = await supabase
+      .from("simulated_historical_transactions")
+      .select("id,direction,amount,currency,category,description,counterparty_label,reference,status,effective_at,created_at")
+      .eq("customer_id", profileInfo.userId)
+      .order("effective_at", { ascending: false });
+    if (simulatedHistoryError) {
+      setHistoryError("Transaction history could not be refreshed. Please try again.");
+      return;
+    }
     setHistoryError("");
-    setTransactions(mergeTransactionHistory(mapped));
+    setTransactions(mergeTransactionHistory([
+      ...mapped,
+      ...(simulatedHistory ?? []).map((item) => mapSimulatedHistoryRecord(item)),
+    ]));
   }, []);
 
   useEffect(() => {

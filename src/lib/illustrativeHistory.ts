@@ -25,8 +25,8 @@ function dateLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
-function record(id: string, date: Date, name: string, type: string, amount: number, reference: string): IllustrativeTransaction {
-  return { id, name, type, amount, status: "Presentation", method: "Generated history", createdAt: date.toISOString(), time: dateLabel(date), illustrative: true, reference };
+function record(id: string, date: Date, name: string, type: string, category: string, amount: number, reference: string): IllustrativeTransaction {
+  return { id, name, type, category, amount, status: "Presentation", method: "Simulated historical scenario", createdAt: date.toISOString(), effectiveAt: date.toISOString(), time: dateLabel(date), illustrative: true, reference };
 }
 
 function keyFor(ownerKey: string) { return ownerKey.trim().toLowerCase(); }
@@ -39,6 +39,19 @@ function dubleyCounterparty(monthIndex: number, offset: number) {
 function scheduledAmount(amounts: number[], monthIndex: number, step: number) {
   return amounts[(monthIndex * step + Math.floor(monthIndex / amounts.length)) % amounts.length];
 }
+
+const fictionalCounterparties = [
+  ["Michael Anderson", "Private Transfer", "Personal transfer"],
+  ["James Mitchell", "Consulting Payment", "Business payment"],
+  ["Olivia Bennett", "Personal Transfer", "Personal transfer"],
+  ["Daniel Brooks", "Property Settlement", "Property expense"],
+  ["Westbridge Holdings LLC", "Investment Distribution", "Investment distribution"],
+  ["Harrison Property Group", "Rental Income", "Property income"],
+  ["Catherine Williams", "Personal Transfer", "Personal transfer"],
+  ["Sterling Capital Partners", "Investment Proceeds", "Investment distribution"],
+  ["Robert Thompson", "Business Payment", "Business payment"],
+  ["Alexander Morgan", "Private Transfer", "Personal transfer"],
+] as const;
 
 /** Presentation-only records. They never enter the live ledger or financial calculations. */
 export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): IllustrativeTransaction[] {
@@ -62,14 +75,13 @@ export function buildIllustrativeHistory(ownerName: string, ownerKey = ""): Illu
     const payment = dubleySchedule
       ? scheduledAmount(dubleyPaymentAmounts, monthIndex, 2)
       : profile.monthlyPayment;
-    const incomeName = dubleySchedule ? dubleyCounterparty(monthIndex, 0) : "Northstar Consulting Payroll";
-    const reserveName = dubleySchedule ? dubleyCounterparty(monthIndex, 17) : "Aurex Reserve Transfer";
-    const serviceName = dubleySchedule ? dubleyCounterparty(monthIndex, 31) : "Aurex Account Service";
-    const paymentName = dubleySchedule ? dubleyCounterparty(monthIndex, 43) : "Greenwood Property Management";
-    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), incomeName, "Income", income, `ILL-INC-${stamp.replace("-", "")}`));
-    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), reserveName, "Savings allocation", -reserve, `ILL-SAV-${stamp.replace("-", "")}`));
-    records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, serviceName, "Service fee", -service, `ILL-FEE-${stamp.replace("-", "")}`));
-    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), paymentName, "Payment", -payment, `ILL-DB-${stamp.replace("-", "")}`));
+    const [incomeName, , incomeCategory] = dubleySchedule ? [dubleyCounterparty(monthIndex, 0), "Income", "Personal transfer"] : fictionalCounterparties[monthIndex % fictionalCounterparties.length];
+    const [reserveName, , reserveCategory] = dubleySchedule ? [dubleyCounterparty(monthIndex, 17), "Savings allocation", "Savings"] : fictionalCounterparties[(monthIndex + 3) % fictionalCounterparties.length];
+    const [paymentName, , paymentCategory] = dubleySchedule ? [dubleyCounterparty(monthIndex, 43), "Payment", "Property expense"] : fictionalCounterparties[(monthIndex + 6) % fictionalCounterparties.length];
+    records.push(record(`illustrative-income-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 12)), incomeName, "Income", incomeCategory, income, `ILL-INC-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-reserve-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 18)), reserveName, "Savings allocation", reserveCategory, -reserve, `ILL-SAV-${stamp.replace("-", "")}`));
+    records.push(record(`illustrative-fee-${keyFor(ownerKey)}-${stamp}`, cursor, "Aurex Account Service", "Service fee", "Account service charge", -service, `ILL-FEE-${stamp.replace("-", "")}`));
+    if (monthIndex % 4 === 2) records.push(record(`illustrative-payment-${keyFor(ownerKey)}-${stamp}`, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 24)), paymentName, "Payment", paymentCategory, -payment, `ILL-DB-${stamp.replace("-", "")}`));
     cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
     monthIndex += 1;
   }

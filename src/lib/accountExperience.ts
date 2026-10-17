@@ -13,8 +13,8 @@ const configuredAccounts: Record<string, AccountExperience> = {
     previewCard: true,
   },
   "davidbob9784@gmail.com": {
-    historyStart: "2022-01-01T00:00:00.000Z",
-    historyEnd: "2026-10-17T23:59:59.999Z",
+    historyStart: "2021-10-01T00:00:00.000Z",
+    historyEnd: "2026-03-31T23:59:59.999Z",
     storedMetrics: true,
     previewCard: true,
   },

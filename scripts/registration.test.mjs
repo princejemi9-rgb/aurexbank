@@ -36,6 +36,20 @@ test('illustrative history covers every month through September 2026 without ent
   assert.equal(accounts.every(account => account.records.filter(record => record.type === 'Service fee').length === 57), true);
 });
 
+test('David Bob simulated history follows the requested historical period and filters by effective date', () => {
+  const { buildIllustrativeHistory } = load('src/lib/illustrativeHistory.ts', {});
+  const { filterHistory } = load('src/lib/transactionHistory.ts', {});
+  const records = buildIllustrativeHistory('David Bob', 'davidbob9784@gmail.com');
+  assert.equal(records.filter(record => record.type === 'Service fee').every(record => record.createdAt.slice(0, 4) >= '2021' && record.createdAt.slice(0, 4) <= '2026'), true);
+  assert.equal(records[0].effectiveAt.slice(0, 7), '2026-03');
+  assert.equal(records.at(-1).effectiveAt.slice(0, 7), '2021-10');
+  assert.ok(records.some(record => record.name === 'Michael Anderson'));
+  assert.ok(records.some(record => record.name === 'Westbridge Holdings LLC'));
+  const newest = { ...records[0], id: 'effective-newest', type: 'Income', effectiveAt: '2026-03-31T00:00:00.000Z', createdAt: '2021-10-01T00:00:00.000Z', category: 'Investment distribution' };
+  const filtered = filterHistory([...records, newest], '', 'all', '2026', 'Investment distribution', 'Income');
+  assert.equal(filtered[0].id, 'effective-newest');
+});
+
 function load(file, mocks, globals = {}) {
   const exports = {};
   const code = ts.transpileModule(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), {

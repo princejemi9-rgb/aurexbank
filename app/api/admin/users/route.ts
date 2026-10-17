@@ -39,6 +39,9 @@ type AdminActionBody = {
   avatarUrl?: unknown;
   accountType?: unknown;
   passcode?: unknown;
+  historicalId?: unknown;
+  counterpartyLabel?: unknown;
+  description?: unknown;
 };
 
 const STARTING_BALANCE = 0;
@@ -47,6 +50,8 @@ const STARTING_INCOME = 0;
 const PROTECTED_METRICS_KEY = "aurex_metrics";
 const ADMIN_ALERT_PREFIX = "__AUREX_ALERT__:";
 const ADMIN_TRANSACTION_PREFIX = "__AUREX_TX__:";
+const HISTORICAL_SCENARIO_START = Date.parse("2021-10-01T00:00:00.000Z");
+const HISTORICAL_SCENARIO_END = Date.parse("2026-03-31T23:59:59.999Z");
 
 function getAllowedAdminEmails() {
   const configured = (process.env.AUREX_ADMIN_EMAILS || "")
@@ -688,6 +693,23 @@ async function deleteAvatarFolder(dbClient: SupabaseClient, userId: string) {
   }
 }
 
+async function writeHistoricalAudit(
+  dbClient: SupabaseClient,
+  actorId: string,
+  username: string,
+  historicalId: string,
+  before: Record<string, unknown>,
+  after: Record<string, unknown>
+) {
+  const { error } = await dbClient.from("admin_audit_log").insert([{
+    actor_id: actorId,
+    action: "update_simulated_historical_transaction",
+    target_username: username,
+    metadata: { simulated: true, historical_transaction_id: historicalId, before, after },
+  }]);
+  return error;
+}
+
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin(request);
   if ("error" in admin) return admin.error;
@@ -913,6 +935,91 @@ export async function POST(request: NextRequest) {
     ).catch(() => {});
 
     return NextResponse.json({ ok: true, user: result.user });
+  }
+
+  if (action === "listHistoricalTransactions") {
+    if (!admin.hasServiceRole || !targetUser) {
+      return jsonError("Service role key is required to manage historical scenarios", 403);
+    }
+
+    const { data, error } = await admin.dbClient
+      .from("simulated_historical_transactions")
+      .select("id,direction,amount,currency,category,description,counterparty_label,reference,status,effective_at,created_at,metadata")
+      .eq("customer_id", targetUser.id)
+      .order("effective_at", { ascending: false });
+    if (error) return jsonError(error.message, 500);
+    return NextResponse.json({ ok: true, historicalTransactions: data ?? [] });
+  }
+
+  if (action === "updateHistoricalTransaction") {
+    if (!admin.hasServiceRole || !targetUser) {
+      return jsonError("Service role key is required to manage historical scenarios", 403);
+    }
+
+    const historicalId = readText(body.historicalId);
+    const counterpartyLabel = readText(body.counterpartyLabel);
+    const description = readText(body.description);
+    const category = readText(body.category);
+    const effectiveAt = new Date(readText(body.effectiveAt));
+    if (!historicalId || !counterpartyLabel || !description || !category) {
+      return jsonError("Counterparty, category, description, and effective date are required", 400);
+    }
+    if (
+      Number.isNaN(effectiveAt.getTime()) ||
+      effectiveAt.getTime() < HISTORICAL_SCENARIO_START ||
+      effectiveAt.getTime() > HISTORICAL_SCENARIO_END
+    ) {
+      return jsonError("Historical scenarios must use dates from October 2021 through March 2026", 400);
+    }
+
+    const { data: existing, error: readError } = await admin.dbClient
+      .from("simulated_historical_transactions")
+      .select("id,customer_id,direction,amount,currency,category,description,counterparty_label,reference,status,effective_at,created_at,metadata")
+      .eq("id", historicalId)
+      .eq("customer_id", targetUser.id)
+      .maybeSingle();
+    if (readError) return jsonError(readError.message, 500);
+    if (!existing || (existing.metadata as Record<string, unknown> | null)?.simulated !== true) {
+      return jsonError("Only the selected customer's simulated scenario records can be edited", 404);
+    }
+
+    const isServiceCharge = category.toLowerCase().includes("service");
+    if (isServiceCharge && effectiveAt.getUTCFullYear() !== 2026) {
+      return jsonError("Monthly account service charges must remain dated in 2026", 400);
+    }
+
+    const nextMetadata = {
+      ...(existing.metadata as Record<string, unknown>),
+      simulated: true,
+      historical_edit_count: Number((existing.metadata as Record<string, unknown>).historical_edit_count || 0) + 1,
+      historical_last_edited_at: new Date().toISOString(),
+    };
+    const { data: updated, error: updateError } = await admin.dbClient
+      .from("simulated_historical_transactions")
+      .update({
+        counterparty_label: counterpartyLabel,
+        description,
+        category,
+        effective_at: effectiveAt.toISOString(),
+        metadata: nextMetadata,
+        updated_by: admin.adminUser.id,
+      })
+      .eq("id", historicalId)
+      .eq("customer_id", targetUser.id)
+      .select("id,direction,amount,currency,category,description,counterparty_label,reference,status,effective_at,created_at,metadata")
+      .maybeSingle();
+    if (updateError || !updated) return jsonError(updateError?.message || "Historical scenario update failed", 500);
+
+    const auditError = await writeHistoricalAudit(
+      admin.dbClient,
+      admin.adminUser.id,
+      target.username,
+      historicalId,
+      existing as Record<string, unknown>,
+      updated as Record<string, unknown>
+    );
+    if (auditError) return jsonError(`Scenario updated, but audit logging failed: ${auditError.message}`, 500);
+    return NextResponse.json({ ok: true, historicalTransaction: updated, user: target });
   }
 
   if (action === "publishAlert") {

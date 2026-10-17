@@ -53,7 +53,9 @@ const [historical, legacy] = await Promise.all([
     .order("effective_at", { ascending: false }),
   client
     .from("transfers")
-    .select("id,sender,receiver,amount,account_type,bank_name,created_at")
+    // Legacy projects do not all expose the same optional transfer columns.
+    // Select the available row shape so this remains a read-only inspection.
+    .select("*")
     .or(`sender.eq.${targetEmail},receiver.eq.${targetEmail}`)
     .order("created_at", { ascending: false })
     .limit(100),

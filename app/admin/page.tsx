@@ -59,6 +59,8 @@ type AdminBankUser = {
   createdAt: string;
   source: "auth" | "profile";
   securityPasscodeConfigured: boolean;
+  cardHolderName: string;
+  cardStatus: "active" | "frozen";
 };
 
 type UserFilter = "all" | "new" | "online" | "active" | "suspended" | "pending";
@@ -881,6 +883,19 @@ export default function AdminPage() {
     if (saved) await loadHistoricalScenarios();
   }
 
+  async function saveVisualCard(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    await runAdminAction(
+      "updateVisualCard",
+      {
+        cardHolderName: readFormText(formData.get("cardHolderName")),
+        cardStatus: readFormText(formData.get("cardStatus")),
+      },
+      `Visual card settings updated for ${selectedUser?.fullName}.`
+    );
+  }
+
   async function resetTarget() {
     if (!selectedUser || !window.confirm(`Reset balance, reserve, and income for ${selectedUser.fullName} to zero?`)) return;
     await runAdminAction(
@@ -1486,7 +1501,7 @@ export default function AdminPage() {
 </div></details>
                     <nav aria-label="Customer tasks" className="sticky top-0 z-10 rounded-lg border border-white/10 bg-[var(--brand-background)] p-4">
                       <p className="mb-3 text-sm font-bold">Step 2 &middot; Choose a task for {selectedUser.fullName}</p>
-                      <div className="flex flex-wrap gap-2">{[["customer-access", "1. Sign-in access"], ["customer-controls", "2. Account & verification"], ["customer-profile", "3. Profile details"], ["customer-money", "4. Balances"], ["customer-alerts", "5. Send notification"]].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-green-300 hover:bg-white/10">{label}</a>)}</div>
+                      <div className="flex flex-wrap gap-2">{[["customer-access", "1. Sign-in access"], ["customer-controls", "2. Account & verification"], ["customer-profile", "3. Profile details"], ["customer-card", "4. Card display"], ["customer-money", "5. Balances"], ["customer-history", "6. History"]].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-green-300 hover:bg-white/10">{label}</a>)}</div>
                     </nav>
                     <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
                       {[
@@ -1793,6 +1808,22 @@ export default function AdminPage() {
                       </button>
                     </form>
 
+                    <form
+                      id="customer-card" style={{ scrollMarginTop: "10rem" }}
+                      key={`card-${getAdminUserKey(selectedUser)}-${selectedUser.cardHolderName}-${selectedUser.cardStatus}`}
+                      onSubmit={saveVisualCard}
+                      className="bank-surface rounded-lg p-6"
+                    >
+                      <p className="text-sm font-semibold text-green-400">Visual card controls</p>
+                      <h2 className="mt-2 text-2xl font-black tracking-tight">Customer card display</h2>
+                      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-500">Update the cardholder label and active/frozen display state shown on the customer&apos;s Cards page. The preview identifier and expiry remain fictional display values; this cannot create or operate a payment card.</p>
+                      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                        <label className="grid gap-1 text-sm text-zinc-400">Cardholder name<input name="cardHolderName" defaultValue={selectedUser.cardHolderName} required className="h-12 rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold text-white outline-none focus:border-green-400" /></label>
+                        <label className="grid gap-1 text-sm text-zinc-400">Display state<select name="cardStatus" defaultValue={selectedUser.cardStatus} className="h-12 rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold text-white outline-none focus:border-green-400"><option value="active">Active</option><option value="frozen">Frozen</option></select></label>
+                      </div>
+                      <button type="submit" disabled={Boolean(busyAction)} className="mt-5 rounded-lg bg-green-400 px-5 py-3 text-sm font-black text-black disabled:opacity-60">{busyAction === "updateVisualCard" ? "Saving..." : "Save card display"}</button>
+                    </form>
+
                     <div className="grid min-w-0 items-stretch gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
                       <div className="flex min-w-0 flex-col gap-6">
                         <form
@@ -2069,7 +2100,7 @@ export default function AdminPage() {
                           </button>
                         </form>
 
-                        <section className="bank-surface rounded-lg p-4 sm:p-6">
+                        <section id="customer-history" style={{ scrollMarginTop: "10rem" }} className="bank-surface rounded-lg p-4 sm:p-6">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <p className="text-sm font-semibold text-green-400">Historical scenarios</p>

@@ -39,6 +39,8 @@ type AdminActionBody = {
   avatarUrl?: unknown;
   accountType?: unknown;
   passcode?: unknown;
+  cardHolderName?: unknown;
+  cardStatus?: unknown;
   historicalId?: unknown;
   counterpartyLabel?: unknown;
   description?: unknown;
@@ -246,6 +248,8 @@ function buildAdminUser(user: User | null, profile?: ProfileRecord | null) {
     createdAt: user?.created_at ?? "",
     source: user ? "auth" : "profile",
     securityPasscodeConfigured: Boolean(readSecurityPasscode(user?.app_metadata?.[PASSCODE_METADATA_KEY])),
+    cardHolderName: readMetadataText(user, "card_holder_name") || fullName,
+    cardStatus: readMetadataText(user, "card_status").toLowerCase() === "frozen" ? "frozen" : "active",
   };
 }
 
@@ -574,6 +578,45 @@ async function updateTargetProfileDetails(
   };
 }
 
+async function updateVisualCard(
+  dbClient: SupabaseClient,
+  hasServiceRole: boolean,
+  user: User | null,
+  body: AdminActionBody,
+  fallback: ReturnType<typeof buildAdminUser>
+) {
+  if (!hasServiceRole || !user) {
+    return { error: jsonError("Service role key is required for card display edits", 403) };
+  }
+
+  const holder = readText(body.cardHolderName).toUpperCase();
+  const status = readText(body.cardStatus).toLowerCase();
+  if (!holder) return { error: jsonError("Enter a cardholder name", 400) };
+  if (status !== "active" && status !== "frozen") {
+    return { error: jsonError("Choose an active or frozen card state", 400) };
+  }
+
+  const currentMetadata = user.user_metadata && typeof user.user_metadata === "object"
+    ? (user.user_metadata as Record<string, unknown>)
+    : {};
+  const { error } = await dbClient.auth.admin.updateUserById(user.id, {
+    user_metadata: {
+      ...currentMetadata,
+      card_holder_name: holder,
+      card_status: status,
+      card_display_updated_at: new Date().toISOString(),
+    },
+  });
+  if (error) return { error: jsonError(error.message, 500) };
+
+  const { data: { user: updatedUser } } = await dbClient.auth.admin.getUserById(user.id);
+  const profile = await getProfileByUsername(
+    dbClient,
+    getUsernameFromUser(updatedUser ?? user) || fallback.username
+  );
+  return { user: buildAdminUser(updatedUser ?? user, profile ?? { username: fallback.username }) };
+}
+
 async function updateTargetProfileBalance(
   dbClient: SupabaseClient,
   username: string,
@@ -799,6 +842,24 @@ export async function POST(request: NextRequest) {
       "Aurex Admin updated account profile details."
     ).catch(() => {});
 
+    return NextResponse.json({ ok: true, user: result.user });
+  }
+
+  if (action === "updateVisualCard") {
+    const result = await updateVisualCard(
+      admin.dbClient,
+      admin.hasServiceRole,
+      targetUser,
+      body,
+      target
+    );
+    if ("error" in result) return result.error;
+
+    await insertNotification(
+      admin.dbClient,
+      result.user.username,
+      "Aurex Admin updated visual card settings."
+    ).catch(() => {});
     return NextResponse.json({ ok: true, user: result.user });
   }
 

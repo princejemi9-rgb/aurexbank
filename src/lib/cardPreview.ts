@@ -6,10 +6,11 @@ export type CardPreview = {
   securityCode: string;
   holder: string;
   status: "Virtual Debit Mastercard";
+  cardStatus: "active" | "frozen";
   issuerCard: false;
 };
 
-export function createCardPreview(userId: string, holder: string): CardPreview {
+export function createCardPreview(userId: string, holder: string, cardStatus: "active" | "frozen" = "active"): CardPreview {
   const key = userId.trim() || "pending";
   const seed = Array.from(key).reduce((total, character) => (total * 31 + character.charCodeAt(0)) >>> 0, 17);
   const group = (shift: number) => String((seed >>> shift) % 10000).padStart(4, "0");
@@ -29,6 +30,7 @@ export function createCardPreview(userId: string, holder: string): CardPreview {
     securityCode: "581",
     holder: holder.trim() || "Aurex customer",
     status: "Virtual Debit Mastercard",
+    cardStatus,
     issuerCard: false,
   };
 }

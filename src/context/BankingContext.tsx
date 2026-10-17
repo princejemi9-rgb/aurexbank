@@ -51,6 +51,8 @@ export type BankingProfile = {
   accountNumber: string;
   initials: string;
   avatar_url?: string;
+  cardHolderName: string;
+  cardStatus: "active" | "frozen";
 };
 
 type AccountStatus = "active" | "suspended";
@@ -165,6 +167,8 @@ const FALLBACK_PROFILE: BankingProfile = {
   accountNumber: "",
   initials: "A",
   avatar_url: undefined,
+  cardHolderName: "Aurex User",
+  cardStatus: "active",
 };
 
 const seedTransactions: BankTransaction[] = [];
@@ -687,6 +691,8 @@ function buildProfile(user: User | null): BankingProfile {
   const safeFullName = isPlaceholderText(fullName)
     ? readText(cachedProfile?.fullName) || safeFirstName
     : fullName;
+  const configuredCardHolder = readText(metadata.card_holder_name);
+  const configuredCardStatus = readText(metadata.card_status).toLowerCase();
   const initials = safeFullName
     .split(" ")
     .filter(Boolean)
@@ -715,6 +721,8 @@ function buildProfile(user: User | null): BankingProfile {
     accountNumber: readText(metadata.account_number),
     initials,
     avatar_url,
+    cardHolderName: configuredCardHolder || safeFullName,
+    cardStatus: configuredCardStatus === "frozen" ? "frozen" : "active",
   };
 }
 

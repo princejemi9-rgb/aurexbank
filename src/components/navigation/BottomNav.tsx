@@ -41,7 +41,7 @@ export default function BottomNav() {
     { name: "Cards", icon: "card" as const, href: "/cards" },
     { name: "Notifications", icon: "bell" as const, href: "/notifications" },
     ...(isAdmin
-      ? [{ name: "Admin", icon: "admin" as const, href: "/admin" }]
+      ? [{ name: "Admin", icon: "admin" as const, href: "/admin" }, { name: "Support Inbox", icon: "help" as const, href: "/admin/support" }]
       : []),
     { name: "Profile", icon: "profile" as const, href: "/profile" },
     { name: "Security", icon: "shield" as const, href: "/security/activity" },

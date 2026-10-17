@@ -20,6 +20,7 @@ export default function DesktopSidebar() {
     { name: "Cards", icon: "card" as const, href: "/cards", section: "primary" as const },
     { name: "Notifications", icon: "bell" as const, href: "/notifications", section: "primary" as const },
     { name: "Admin", icon: "admin" as const, href: "/admin", adminOnly: true, section: "account" as const },
+    { name: "Support Inbox", icon: "help" as const, href: "/admin/support", adminOnly: true, section: "account" as const },
     { name: "Profile", icon: "profile" as const, href: "/profile", section: "account" as const },
     { name: "Security", icon: "shield" as const, href: "/security/activity", section: "account" as const },
     { name: "Settings", icon: "settings" as const, href: "/settings", section: "account" as const },

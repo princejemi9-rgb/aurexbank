@@ -481,10 +481,20 @@ export default function AdminPage() {
       void loadUsers();
     }, 0);
 
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void loadUsers(selectedUsername || undefined);
+    };
+    const interval = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
     return () => {
       window.clearTimeout(timer);
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, [loadUsers]);
+  }, [loadUsers, selectedUsername]);
 
   async function runAdminAction(
     action: string,
@@ -1260,6 +1270,11 @@ export default function AdminPage() {
                               <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-zinc-400">
                                 {user.verificationStatus}
                               </span>
+                              {user.fullName === user.email && (
+                                <span className="rounded-md border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-amber-100">
+                                  Profile setup needed
+                                </span>
+                              )}
                               <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-zinc-400">
                                 Created {formatDate(user.createdAt)}
                               </span>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 import AppIcon from "../ui/AppIcon";
@@ -52,17 +52,26 @@ export default function BottomNav() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const moreActive = moreItems.some((item) => isActive(item.href));
 
+  useEffect(() => {
+    if (!moreOpen) return;
+    const priorOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = priorOverflow;
+    };
+  }, [moreOpen]);
+
   if (!portalTarget) return null;
 
   return createPortal(
     <>
       {moreOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/70 lg:hidden"
+          className="fixed inset-0 z-[60] bg-transparent lg:hidden"
           onClick={() => setMoreOpen(false)}
         >
           <div
-            className="absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-3 right-3 overflow-hidden rounded-lg border border-white/[0.1] bg-[var(--brand-background)] shadow-2xl"
+            className="absolute bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-3 right-3 max-h-[min(70dvh,34rem)] overflow-y-auto rounded-xl border border-white/[0.12] bg-[var(--brand-background)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
@@ -114,8 +123,8 @@ export default function BottomNav() {
       )}
 
       <nav
-        className="mobile-bottom-navigation fixed inset-x-0 bottom-0 z-50 pointer-events-none lg:hidden"
-        style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50 }}
+        className="mobile-bottom-navigation fixed inset-x-0 bottom-0 z-[70] pointer-events-none lg:hidden"
+        style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 70 }}
       >
         <div className="pointer-events-auto mx-auto max-w-[430px] border-t border-white/[0.08] bg-[var(--brand-background)] px-2 pb-3 pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.28)]">
           <div

@@ -548,7 +548,21 @@ async function updateTargetProfileDetails(
     data: { user: updatedUser },
   } = await dbClient.auth.admin.getUserById(user.id);
   const resolvedUsername = getUsernameFromUser(updatedUser ?? user) || fallback.username;
-  const profile = await getProfileByUsername(dbClient, resolvedUsername);
+  let profile = await getProfileByUsername(dbClient, resolvedUsername);
+
+  // Some auth-only accounts predate the profiles table.  Initialize the
+  // missing relationship only after an administrator explicitly saves the
+  // profile form; this creates a zero-balance profile and never duplicates a
+  // customer or changes an existing balance.
+  if (!profile) {
+    const profileResult = await updateTargetProfileBalance(
+      dbClient,
+      resolvedUsername,
+      fallback.balance
+    );
+    if (profileResult.error) return { error: jsonError(profileResult.error.message, 500) };
+    profile = profileResult.profile;
+  }
 
   return {
     user: buildAdminUser(updatedUser ?? user, profile ?? { username: resolvedUsername }),

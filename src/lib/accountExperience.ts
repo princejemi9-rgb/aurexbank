@@ -24,7 +24,9 @@ const legacyExperience: AccountExperience = {
   historyStart: "2022-01-01T00:00:00.000Z",
   historyEnd: "2026-09-30T23:59:59.999Z",
   storedMetrics: false,
-  previewCard: false,
+  // Every account receives the same non-payment visual card experience. The
+  // holder and display identifier are derived from the signed-in account only.
+  previewCard: true,
 };
 
 export function getAccountExperience(email: string): AccountExperience {

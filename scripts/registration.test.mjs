@@ -223,7 +223,7 @@ test('Dubley uses account-specific digital debit display fields', () => {
   const { getAccountExperience } = load('src/lib/accountExperience.ts', {});
   const { createCardPreview } = load('src/lib/cardPreview.ts', {});
   assert.equal(getAccountExperience(' DUDBRYAN54@GMAIL.COM ').previewCard, true);
-  assert.equal(getAccountExperience('francovercelli647@gmail.com').previewCard, false);
+  assert.equal(getAccountExperience('francovercelli647@gmail.com').previewCard, true);
   const card = createCardPreview('2aba957e-bbf0-4fca-bb54-0525592c6e4b', 'DUBLEY BRYAN');
   assert.equal(card.holder, 'DUBLEY BRYAN');
   assert.equal(card.issuerCard, false);

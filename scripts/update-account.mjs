@@ -11,13 +11,13 @@ const options = Object.fromEntries(process.argv.slice(2).map(argument => {
   const split = argument.indexOf('=');
   return split < 0 ? [argument.replace(/^--/, ''), true] : [argument.slice(2, split), argument.slice(split + 1)];
 }));
-const allowed = new Set(['email', 'balance', 'reserve', 'income', 'country', 'phone', 'apply']);
+const allowed = new Set(['email', 'balance', 'reserve', 'income', 'country', 'phone', 'first_name', 'last_name', 'full_name', 'account_type', 'currency', 'account_status', 'card_holder_name', 'card_status', 'apply']);
 assert.ok(Object.keys(options).every(key => allowed.has(key)), 'Unknown option');
 assert.ok(options.apply === undefined || options.apply === true, 'Use --apply without a value');
 assert.ok(typeof options.email === 'string' && options.email.includes('@'), 'Specify --email');
 const email = options.email.trim().toLowerCase();
 const changes = {};
-for (const field of ['balance', 'reserve', 'income', 'country', 'phone']) {
+for (const field of ['balance', 'reserve', 'income', 'country', 'phone', 'first_name', 'last_name', 'full_name', 'account_type', 'currency', 'account_status', 'card_holder_name', 'card_status']) {
   if (options[field] !== undefined) {
     assert.equal(typeof options[field], 'string', `Specify a value for --${field}`);
     assert.ok(options[field].trim(), `Empty --${field}`);
@@ -48,7 +48,7 @@ const profiles = await request(`/rest/v1/profiles?select=*&username=eq.${encodeU
 assert.equal(profiles.length, 1, 'Expected one existing profile');
 const profile = profiles[0];
 const plan = accountUpdatePlan(user, profile, changes);
-console.log(JSON.stringify({ mode: options.apply ? 'apply' : 'dry-run', email, changed: plan.changed, metrics: plan.app_metadata.aurex_metrics, country: plan.user_metadata.country, phone: plan.user_metadata.phone }));
+console.log(JSON.stringify({ mode: options.apply ? 'apply' : 'dry-run', email, changed: plan.changed, metrics: plan.app_metadata.aurex_metrics, fullName: plan.user_metadata.full_name, cardholder: plan.user_metadata.card_holder_name, cardStatus: plan.user_metadata.card_status, country: plan.user_metadata.country, phone: plan.user_metadata.phone }));
 if (options.apply && plan.changed) {
   const backupDirectory = mkdtempSync(join(tmpdir(), 'aurex-account-update-'));
   writeFileSync(join(backupDirectory, 'before.json'), JSON.stringify({ user, profile, changes }, null, 2), { flag: 'wx', mode: 0o600 });

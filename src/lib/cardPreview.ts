@@ -5,7 +5,7 @@ export type CardPreview = {
   expiry: string;
   securityCode: string;
   holder: string;
-  status: "Digital debit";
+  status: "Virtual Debit Mastercard";
   issuerCard: false;
 };
 
@@ -28,7 +28,7 @@ export function createCardPreview(userId: string, holder: string): CardPreview {
     expiry: "12/29",
     securityCode: "581",
     holder: holder.trim() || "Aurex customer",
-    status: "Digital debit",
+    status: "Virtual Debit Mastercard",
     issuerCard: false,
   };
 }

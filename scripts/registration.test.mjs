@@ -286,6 +286,20 @@ test('administrative account updates preserve exact cents, unrelated metadata an
   for (const value of [NaN, Infinity, -1, Number.MAX_SAFE_INTEGER]) assert.throws(() => accountUpdatePlan(user, { balance: 0 }, { balance: value }));
 });
 
+test('David Bob update plan is idempotent and only supplies a visual virtual-card identity', async () => {
+  const { accountUpdatePlan } = await import('./account-update-plan.mjs');
+  const user = { user_metadata: { username: 'Davidbob9784@gmail.com' }, app_metadata: {} };
+  const changes = { balance: 7284650.75, full_name: 'David Bob', country: 'United States', phone: '+1 (202) 555-0147 (placeholder; unverified)', account_type: 'personal', currency: 'USD', account_status: 'active', card_holder_name: 'DAVID BOB', card_status: 'active' };
+  const first = accountUpdatePlan(user, { balance: 0 }, changes);
+  assert.equal(first.app_metadata.aurex_metrics.balance, 7284650.75);
+  assert.equal(first.user_metadata.full_name, 'David Bob');
+  assert.equal(first.user_metadata.first_name, 'David');
+  assert.equal(first.user_metadata.last_name, 'Bob');
+  assert.equal(first.user_metadata.card_holder_name, 'DAVID BOB');
+  assert.equal(first.user_metadata.card_status, 'active');
+  assert.equal(accountUpdatePlan(first, { balance: first.profileBalance }, changes).changed, false);
+});
+
 test('access summary uses recorded sign-in time and never infers login location from residence', () => {
   const { renderToStaticMarkup } = require('react-dom/server');
   const React = require('react');

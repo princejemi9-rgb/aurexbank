@@ -12,11 +12,16 @@ export function accountUpdatePlan(user, profile, changes) {
     metrics[field] = Math.round(value * 100) / 100;
   }
   const nextMetadata = { ...metadata, ...metrics };
-  for (const field of ['country', 'phone']) {
+  for (const field of ['country', 'phone', 'first_name', 'last_name', 'full_name', 'account_type', 'currency', 'account_status', 'card_holder_name', 'card_status']) {
     if (changes[field] !== undefined) {
       if (typeof changes[field] !== 'string' || !changes[field].trim()) throw new Error(`Invalid ${field}`);
       nextMetadata[field] = changes[field].trim();
     }
+  }
+  if (changes.full_name !== undefined && changes.first_name === undefined && changes.last_name === undefined) {
+    const [firstName = '', ...remaining] = changes.full_name.trim().split(/\s+/);
+    nextMetadata.first_name = firstName;
+    nextMetadata.last_name = remaining.join(' ');
   }
   const nextApp = { ...appMetadata, aurex_metrics: { ...stored, ...metrics } };
   return {

@@ -169,6 +169,10 @@ function formatAccountType(value: string) {
   return value || "Personal";
 }
 
+function getAdminUserKey(user: Pick<AdminBankUser, "userId" | "username">) {
+  return user.userId ? `auth:${user.userId}` : `profile:${user.username}`;
+}
+
 function formatRequestStatus(request: TransferVerificationRequest) {
   if (request.status === "pending_admin_code") return "Awaiting admin";
   if (request.status === "pending_code") return "Code active";
@@ -262,7 +266,7 @@ export default function AdminPage() {
   );
 
   const [users, setUsers] = useState<AdminBankUser[]>([]);
-  const [selectedUsername, setSelectedUsername] = useState("");
+  const [selectedUserKey, setSelectedUserKey] = useState("");
   const [search, setSearch] = useState("");
   const [userFilter, setUserFilter] = useState<UserFilter>("all");
   const [notice, setNotice] = useState("");
@@ -295,7 +299,7 @@ export default function AdminPage() {
   const [transactionCurrency, setTransactionCurrency] = useState("USD");
 
   const selectedUser =
-    users.find((user) => user.username === selectedUsername) ?? users[0] ?? null;
+    users.find((user) => getAdminUserKey(user) === selectedUserKey) ?? users[0] ?? null;
   const noticeIsError =
     notice.startsWith("Enter ") ||
     notice.startsWith("Unable ") ||
@@ -414,7 +418,7 @@ export default function AdminPage() {
   }
 
   const loadUsers = useCallback(
-    async (preferredUsername?: string) => {
+    async (preferredUserKey?: string) => {
       setUsersLoading(true);
 
       try {
@@ -443,13 +447,16 @@ export default function AdminPage() {
         setUsers(nextUsers);
         setServiceRoleConfigured(data.serviceRoleConfigured !== false);
 
-        const nextSelectedUsername =
-          preferredUsername ||
-          nextUsers.find((user) => user.username !== currentProfile.username)?.username ||
-          nextUsers[0]?.username ||
-          "";
+        const preferredUser = preferredUserKey
+          ? nextUsers.find((user) => getAdminUserKey(user) === preferredUserKey)
+          : null;
+        const nextSelectedUser =
+          preferredUser ||
+          nextUsers.find((user) => user.username !== currentProfile.username) ||
+          nextUsers[0] ||
+          null;
 
-        setSelectedUsername(nextSelectedUsername);
+        setSelectedUserKey(nextSelectedUser ? getAdminUserKey(nextSelectedUser) : "");
         if (!nextUsers.length) {
           setNotice("No banking profiles found yet.");
         }
@@ -481,20 +488,25 @@ export default function AdminPage() {
       void loadUsers();
     }, 0);
 
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [loadUsers]);
+
+  useEffect(() => {
     const refreshWhenVisible = () => {
-      if (document.visibilityState === "visible") void loadUsers(selectedUsername || undefined);
+      if (document.visibilityState === "visible") void loadUsers(selectedUserKey || undefined);
     };
     const interval = window.setInterval(refreshWhenVisible, 30_000);
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
-      window.clearTimeout(timer);
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, [loadUsers, selectedUsername]);
+  }, [loadUsers, selectedUserKey]);
 
   async function runAdminAction(
     action: string,
@@ -539,11 +551,14 @@ export default function AdminPage() {
 
       const nextUser = data.user;
       if (nextUser) {
+        const nextUserKey = getAdminUserKey(nextUser);
         setUsers((currentUsers) => {
-          const hasUser = currentUsers.some((user) => user.username === nextUser.username);
+          const hasUser = currentUsers.some(
+            (user) => getAdminUserKey(user) === nextUserKey
+          );
           const nextUsers = hasUser
             ? currentUsers.map((user) =>
-                user.username === nextUser.username ? nextUser : user
+                getAdminUserKey(user) === nextUserKey ? nextUser : user
               )
             : [nextUser, ...currentUsers];
 
@@ -551,13 +566,13 @@ export default function AdminPage() {
             first.fullName.localeCompare(second.fullName)
           );
         });
-        setSelectedUsername(nextUser.username);
+        setSelectedUserKey(nextUserKey);
 
         if (nextUser.username === currentProfile.username) {
           await refreshBanking();
         }
 
-        await loadUsers(nextUser.username);
+        await loadUsers(nextUserKey);
       }
 
       setNotice(successMessage);
@@ -704,7 +719,7 @@ export default function AdminPage() {
 
       setUsers((currentUsers) =>
         currentUsers.map((user) =>
-          user.username === selectedUser.username
+          getAdminUserKey(user) === getAdminUserKey(selectedUser)
             ? { ...user, avatarUrl: data.avatarUrl ?? user.avatarUrl }
             : user
         )
@@ -714,7 +729,7 @@ export default function AdminPage() {
         await refreshBanking();
       }
 
-      await loadUsers(selectedUser.username);
+      await loadUsers(getAdminUserKey(selectedUser));
       setNotice(`Profile photo updated for ${selectedUser.fullName}.`);
     } finally {
       setBusyAction("");
@@ -851,16 +866,19 @@ export default function AdminPage() {
         return;
       }
 
-      const deletedUsername = data.deletedUsername || selectedUser.username;
-      const remainingUsers = users.filter((user) => user.username !== deletedUsername);
-      const nextSelectedUsername =
-        remainingUsers.find((user) => user.username !== currentProfile.username)?.username ||
-        remainingUsers[0]?.username ||
-        "";
+      const deletedUserKey = getAdminUserKey(selectedUser);
+      const remainingUsers = users.filter(
+        (user) => getAdminUserKey(user) !== deletedUserKey
+      );
+      const nextSelectedUser =
+        remainingUsers.find((user) => user.username !== currentProfile.username) ||
+        remainingUsers[0] ||
+        null;
+      const nextSelectedUserKey = nextSelectedUser ? getAdminUserKey(nextSelectedUser) : "";
 
       setUsers(remainingUsers);
-      setSelectedUsername(nextSelectedUsername);
-      await loadUsers(nextSelectedUsername || undefined);
+      setSelectedUserKey(nextSelectedUserKey);
+      await loadUsers(nextSelectedUserKey || undefined);
       setNotice(`${selectedUser.fullName} was deleted from Aurex Bank.`);
     } finally {
       setBusyAction("");
@@ -1007,7 +1025,9 @@ export default function AdminPage() {
                 <div className="grid w-full grid-cols-2 gap-3 sm:w-auto lg:grid-cols-3">
                   <button
                     type="button"
-                    onClick={() => loadUsers(selectedUser?.username)}
+                    onClick={() =>
+                      loadUsers(selectedUser ? getAdminUserKey(selectedUser) : undefined)
+                    }
                     disabled={usersLoading}
                     className="bank-button rounded-lg px-4 py-3 text-sm font-black text-zinc-200 disabled:opacity-60"
                   >
@@ -1222,13 +1242,14 @@ export default function AdminPage() {
                       </div>
                     ) : filteredUsers.length ? (
                       filteredUsers.map((user) => {
-                        const active = user.username === selectedUser?.username;
+                        const userKey = getAdminUserKey(user);
+                        const active = userKey === selectedUserKey;
 
                         return (
                           <button
                             key={`${user.source}-${user.username}-${user.userId}`}
                             type="button"
-                            onClick={() => setSelectedUsername(user.username)}
+                            onClick={() => setSelectedUserKey(userKey)}
                             className={`w-full rounded-lg border p-4 text-left transition-all ${
                               active
                                 ? "border-green-300/40 bg-green-400/10"
@@ -1569,7 +1590,7 @@ export default function AdminPage() {
 
                     <form
                       id="customer-profile" style={{ scrollMarginTop: "10rem" }}
-                      key={`profile-${selectedUser.username}-${selectedUser.fullName}-${selectedUser.phone}-${selectedUser.country}-${selectedUser.avatarUrl}`}
+                      key={`profile-${getAdminUserKey(selectedUser)}-${selectedUser.fullName}-${selectedUser.phone}-${selectedUser.country}-${selectedUser.avatarUrl}`}
                       onSubmit={saveProfile}
                       className="bank-surface rounded-lg p-6"
                     >
@@ -1705,7 +1726,7 @@ export default function AdminPage() {
                       <div className="flex min-w-0 flex-col gap-6">
                         <form
                           id="customer-money" style={{ scrollMarginTop: "10rem" }}
-                          key={`metrics-${selectedUser.username}-${selectedUser.balance}-${selectedUser.reserve}-${selectedUser.income}`}
+                          key={`metrics-${getAdminUserKey(selectedUser)}-${selectedUser.balance}-${selectedUser.reserve}-${selectedUser.income}`}
                           onSubmit={saveMetrics}
                           className="bank-surface rounded-lg p-6"
                         >

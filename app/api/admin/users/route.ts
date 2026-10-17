@@ -698,26 +698,24 @@ export async function GET(request: NextRequest) {
     profiles.map((profile) => [readText(profile.username), profile])
   );
 
-  const usersByUsername = new Map<string, ReturnType<typeof buildAdminUser>>();
-
-  authUsers.forEach((user) => {
+  const matchedProfileUsernames = new Set<string>();
+  const users = authUsers.flatMap((user) => {
     const username = getUsernameFromUser(user);
-    if (!username) return;
+    if (!username) return [];
 
-    usersByUsername.set(
-      username,
-      buildAdminUser(user, profilesByUsername.get(username))
-    );
+    const profile = profilesByUsername.get(username);
+    if (profile) matchedProfileUsernames.add(username);
+    return [buildAdminUser(user, profile)];
   });
 
   profiles.forEach((profile) => {
     const username = readText(profile.username);
-    if (!username || usersByUsername.has(username)) return;
+    if (!username || matchedProfileUsernames.has(username)) return;
 
-    usersByUsername.set(username, buildAdminUser(null, profile));
+    users.push(buildAdminUser(null, profile));
   });
 
-  const users = [...usersByUsername.values()].sort((first, second) =>
+  users.sort((first, second) =>
     first.fullName.localeCompare(second.fullName)
   );
 

@@ -806,6 +806,7 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
     setAlerts(remoteAlerts);
 
     const mapped: BankTransaction[] = [];
+    let legacyHistoryUnavailable = false;
     for (let offset = 0; ; offset += 500) {
       // Legacy deployments may not have optional type/account_type/bank_name columns.
       const { data, error } = await supabase.from("transfers").select("*")
@@ -813,25 +814,35 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
         .order("created_at", { ascending: false }).order("id", { ascending: false })
         .range(offset, offset + 499);
       if (error) {
-        setHistoryError("Transaction history could not be refreshed. Please try again.");
-        return;
+        // Older deployments may not expose the legacy transfer table to all
+        // sessions. Continue with the customer's protected scenario history.
+        legacyHistoryUnavailable = true;
+        break;
       }
       mapped.push(...(data ?? []).map(item => mapHistoryRecord(item, username)));
       if (!data || data.length < 500) break;
     }
-    const { data: simulatedHistory, error: simulatedHistoryError } = await supabase
-      .from("simulated_historical_transactions")
-      .select("id,direction,amount,currency,category,description,counterparty_label,reference,status,effective_at,created_at")
-      .eq("customer_id", profileInfo.userId)
-      .order("effective_at", { ascending: false });
-    if (simulatedHistoryError) {
+    const {
+      data: { session: historySession },
+    } = await supabase.auth.getSession();
+    const historyResponse = await fetch("/api/history", {
+      headers: historySession?.access_token
+        ? { Authorization: `Bearer ${historySession.access_token}` }
+        : {},
+    });
+    const historyPayload = (await historyResponse.json().catch(() => null)) as {
+      ok?: boolean;
+      records?: Record<string, unknown>[];
+    } | null;
+    if (!historyResponse.ok || !historyPayload?.ok) {
       setHistoryError("Transaction history could not be refreshed. Please try again.");
+      setTransactions(mergeTransactionHistory(mapped));
       return;
     }
-    setHistoryError("");
+    setHistoryError(legacyHistoryUnavailable ? "Some legacy transaction records could not be refreshed." : "");
     setTransactions(mergeTransactionHistory([
       ...mapped,
-      ...(simulatedHistory ?? []).map((item) => mapSimulatedHistoryRecord(item)),
+      ...(historyPayload.records ?? []).map((item) => mapSimulatedHistoryRecord(item)),
     ]));
   }, []);
 

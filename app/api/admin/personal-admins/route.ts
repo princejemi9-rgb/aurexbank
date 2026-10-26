@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, audit: data || [] });
   }
-  const { data, error } = await context.db.from("personal_admin_profiles").select("user_id,full_name,email,phone,status,referral_code,created_at,last_login_at,personal_admin_branding(configuration),customer_personal_admin_assignments(count)").order("created_at", { ascending: false });
+  const { data, error } = await context.db.from("personal_admin_profiles").select("user_id,full_name,email,phone,status,referral_code,permissions,created_at,last_login_at,personal_admin_branding(configuration),customer_personal_admin_assignments(count)").order("created_at", { ascending: false });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, personalAdmins: data || [] });
 }

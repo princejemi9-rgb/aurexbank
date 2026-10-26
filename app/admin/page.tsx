@@ -18,7 +18,7 @@ import AurexBrand from "../../src/components/brand/AurexBrand";
 import { PrivateAmount } from "../../src/components/ui/PrivateAmount";
 import { useBanking, type BankAlert } from "../../src/context/BankingContext";
 import { useBranding } from "../../src/context/BrandingContext";
-import { DEFAULT_BRANDING, type BrandingConfig } from "../../src/lib/branding";
+import { DEFAULT_BRANDING, THEME_PRESETS, type BrandingConfig } from "../../src/lib/branding";
 import { supabase } from "../../src/lib/supabase";
 import {
   deleteTransferVerificationRequest,
@@ -1195,6 +1195,20 @@ export default function AdminPage() {
                       />
                     </label>
 
+                    <label className="block sm:col-span-2">
+                      <span className="text-sm text-zinc-400">Professional theme</span>
+                      <select name="themeId" defaultValue={branding.themeId} className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none focus:border-green-400">
+                        {Object.entries(THEME_PRESETS).map(([id, preset]) => <option key={id} value={id}>{preset.label}</option>)}
+                        <option value="custom">Custom colors</option>
+                      </select>
+                      <span className="mt-2 block text-xs text-zinc-600">American Classic is an original navy, white, and red retail-banking design; it does not use another institution&apos;s marks.</span>
+                    </label>
+
+                    <label className="block"><span className="text-sm text-zinc-400">Short bank name</span><input name="shortName" maxLength={40} defaultValue={branding.shortName} className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm" /></label>
+                    <label className="block"><span className="text-sm text-zinc-400">Tagline</span><input name="tagline" maxLength={100} defaultValue={branding.tagline} className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm" /></label>
+                    <label className="block"><span className="text-sm text-zinc-400">Support department</span><input name="supportName" maxLength={100} defaultValue={branding.supportName} className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm" /></label>
+                    <label className="block"><span className="text-sm text-zinc-400">Footer name</span><input name="footerName" maxLength={100} defaultValue={branding.footerName} className="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-4 text-sm" /></label>
+
                     <label className="block">
                       <span className="text-sm text-zinc-400">Primary Accent</span>
                       <span className="mt-2 flex h-12 items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-3">
@@ -1230,12 +1244,18 @@ export default function AdminPage() {
                       <input
                         name="logo"
                         type="file"
-                        accept="image/png,image/jpeg,image/webp"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
                         className="mt-2 block w-full rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-green-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black"
                       />
                       <span className="mt-2 block text-xs text-zinc-600">
-                        PNG, JPG, or WebP. Maximum 2 MB. Leave empty to keep the current logo.
+                        PNG, JPG, WebP, or SVG. Maximum 2 MB. Leave empty to keep the current logo.
                       </span>
+                    </label>
+
+                    <label className="block sm:col-span-2">
+                      <span className="text-sm text-zinc-400">Compact logo (optional)</span>
+                      <input name="compactLogo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="mt-2 block w-full rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-green-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black" />
+                      <span className="mt-2 block text-xs text-zinc-600">Used for compact mobile and sidebar spaces. SVG uploads are sanitized server-side.</span>
                     </label>
 
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4 sm:col-span-2">

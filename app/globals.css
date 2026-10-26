@@ -7,6 +7,13 @@
   --brand-primary: #05df72;
   --brand-surface: #07120d;
   --brand-surface-strong: #0b1a12;
+  --brand-secondary: #061b11;
+  --brand-accent: #80f2b1;
+  --brand-header: #050606;
+  --brand-sidebar: #07120d;
+  --brand-text: #f5fff8;
+  --brand-border: #214b32;
+  --brand-card-gradient: linear-gradient(145deg,#020403,#063d24,#050606);
   --desktop-sidebar-width: clamp(14rem, 19vw, 18rem);
 }
 
@@ -37,20 +44,21 @@ body {
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 260px),
       var(--brand-background);
+    color: var(--brand-text);
   }
 
   .bank-surface {
     min-width: 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid color-mix(in srgb, var(--brand-border) 72%, transparent);
+    background: color-mix(in srgb, var(--brand-surface) 94%, transparent);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
     overflow-wrap: break-word;
   }
 
   .bank-panel {
     min-width: 0;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.24);
+    border: 1px solid color-mix(in srgb, var(--brand-border) 64%, transparent);
+    background: color-mix(in srgb, var(--brand-surface-strong) 90%, transparent);
     overflow-wrap: break-word;
   }
 

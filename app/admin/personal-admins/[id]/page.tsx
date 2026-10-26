@@ -1,0 +1,9 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import AdminGate from "../../../../src/components/auth/AdminGate";
+import { supabase } from "../../../../src/lib/supabase";
+
+type Audit = { id:string; action:string; created_at:string; metadata:Record<string,unknown> };
+export default function PersonalAdminDetail(){const params=useParams<{id:string}>();const [audit,setAudit]=useState<Audit[]>([]);const [notice,setNotice]=useState("");useEffect(()=>{void(async()=>{const {data:{session}}=await supabase.auth.getSession();const response=await fetch(`/api/admin/personal-admins?personalAdminId=${params.id}`,{headers:{Authorization:`Bearer ${session?.access_token||""}`}});const data=await response.json();if(data.ok)setAudit(data.audit||[]);else setNotice(data.error||"Unable to load audit history.")})()},[params.id]);return <AdminGate><main className="bank-shell min-h-screen p-4 text-white sm:p-7"><div className="mx-auto max-w-3xl"><Link href="/admin/personal-admins" className="text-sm font-bold text-green-300">← Personal Admins</Link><section className="bank-surface mt-4 rounded-xl p-5"><p className="text-xs font-black uppercase tracking-[.2em] text-green-400">Super Admin audit history</p><h1 className="mt-2 text-2xl font-black">Tenant activity</h1>{notice?<p className="mt-4 rounded-lg bg-red-500/10 p-3 text-sm">{notice}</p>:<div className="mt-5 space-y-2">{audit.length?audit.map(row=><article key={row.id} className="rounded-lg border border-white/10 bg-white/[.03] p-4"><p className="font-bold">{row.action}</p><p className="mt-1 text-xs text-zinc-400">{new Date(row.created_at).toLocaleString()}</p></article>):<p className="text-sm text-zinc-400">No tenant audit entries yet.</p>}</div>}</section></div></main></AdminGate>}

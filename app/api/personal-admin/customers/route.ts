@@ -14,5 +14,8 @@ export async function GET(request: NextRequest) {
   const { data: users, error: userError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (userError) return NextResponse.json({ ok: false, error: userError.message }, { status: 500 });
   const byId = new Map(users.users.filter(item => ids.includes(item.id)).map(item => [item.id, item]));
-  return NextResponse.json({ ok: true, customers: (assignments || []).map(item => { const customer = byId.get(item.customer_id); return { id: item.customer_id, email: customer?.email || "", fullName: String(customer?.user_metadata?.full_name || customer?.email || "Customer"), assignedAt: item.assigned_at, referralCode: item.referral_code }; }) });
+  const emails = [...byId.values()].map(item => item.email).filter((value): value is string => Boolean(value));
+  const { data: profiles } = emails.length ? await db.from("profiles").select("username,balance,account_status,currency").in("username", emails) : { data: [] };
+  const profileByEmail = new Map((profiles || []).map(profile => [String(profile.username).toLowerCase(), profile]));
+  return NextResponse.json({ ok: true, customers: (assignments || []).map(item => { const customer = byId.get(item.customer_id); const email = customer?.email || ""; const profile = profileByEmail.get(email.toLowerCase()); return { id: item.customer_id, email, fullName: String(customer?.user_metadata?.full_name || email || "Customer"), assignedAt: item.assigned_at, referralCode: item.referral_code, balance: Number(profile?.balance || 0), currency: profile?.currency || "USD", accountStatus: profile?.account_status || "active" }; }) });
 }

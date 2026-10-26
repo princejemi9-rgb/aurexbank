@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
   if (body?.action === "setPermissions") {
     const incoming = body.permissions && typeof body.permissions === "object" ? body.permissions as Record<string, unknown> : {};
-    const permissions = { manage_customers: incoming.manage_customers === true, manage_support: incoming.manage_support === true, manage_reports: incoming.manage_reports === true };
+    const permissions = { manage_customers: incoming.manage_customers === true, manage_support: incoming.manage_support === true, manage_reports: incoming.manage_reports === true, manage_financial_adjustments: incoming.manage_financial_adjustments === true };
     const { error } = await context.db.from("personal_admin_profiles").update({ permissions, updated_at: new Date().toISOString() }).eq("user_id", id);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     await context.db.from("personal_admin_audit_log").insert({ actor_id: context.user!.id, personal_admin_id: id, action: "permissions_updated", metadata: permissions });

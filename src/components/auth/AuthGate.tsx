@@ -17,6 +17,7 @@ const PUBLIC_ROUTES = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/security/verify",
+  "/personal-admin",
 ];
 
 function isPublicRoute(pathname: string) {
@@ -51,6 +52,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [hasSession, setHasSession] = useState(false);
   const [securityVerified, setSecurityVerified] = useState<boolean | null>(null);
   const [securityLoading, setSecurityLoading] = useState(true);
+  const [personalAdmin, setPersonalAdmin] = useState<{ status?: string } | null>(null);
   const presenceInFlightRef = useRef(false);
   const securityRequestRef = useRef(0);
   const initialSecurityCheckRef = useRef(true);
@@ -74,6 +76,22 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+
+      // Personal Admins are a separate, approved operational role. They do not
+      // use a customer-issued security passcode, and never enter customer UI.
+      const personalResponse = await fetch("/api/personal-admin", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      }).catch(() => null);
+      const personalData = await personalResponse?.json().catch(() => null) as { personalAdmin?: { status?: string } | null } | null;
+      if (personalData?.personalAdmin) {
+        setPersonalAdmin(personalData.personalAdmin);
+        if (mounted && requestId === securityRequestRef.current) {
+          setSecurityVerified(true);
+          if (isInitialCheck) { initialSecurityCheckRef.current = false; setSecurityLoading(false); setLoading(false); }
+        }
+        return;
+      }
+      setPersonalAdmin(null);
 
       // Retry first-time profile setup after email confirmation or a previous network failure.
       if (!session.user.user_metadata?.onboarded_at) {
@@ -130,6 +148,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (personalAdmin) {
+      if (pathname === "/personal-admin/register" || pathname === "/personal-admin/login") { router.replace("/personal-admin/dashboard"); return; }
+      if (!pathname.startsWith("/personal-admin")) { router.replace("/personal-admin/dashboard"); }
+      return;
+    }
+
     if (pathname === "/security/verify") {
       if (securityVerified) {
         router.replace("/dashboard");
@@ -145,7 +169,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (isPublic && pathname !== "/dashboard") {
       router.replace("/dashboard");
     }
-  }, [hasSession, loading, pathname, router, securityLoading, securityVerified]);
+  }, [hasSession, loading, pathname, personalAdmin, router, securityLoading, securityVerified]);
 
   useEffect(() => {
     if (loading || !hasSession) return;

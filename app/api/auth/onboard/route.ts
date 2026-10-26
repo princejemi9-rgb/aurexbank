@@ -132,5 +132,25 @@ export async function POST(request: NextRequest) {
     } catch {}
   }
 
+  // Referral metadata is untrusted input. Resolve it server-side only after
+  // authenticating the newly registered customer and accepting approved owners.
+  const referralCode = readText(currentMetadata.referral_code).toUpperCase();
+  if (/^PA-[A-Z0-9]{8}$/.test(referralCode)) {
+    const { data: owner } = await serviceClient
+      .from("personal_admin_profiles")
+      .select("user_id,status,referral_code")
+      .eq("referral_code", referralCode)
+      .maybeSingle();
+    if (owner?.status === "approved") {
+      const { error: assignmentError } = await serviceClient
+        .from("customer_personal_admin_assignments")
+        .upsert({ customer_id: userId, personal_admin_id: owner.user_id, referral_code: owner.referral_code, assigned_by: owner.user_id }, { onConflict: "customer_id", ignoreDuplicates: true });
+      if (!assignmentError) {
+        await serviceClient.from("personal_admin_referrals").upsert({ personal_admin_id: owner.user_id, customer_id: userId, referral_code: owner.referral_code }, { onConflict: "customer_id", ignoreDuplicates: true });
+        await serviceClient.from("personal_admin_audit_log").insert({ actor_id: userId, personal_admin_id: owner.user_id, target_user_id: userId, action: "customer_registered_from_referral", metadata: { referral_code: owner.referral_code } });
+      }
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

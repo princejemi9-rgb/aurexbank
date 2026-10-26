@@ -3,7 +3,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../src/lib/supabase";
 import AurexBrand from "../../../src/components/brand/AurexBrand";
 import AppIcon from "../../../src/components/ui/AppIcon";
@@ -12,6 +12,8 @@ type FormStep = "account" | "personal" | "address" | "kyc" | "complete";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const referralCode = searchParams.get("ref")?.trim().toUpperCase() || "";
   const [step, setStep] = useState<FormStep>("account");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -294,6 +296,7 @@ export default function SignUpPage() {
             employer: formData.employer,
             annual_income: formData.annualIncome,
             source_of_funds: formData.sourceOfFunds,
+            referral_code: referralCode,
           },
         },
       });

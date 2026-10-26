@@ -18,6 +18,14 @@ export async function GET() { return NextResponse.json({ ok: true, branding: awa
 export async function POST(request: NextRequest) {
   const authorized = await admin(request); if ("failure" in authorized) return authorized.failure;
   const form = await request.formData(); const action = String(form.get("action") || "publish"); const current = await read();
+  if (action === "reset") {
+    const branding = { ...DEFAULT_BRANDING, version: current.version + 1, updatedAt: new Date().toISOString() };
+    await authorized.service.storage.from(BRANDING_BUCKET).upload(`${BRANDING_REVISION_PREFIX}/${current.version}.json`, Buffer.from(JSON.stringify(current)), { upsert: true, contentType: "application/json", cacheControl: "31536000" });
+    const { error: saveError } = await authorized.service.storage.from(BRANDING_BUCKET).upload(BRANDING_CONFIG_PATH, Buffer.from(JSON.stringify(branding)), { upsert: true, contentType: "application/json", cacheControl: "0" });
+    if (saveError) return error(saveError.message, 500);
+    await authorized.service.from("branding_revisions").upsert({ version: branding.version, status: "restored", configuration: branding, published_by: authorized.user.id }, { onConflict: "version" });
+    return NextResponse.json({ ok: true, branding });
+  }
   if (action === "restore") { const version = Number(form.get("version")); if (!Number.isInteger(version) || version < 1) return error("Choose a valid branding revision.", 400); const restored = await read(`${BRANDING_REVISION_PREFIX}/${version}.json`); const branding = { ...restored, version: current.version + 1, updatedAt: new Date().toISOString() }; await authorized.service.storage.from(BRANDING_BUCKET).upload(BRANDING_CONFIG_PATH, Buffer.from(JSON.stringify(branding)), { upsert: true, contentType: "application/json", cacheControl: "0" }); return NextResponse.json({ ok: true, branding }); }
   try {
     const next = fromForm(form, current) as BrandingConfig; const primary = form.get("logo"); const compact = form.get("compactLogo");

@@ -1055,10 +1055,7 @@ export default function AdminPage() {
       }
 
       const formData = new FormData();
-      formData.set("bankName", branding.bankName);
-      formData.set("primaryColor", DEFAULT_BRANDING.primaryColor);
-      formData.set("backgroundColor", DEFAULT_BRANDING.backgroundColor);
-      formData.set("restoreDefaults", "true");
+      formData.set("action", "reset");
 
       const response = await fetch("/api/branding", {
         method: "POST",

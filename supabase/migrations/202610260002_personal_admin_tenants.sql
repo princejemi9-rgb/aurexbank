@@ -39,3 +39,6 @@ create policy "customers read assigned brand" on public.personal_admin_branding 
 create policy "personal admins read own referrals" on public.personal_admin_referrals for select to authenticated using (personal_admin_id = auth.uid());
 create policy "personal admins read own audit" on public.personal_admin_audit_log for select to authenticated using (personal_admin_id = auth.uid());
 grant select on public.personal_admin_profiles, public.customer_personal_admin_assignments, public.personal_admin_branding, public.personal_admin_referrals, public.personal_admin_audit_log to authenticated;
+-- Server-side management routes use the service role. RLS is still enforced
+-- for browser clients; these grants do not expose privileged writes publicly.
+grant select, insert, update, delete on public.personal_admin_profiles, public.customer_personal_admin_assignments, public.personal_admin_branding, public.personal_admin_referrals, public.personal_admin_audit_log to service_role;

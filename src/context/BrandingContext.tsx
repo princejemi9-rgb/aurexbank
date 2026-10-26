@@ -16,6 +16,7 @@ import {
   replaceLegacyBrandText,
   type BrandingConfig,
 } from "../lib/branding";
+import { supabase } from "../lib/supabase";
 
 type BrandingContextValue = {
   branding: BrandingConfig;
@@ -116,7 +117,8 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
 
   const refreshBranding = useCallback(async () => {
     try {
-      const response = await fetch("/api/branding", { cache: "no-store" });
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/branding", { cache: "no-store", headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} });
       const data = (await response.json().catch(() => null)) as
         | { branding?: BrandingConfig }
         | null;

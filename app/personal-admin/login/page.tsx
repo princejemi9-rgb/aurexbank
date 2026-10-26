@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function Page(){return <main className="bank-shell min-h-screen p-6 text-white"><section className="mx-auto max-w-md bank-surface rounded-xl p-8"><h1 className="text-3xl font-black">Personal Admin sign in</h1><p className="mt-3 text-zinc-400">Use your approved Personal Admin credentials.</p><Link href="/auth/signin" className="mt-6 block rounded-lg bg-green-400 px-5 py-3 text-center font-black text-black">Continue to secure sign in</Link></section></main>}

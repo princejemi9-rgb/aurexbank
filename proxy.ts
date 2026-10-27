@@ -83,14 +83,15 @@ async function hasVerifiedSecuritySession(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
 
-  // Personal Admin routes authenticate with their own Supabase bearer-token
-  // checks. They cannot use the customer-only Aurex security-session cookie.
+  // Personal Admin pages authenticate through Supabase and their server routes
+  // enforce approval and tenant permissions. They cannot use the customer-only
+  // Aurex security-session cookie checked by this proxy.
   const isPersonalAdminRoute = url.pathname === "/personal-admin" || url.pathname.startsWith("/personal-admin/");
   const isPersonalAdminApi = url.pathname === "/api/personal-admin" || url.pathname.startsWith("/api/personal-admin/");
-  const isPublic = PUBLIC_PATHS.has(url.pathname) || PUBLIC_API_PATHS.has(url.pathname) || isPersonalAdminRoute || isPersonalAdminApi;
+  const isPublic = PUBLIC_PATHS.has(url.pathname) || PUBLIC_API_PATHS.has(url.pathname);
   const hasSession = await hasVerifiedSecuritySession(request);
 
-  if (!isPublic && !hasSession) {
+  if (!isPublic && !isPersonalAdminRoute && !isPersonalAdminApi && !hasSession) {
     if (url.pathname.startsWith("/api/")) {
       return applySecurityHeaders(
         NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 }),

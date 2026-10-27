@@ -21,9 +21,7 @@ const PUBLIC_ROUTES = [
 ];
 
 function isPublicRoute(pathname: string) {
-  return PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
+  return PUBLIC_ROUTES.includes(pathname);
 }
 
 async function getSessionSafely(): Promise<Session | null> {

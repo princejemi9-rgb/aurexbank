@@ -345,3 +345,22 @@ test('available balance overview renders all cents without generated labels for 
   assert.match(html, /\$7,675,896\.68/);
   assert.doesNotMatch(html, /Generated estimate|Illustrative/);
 });
+
+test('Personal Admin entry routes are public while operational access remains role-protected', async () => {
+  const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
+  const proxy = readFileSync(new URL('../proxy.ts', import.meta.url), 'utf8');
+  for (const path of ['"/personal-admin"', '"/personal-admin/register"', '"/personal-admin/login"']) {
+    assert.match(authGate, new RegExp(path));
+  }
+  assert.match(authGate, /return PUBLIC_ROUTES\.includes\(pathname\)/);
+  assert.match(proxy, /isPersonalAdminRoute/);
+  assert.match(proxy, /!isPublic && !isPersonalAdminRoute && !isPersonalAdminApi && !hasSession/);
+
+  const route = load('app/api/personal-admin/route.ts', {
+    'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
+    '../../../src/lib/server/tenantAccess': { serviceClient: () => null, requestUser: async () => null, approvedPersonalAdmin: async () => null },
+  });
+  const response = await route.GET({ headers: { get: () => '' } });
+  assert.equal(response.status, 401);
+  assert.equal(response.body.ok, false);
+});

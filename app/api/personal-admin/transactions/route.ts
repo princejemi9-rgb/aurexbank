@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { approvedPersonalAdmin, requestUser, serviceClient } from "../../../../../src/lib/server/tenantAccess";
+import { approvedPersonalAdmin, requestUser, serviceClient } from "../../../../src/lib/server/tenantAccess";
 
 export async function GET(request: NextRequest) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";

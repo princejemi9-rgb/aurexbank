@@ -370,7 +370,6 @@ test('Personal Admin portfolio routes require explicit customer-management permi
   const mocks = {
     'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
     '../../../../src/lib/server/tenantAccess': { serviceClient: () => db, requestUser: async () => ({ id: 'admin-1' }), approvedPersonalAdmin: async () => ({ status: 'approved', permissions: { manage_customers: false } }) },
-    '../../../../../src/lib/server/tenantAccess': { serviceClient: () => db, requestUser: async () => ({ id: 'admin-1' }), approvedPersonalAdmin: async () => ({ status: 'approved', permissions: { manage_customers: false } }) },
   };
   const request = { headers: { get: () => 'Bearer token' } };
   const customers = load('app/api/personal-admin/customers/route.ts', mocks);

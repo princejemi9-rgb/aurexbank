@@ -26,9 +26,21 @@ export async function POST(request: NextRequest) {
   if (body?.action === "setStatus") {
     const status = (body as { status?: string }).status;
     if (!status || !["approved", "rejected", "suspended", "pending_approval"].includes(status)) return NextResponse.json({ ok: false, error: "Invalid status." }, { status: 400 });
+    const { data: current, error: currentError } = await context.db.from("personal_admin_profiles").select("status").eq("user_id", id).maybeSingle();
+    if (currentError || !current) return NextResponse.json({ ok: false, error: currentError?.message || "Personal Admin not found." }, { status: 404 });
+    if (status === "approved" && current.status !== "pending_approval") return NextResponse.json({ ok: false, error: "Only a pending Personal Admin application can be approved. Use Reactivate for a suspended account." }, { status: 409 });
     const patch = status === "approved" ? { status, approved_by: context.user!.id, approved_at: new Date().toISOString() } : { status };
     const { error } = await context.db.from("personal_admin_profiles").update(patch).eq("user_id", id); if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     await context.db.from("personal_admin_audit_log").insert({ actor_id: context.user!.id, personal_admin_id: id, action: `personal_admin_${status}` });
+    return NextResponse.json({ ok: true });
+  }
+  if (body?.action === "reactivate") {
+    const { data: current, error: currentError } = await context.db.from("personal_admin_profiles").select("status").eq("user_id", id).maybeSingle();
+    if (currentError || !current) return NextResponse.json({ ok: false, error: currentError?.message || "Personal Admin not found." }, { status: 404 });
+    if (current.status !== "suspended") return NextResponse.json({ ok: false, error: "Only a suspended Personal Admin can be reactivated." }, { status: 409 });
+    const { error } = await context.db.from("personal_admin_profiles").update({ status: "approved" }).eq("user_id", id);
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    await context.db.from("personal_admin_audit_log").insert({ actor_id: context.user!.id, personal_admin_id: id, action: "personal_admin_reactivated" });
     return NextResponse.json({ ok: true });
   }
   if (body?.action === "assignCustomer") {

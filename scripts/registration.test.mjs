@@ -349,8 +349,9 @@ test('available balance overview renders all cents without generated labels for 
 test('Personal Admin entry routes are public while operational access remains role-protected', async () => {
   const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
   const proxy = readFileSync(new URL('../proxy.ts', import.meta.url), 'utf8');
+  const publicRoutes = authGate.match(/const PUBLIC_ROUTES = \[([\s\S]*?)\];/)?.[1] || '';
   for (const path of ['"/personal-admin"', '"/personal-admin/register"', '"/personal-admin/login"']) {
-    assert.match(authGate, new RegExp(path));
+    assert.match(publicRoutes, new RegExp(path));
   }
   assert.match(authGate, /return PUBLIC_ROUTES\.includes\(pathname\)/);
   assert.match(proxy, /isPersonalAdminRoute/);

@@ -18,6 +18,8 @@ const PUBLIC_ROUTES = [
   "/auth/reset-password",
   "/security/verify",
   "/personal-admin",
+  "/personal-admin/register",
+  "/personal-admin/login",
 ];
 
 function isPublicRoute(pathname: string) {

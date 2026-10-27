@@ -383,3 +383,12 @@ test('Personal Admin portfolio routes require explicit customer-management permi
     assert.equal(response.body.ok, false);
   }
 });
+
+test('Super Admin permission editor includes an explicit financial-adjustment control', () => {
+  const page = readFileSync(new URL('../app/admin/personal-admins/page.tsx', import.meta.url), 'utf8');
+  const route = readFileSync(new URL('../app/api/admin/personal-admins/route.ts', import.meta.url), 'utf8');
+  assert.match(page, /"manage_financial_adjustments"/);
+  assert.match(page, /defaultChecked=\{permissions\[permission\] === true\}/);
+  assert.match(route, /manage_financial_adjustments: incoming\.manage_financial_adjustments === true/);
+  assert.match(route, /isSuperAdmin\(user\)/);
+});

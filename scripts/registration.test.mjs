@@ -366,6 +366,14 @@ test('Personal Admin entry routes are public while operational access remains ro
   assert.equal(response.body.ok, false);
 });
 
+test('Personal Admin sign-in uses its own form and validates the portal role', () => {
+  const page = readFileSync(new URL('../app/personal-admin/login/page.tsx', import.meta.url), 'utf8');
+  assert.match(page, /signInWithPassword/);
+  assert.match(page, /fetch\("\/api\/personal-admin"/);
+  assert.match(page, /Sign in as Personal Admin/);
+  assert.doesNotMatch(page, /href="\/auth\/signin"/);
+});
+
 test('Personal Admin portfolio routes require explicit customer-management permission', async () => {
   const db = { from: () => { throw new Error('portfolio query must not run'); } };
   const mocks = {

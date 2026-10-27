@@ -364,3 +364,20 @@ test('Personal Admin entry routes are public while operational access remains ro
   assert.equal(response.status, 401);
   assert.equal(response.body.ok, false);
 });
+
+test('Personal Admin portfolio routes require explicit customer-management permission', async () => {
+  const db = { from: () => { throw new Error('portfolio query must not run'); } };
+  const mocks = {
+    'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
+    '../../../../src/lib/server/tenantAccess': { serviceClient: () => db, requestUser: async () => ({ id: 'admin-1' }), approvedPersonalAdmin: async () => ({ status: 'approved', permissions: { manage_customers: false } }) },
+    '../../../../../src/lib/server/tenantAccess': { serviceClient: () => db, requestUser: async () => ({ id: 'admin-1' }), approvedPersonalAdmin: async () => ({ status: 'approved', permissions: { manage_customers: false } }) },
+  };
+  const request = { headers: { get: () => 'Bearer token' } };
+  const customers = load('app/api/personal-admin/customers/route.ts', mocks);
+  const transactions = load('app/api/personal-admin/transactions/route.ts', mocks);
+  for (const route of [customers, transactions]) {
+    const response = await route.GET(request);
+    assert.equal(response.status, 403);
+    assert.equal(response.body.ok, false);
+  }
+});

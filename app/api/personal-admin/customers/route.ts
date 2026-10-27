@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const db = serviceClient(); const user = await requestUser(token);
   if (!db || !user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   const admin = await approvedPersonalAdmin(db, user.id);
-  if (admin?.status !== "approved") return NextResponse.json({ ok: false, error: "Approved Personal Admin access required" }, { status: 403 });
+  if (admin?.status !== "approved" || admin.permissions?.manage_customers !== true) return NextResponse.json({ ok: false, error: "Customer-management permission required" }, { status: 403 });
   const { data: assignments, error } = await db.from("customer_personal_admin_assignments").select("customer_id,assigned_at,referral_code").eq("personal_admin_id", user.id).order("assigned_at", { ascending: false });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   const ids = (assignments || []).map(item => item.customer_id);

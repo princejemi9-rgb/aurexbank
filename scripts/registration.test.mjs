@@ -401,3 +401,15 @@ test('Super Admin permission editor includes an explicit financial-adjustment co
   assert.match(route, /manage_financial_adjustments: incoming\.manage_financial_adjustments === true/);
   assert.match(route, /isSuperAdmin\(user\)/);
 });
+
+test('Personal Admin approval requires an atomic verified write and statuses are human-readable', () => {
+  const route = readFileSync(new URL('../app/api/admin/personal-admins/route.ts', import.meta.url), 'utf8');
+  const migration = readFileSync(new URL('../supabase/migrations/202610270002_atomic_personal_admin_approval.sql', import.meta.url), 'utf8');
+  const statuses = load('src/lib/personalAdminStatus.ts', {});
+  assert.match(route, /rpc\("approve_personal_admin_profile"/);
+  assert.match(route, /approved\.status !== "approved"/);
+  assert.match(migration, /update public\.personal_admin_profiles/);
+  assert.match(migration, /insert into public\.personal_admin_audit_log/);
+  assert.equal(statuses.personalAdminStatusLabel('pending_approval'), 'Pending approval');
+  assert.doesNotMatch(statuses.personalAdminStatusMessage('pending_approval'), /pending_approval/);
+});

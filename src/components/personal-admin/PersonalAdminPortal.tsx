@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-const links = ["dashboard", "customers", "accounts", "transactions", "cards", "support", "referrals", "reports", "settings"];
+const links = ["dashboard", "customers", "accounts", "transactions", "cards", "support", "notifications", "referrals", "reports", "settings"];
 type Customer = { id: string; email: string; fullName: string; assignedAt: string; referralCode?: string; balance: number; currency: string; accountStatus: string };
 type State = { status?: string; referral_code?: string; full_name?: string; customerCount?: number; permissions?: Record<string, boolean>; error?: string };
 type Transaction = { id: string; customer_id: string; direction: string; amount: number; currency: string; category: string; description: string; status: string; effective_at: string };

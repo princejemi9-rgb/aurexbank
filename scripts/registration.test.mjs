@@ -374,7 +374,10 @@ test('Personal Admin portfolio routes require explicit customer-management permi
   const request = { headers: { get: () => 'Bearer token' } };
   const customers = load('app/api/personal-admin/customers/route.ts', mocks);
   const transactions = load('app/api/personal-admin/transactions/route.ts', mocks);
-  for (const route of [customers, transactions]) {
+  const cards = load('app/api/personal-admin/cards/route.ts', mocks);
+  const notifications = load('app/api/personal-admin/notifications/route.ts', mocks);
+  const support = load('app/api/personal-admin/support/route.ts', mocks);
+  for (const route of [customers, transactions, cards, notifications, support]) {
     const response = await route.GET(request);
     assert.equal(response.status, 403);
     assert.equal(response.body.ok, false);

@@ -1,1 +1,1 @@
-import Portal from "../../../src/components/personal-admin/PersonalAdminPortal"; export default function Page(){return <Portal page="cards"/>}
+import Operations from "../../../src/components/personal-admin/PersonalAdminOperations"; export default function Page(){return <Operations feature="cards"/>}

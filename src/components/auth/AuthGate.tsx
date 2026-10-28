@@ -162,15 +162,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (pathname === "/security/verify") {
-      if (securityVerified) {
-        router.replace("/dashboard");
-      }
-      return;
-    }
-
-    if (!securityVerified) {
-      router.replace("/security/verify");
+    // A security passcode is a step-up check for sending money, not a
+    // requirement for reading the normal dashboard. The transfer endpoint
+    // repeats this check server-side before it can debit an account.
+    if (pathname === "/send" && !securityVerified) {
+      router.replace("/security/verify?next=%2Fsend");
       return;
     }
 
@@ -254,7 +250,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (!isPublic && hasSession && securityVerified) {
+  if (!isPublic && hasSession) {
     return <>{children}</>;
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { readSecuritySession, SECURITY_SESSION_COOKIE } from "../../../src/lib/server/securitySession";
 
 type TransferBody = {
   transferType?: unknown;
@@ -225,6 +226,13 @@ export async function POST(request: NextRequest) {
 
   if (userError || !user) {
     return jsonError("Invalid session", 401);
+  }
+
+  // A password alone can open the dashboard. Moving money requires the
+  // short-lived, HttpOnly passcode session for this exact authenticated user.
+  const securitySession = readSecuritySession(request.cookies.get(SECURITY_SESSION_COOKIE)?.value);
+  if (!securitySession || securitySession.userId !== user.id) {
+    return jsonError("Verify your security passcode before making a transfer.", 403);
   }
 
   const metadata = user.user_metadata ?? {};

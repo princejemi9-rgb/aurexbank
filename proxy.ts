@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const GOOGLE_VERIFICATION_PATH = "/googlebd22e182d858ed3b.html";
-const PUBLIC_PATHS = new Set(["/", "/login", "/auth/signin", "/auth/signup", "/auth/forgot-password", "/auth/reset-password", "/security/verify", "/robots.txt", "/sitemap.xml", GOOGLE_VERIFICATION_PATH]);
-const PUBLIC_API_PATHS = new Set(["/api/auth/signin", "/api/auth/session", "/api/auth/onboard", "/api/auth/security-status", "/api/auth/security-verify"]);
-
 const SECURITY_HEADERS = {
   "Cache-Control": "private, no-store, max-age=0",
   "Content-Security-Policy":
@@ -38,70 +34,10 @@ function applySecurityHeaders(response: NextResponse, request: NextRequest) {
   return response;
 }
 
-function base64Url(bytes: ArrayBuffer) {
-  const array = new Uint8Array(bytes);
-  let binary = "";
-  array.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-async function hasVerifiedSecuritySession(request: NextRequest) {
-  const secret = process.env.AUREX_SECURITY_SESSION_SECRET;
-  const cookie = request.cookies.get("aurex_security_verified")?.value;
-  if (!secret || !cookie) return false;
-
-  const [payload, signature] = cookie.split(".");
-  if (!payload || !signature) return false;
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const expected = base64Url(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload)));
-  if (expected.length !== signature.length) return false;
-
-  let mismatch = 0;
-  for (let index = 0; index < expected.length; index += 1) {
-    mismatch |= expected.charCodeAt(index) ^ signature.charCodeAt(index);
-  }
-  if (mismatch) return false;
-
-  try {
-    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (payload.length % 4)) % 4));
-    const value = JSON.parse(json) as { exp?: unknown };
-    return typeof value.exp === "number" && value.exp > Math.floor(Date.now() / 1000);
-  } catch {
-    return false;
-  }
-}
-
 export async function proxy(request: NextRequest) {
-  const url = request.nextUrl.clone();
-
-  // Personal Admin pages authenticate through Supabase and their server routes
-  // enforce approval and tenant permissions. They cannot use the customer-only
-  // Aurex security-session cookie checked by this proxy.
-  const isPersonalAdminRoute = url.pathname === "/personal-admin" || url.pathname.startsWith("/personal-admin/");
-  const isPersonalAdminApi = url.pathname === "/api/personal-admin" || url.pathname.startsWith("/api/personal-admin/");
-  const isPublic = PUBLIC_PATHS.has(url.pathname) || PUBLIC_API_PATHS.has(url.pathname);
-  const hasSession = await hasVerifiedSecuritySession(request);
-
-  if (!isPublic && !isPersonalAdminRoute && !isPersonalAdminApi && !hasSession) {
-    if (url.pathname.startsWith("/api/")) {
-      return applySecurityHeaders(
-        NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 }),
-        request
-      );
-    }
-    url.pathname = "/login";
-    return applySecurityHeaders(NextResponse.redirect(url), request);
-  }
-
+  // Authentication and authorization are verified by the client gate and each
+  // API route using the supplied Supabase bearer token. Passcode step-up is
+  // enforced in the transfer route, where it is bound to the authenticated user.
   return applySecurityHeaders(NextResponse.next(), request);
 }
 

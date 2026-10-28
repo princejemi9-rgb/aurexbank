@@ -126,18 +126,18 @@ function registration(result) {
   const submit = nodes.find(node => node.type === 'button' && node.props.children === 'Create Account');
   return { states, redirects, requests, submit: submit.props.onClick };
 }
-test('registration without a session explains email and passcode verification', async () => {
+test('registration without a session explains email confirmation without requiring a dashboard passcode', async () => {
   const scenario = registration({ data: { user: { id: 'user-1', identities: [{}] }, session: null }, error: null });
   await scenario.submit();
   assert.ok(scenario.states.includes('complete'));
-  assert.ok(scenario.states.some(value => typeof value === 'string' && value.includes('administrator-issued security passcode')));
+  assert.ok(scenario.states.some(value => typeof value === 'string' && value.includes('Check your email for a confirmation link')));
   assert.equal(scenario.redirects.length, 0);
   assert.equal(scenario.requests[0].email, 'new@example.com');
 });
-test('registration with a session goes to security verification, not directly to dashboard', async () => {
+test('registration with a session goes directly to the dashboard', async () => {
   const scenario = registration({ data: { user: { id: 'user-1', email: 'new@example.com', identities: [{}] }, session: { access_token: 'test-token' } }, error: null });
   await scenario.submit();
-  assert.deepEqual(scenario.redirects, ['/security/verify']);
+  assert.deepEqual(scenario.redirects, ['/dashboard']);
 });
 test('duplicate registration does not claim successful account creation', async () => {
   const scenario = registration({ data: { user: { id: 'hidden', identities: [] }, session: null }, error: null });
@@ -146,13 +146,13 @@ test('duplicate registration does not claim successful account creation', async 
   assert.ok(scenario.states.some(value => typeof value === 'string' && value.includes('already have an account')));
 });
 
-test('full identity registration retains identity details and requires security verification', async () => {
+test('full identity registration retains identity details and opens the dashboard', async () => {
   const scenario = registration({ data: { user: { id: 'user-1', identities: [{}] }, session: { access_token: 'test-token' } }, error: null });
   await scenario.submit();
   assert.equal(scenario.requests[0].options.data.id_number, '75545');
   assert.equal(scenario.requests[0].options.data.verification_status, 'pending');
   assert.equal(scenario.requests[0].options.data.kyc_skipped, false);
-  assert.deepEqual(scenario.redirects, ['/security/verify']);
+  assert.deepEqual(scenario.redirects, ['/dashboard']);
 });
 
 test('security verification rejects missing and incorrect passcodes, then accepts the correct code', async () => {
@@ -179,7 +179,7 @@ test('security verification rejects missing and incorrect passcodes, then accept
   assert.equal(sessions, 1);
 });
 
-test('dashboard authorization requires a security session matching both user and passcode revision', async () => {
+test('transfer passcode status requires a security session matching both user and passcode revision', async () => {
   let session = null;
   const route = load('app/api/auth/security-status/route.ts', {
     'next/server': { NextResponse: { json: body => ({ body }) } },
@@ -354,8 +354,8 @@ test('Personal Admin entry routes are public while operational access remains ro
     assert.match(publicRoutes, new RegExp(path));
   }
   assert.match(authGate, /return PUBLIC_ROUTES\.includes\(pathname\)/);
-  assert.match(proxy, /isPersonalAdminRoute/);
-  assert.match(proxy, /!isPublic && !isPersonalAdminRoute && !isPersonalAdminApi && !hasSession/);
+  assert.match(proxy, /Passcode step-up is/);
+  assert.doesNotMatch(proxy, /url\.pathname = "\/login"/);
 
   const route = load('app/api/personal-admin/route.ts', {
     'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
@@ -374,13 +374,42 @@ test('Personal Admin sign-in uses its own form and validates the portal role', (
   assert.doesNotMatch(page, /href="\/auth\/signin"/);
 });
 
-test('Personal Admin role lookup settles before customer passcode routing can run', () => {
+test('Personal Admin role lookup settles before transfer-only passcode routing can run', () => {
   const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
   assert.match(authGate, /setSecurityVerified\(null\);/);
   assert.match(authGate, /setSecurityLoading\(true\);/);
   assert.match(authGate, /const personalResponse = await fetch\("\/api\/personal-admin"/);
   assert.match(authGate, /setPersonalAdmin\(personalData\.personalAdmin\);[\s\S]*?setSecurityVerified\(true\);[\s\S]*?setSecurityLoading\(false\);/);
-  assert.match(authGate, /if \(loading \|\| securityLoading \|\| securityVerified === null\) return;/);
+  assert.match(authGate, /pathname === "\/send" && !securityVerified/);
+  assert.doesNotMatch(authGate, /if \(!securityVerified\) \{\s*router\.replace\("\/security\/verify"/);
+});
+
+test('passcode verification is required only for transfers and is bound to the authenticated user', () => {
+  const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
+  const transferRoute = readFileSync(new URL('../app/api/transfers/route.ts', import.meta.url), 'utf8');
+  const signIn = readFileSync(new URL('../app/auth/signin/page.tsx', import.meta.url), 'utf8');
+  const verify = readFileSync(new URL('../app/security/verify/page.tsx', import.meta.url), 'utf8');
+  assert.match(authGate, /router\.replace\("\/security\/verify\?next=%2Fsend"\)/);
+  assert.match(transferRoute, /readSecuritySession\(request\.cookies\.get\(SECURITY_SESSION_COOKIE\)\?\.value\)/);
+  assert.match(transferRoute, /securitySession\.userId !== user\.id/);
+  assert.match(signIn, /router\.replace\("\/dashboard"\)/);
+  assert.match(verify, /new URLSearchParams\(window\.location\.search\)\.get\("next"\) === "\/send"/);
+  assert.match(verify, /window\.location\.replace\(next\)/);
+});
+
+test('transfer execution rejects a missing or another user’s passcode session', async () => {
+  let securitySession = null;
+  const route = load('app/api/transfers/route.ts', {
+    'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
+    '@supabase/supabase-js': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'customer-1', user_metadata: {} } }, error: null }) } }) },
+    '../../../src/lib/server/securitySession': { SECURITY_SESSION_COOKIE: 'security', readSecuritySession: () => securitySession },
+  }, { process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.com', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-key' } } });
+  const request = { headers: { get: () => 'Bearer access-token' }, cookies: { get: () => ({ value: 'signed-cookie' }) }, json: async () => null };
+  assert.equal((await route.POST(request)).status, 403);
+  securitySession = { userId: 'customer-2' };
+  assert.equal((await route.POST(request)).status, 403);
+  securitySession = { userId: 'customer-1' };
+  assert.equal((await route.POST(request)).status, 400);
 });
 
 test('an authenticated Personal Admin may open the public homepage but not customer routes', () => {

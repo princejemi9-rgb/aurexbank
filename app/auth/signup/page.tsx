@@ -252,7 +252,7 @@ export default function SignUpPage() {
     }
     if (!session) {
       setStep("complete");
-      setSuccess("Registration submitted. Check your email for a confirmation link, then sign in. Your administrator-issued security passcode is also required before dashboard access.");
+      setSuccess("Registration submitted. Check your email for a confirmation link, then sign in.");
       return;
     }
     const response = await fetch("/api/auth/onboard", {
@@ -261,10 +261,9 @@ export default function SignUpPage() {
       body: JSON.stringify({ userId: user.id, email: user.email }),
     }).catch(() => null);
     if (!response?.ok) {
-      setSuccess("Your login was created. Account setup will be retried when you sign in. Continue with security verification to access your dashboard.");
+      setSuccess("Your login was created. Account setup will be retried when you sign in.");
     }
-    // AuthGate checks the independent security session before allowing dashboard access.
-    router.replace("/security/verify");
+    router.replace("/dashboard");
   };
 
   const handleSignUp = async () => {

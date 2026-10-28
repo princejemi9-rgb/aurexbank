@@ -366,11 +366,15 @@ test('Personal Admin entry routes are public while operational access remains ro
   assert.equal(response.body.ok, false);
 });
 
-test('Personal Admin sign-in uses its own form and validates the portal role', () => {
+test('Personal Admin sign-in uses its own form and lets an existing authenticated account explicitly submit a pending application', () => {
   const page = readFileSync(new URL('../app/personal-admin/login/page.tsx', import.meta.url), 'utf8');
   assert.match(page, /signInWithPassword/);
   assert.match(page, /fetch\("\/api\/personal-admin"/);
   assert.match(page, /Sign in as Personal Admin/);
+  assert.match(page, /Complete Personal Admin application/);
+  assert.match(page, /Submit Personal Admin application/);
+  assert.match(page, /method: "POST"/);
+  assert.doesNotMatch(page, /if \(!response\.ok \|\| !result\?\.personalAdmin\) \{\s*await supabase\.auth\.signOut/);
   assert.doesNotMatch(page, /href="\/auth\/signin"/);
 });
 

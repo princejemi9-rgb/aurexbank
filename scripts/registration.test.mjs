@@ -371,6 +371,9 @@ test('Personal Admin sign-in uses its own form and lets an existing authenticate
   assert.match(page, /signInWithPassword/);
   assert.match(page, /personalAdminRequest/);
   assert.match(page, /ACCESS_CHECK_TIMEOUT_MS = 8000/);
+  assert.match(page, /new FormData\(event\.currentTarget as HTMLFormElement\)/);
+  assert.match(page, /name="email"/);
+  assert.match(page, /name="password"/);
   assert.match(page, /Personal Admin access check timed out/);
   assert.match(page, /Sign in as Personal Admin/);
   assert.match(page, /Complete Personal Admin application/);

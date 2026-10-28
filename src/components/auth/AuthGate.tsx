@@ -251,7 +251,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return <SkeletonAuth />;
   }
 
-  if (isPublic && !hasSession) {
+  // An authenticated account may need to complete its Personal Admin
+  // application here. Keep this public entry form rendered while its role is
+  // unresolved instead of returning an empty page.
+  if (isPublic && (!hasSession || pathname === "/personal-admin/login" || pathname === "/personal-admin/register")) {
     return <>{children}</>;
   }
 

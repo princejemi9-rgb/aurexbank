@@ -391,6 +391,7 @@ test('Personal Admin role lookup settles before transfer-only passcode routing c
 test('an unrecognised session stays on the dedicated Personal Admin form instead of entering customer login', () => {
   const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
   assert.match(authGate, /pathname === "\/personal-admin\/login" \|\| pathname === "\/personal-admin\/register"\) return;/);
+  assert.match(authGate, /isPublic && \(!hasSession \|\| pathname === "\/personal-admin\/login" \|\| pathname === "\/personal-admin\/register"\)/);
   assert.match(authGate, /if \(isPublic && pathname !== "\/dashboard"\) \{/);
 });
 

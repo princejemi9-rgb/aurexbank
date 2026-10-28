@@ -25,16 +25,10 @@ export async function POST(request: NextRequest) {
   if (!id) return NextResponse.json({ ok: false, error: "Select a Personal Admin." }, { status: 400 });
   if (body?.action === "setStatus") {
     const status = (body as { status?: string }).status;
-    if (!status || !["approved", "rejected", "suspended", "pending_approval"].includes(status)) return NextResponse.json({ ok: false, error: "Invalid status." }, { status: 400 });
+    if (!status || !["rejected", "suspended"].includes(status)) return NextResponse.json({ ok: false, error: "Only suspension or rejection can be set manually." }, { status: 400 });
     const { data: current, error: currentError } = await context.db.from("personal_admin_profiles").select("status").eq("user_id", id).maybeSingle();
     if (currentError || !current) return NextResponse.json({ ok: false, error: currentError?.message || "Personal Admin not found." }, { status: 404 });
-    if (status === "approved") {
-      if (current.status !== "pending_approval") return NextResponse.json({ ok: false, error: "Only a pending Personal Admin application can be approved. Use Reactivate for a suspended account." }, { status: 409 });
-      const { data: approved, error } = await context.db.rpc("approve_personal_admin_profile", { p_personal_admin_id: id, p_approved_by: context.user!.id });
-      if (error || !approved || approved.status !== "approved") return NextResponse.json({ ok: false, error: error?.message || "Approval could not be verified. No success was recorded." }, { status: error ? 409 : 500 });
-      return NextResponse.json({ ok: true, personalAdmin: approved });
-    }
-    const patch = status === "approved" ? { status, approved_by: context.user!.id, approved_at: new Date().toISOString() } : { status };
+    const patch = { status };
     const { data: updated, error } = await context.db.from("personal_admin_profiles").update(patch).eq("user_id", id).select("user_id,status").maybeSingle(); if (error || !updated || updated.status !== status) return NextResponse.json({ ok: false, error: error?.message || "Status change could not be verified. No success was recorded." }, { status: error ? 500 : 409 });
     await context.db.from("personal_admin_audit_log").insert({ actor_id: context.user!.id, personal_admin_id: id, action: `personal_admin_${status}` });
     return NextResponse.json({ ok: true, personalAdmin: updated });

@@ -366,7 +366,7 @@ test('Personal Admin entry routes are public while operational access remains ro
   assert.equal(response.body.ok, false);
 });
 
-test('Personal Admin sign-in uses its own form and lets an existing authenticated account explicitly submit a pending application', () => {
+test('Personal Admin sign-in uses its own form and lets an existing authenticated account activate a registration', () => {
   const page = readFileSync(new URL('../app/personal-admin/login/page.tsx', import.meta.url), 'utf8');
   assert.match(page, /signInWithPassword/);
   assert.match(page, /personalAdminRequest/);
@@ -376,10 +376,10 @@ test('Personal Admin sign-in uses its own form and lets an existing authenticate
   assert.match(page, /name="password"/);
   assert.match(page, /Personal Admin access check timed out/);
   assert.match(page, /Sign in as Personal Admin/);
-  assert.match(page, /Complete Personal Admin application/);
-  assert.match(page, /Submit Personal Admin application/);
+  assert.match(page, /Complete Personal Admin registration/);
+  assert.match(page, /Activate Personal Admin access/);
   assert.match(page, /restorePersonalAdminFlow/);
-  assert.match(page, /Complete the Personal Admin application below/);
+  assert.match(page, /Complete the Personal Admin registration below/);
   assert.match(page, /router\.replace\("\/personal-admin\/dashboard"\)/);
   assert.match(page, /method: "POST"/);
   assert.doesNotMatch(page, /if \(!response\.ok \|\| !result\?\.personalAdmin\) \{\s*await supabase\.auth\.signOut/);
@@ -471,12 +471,23 @@ test('Super Admin permission editor includes an explicit financial-adjustment co
   assert.match(route, /isSuperAdmin\(user\)/);
 });
 
-test('Personal Admin approval requires an atomic verified write and statuses are human-readable', () => {
-  const route = readFileSync(new URL('../app/api/admin/personal-admins/route.ts', import.meta.url), 'utf8');
-  const migration = readFileSync(new URL('../supabase/migrations/202610270002_atomic_personal_admin_approval.sql', import.meta.url), 'utf8');
+test('Personal Admin registrations activate atomically and remain fully auditable to Super Admin', () => {
+  const registrationRoute = readFileSync(new URL('../app/api/personal-admin/route.ts', import.meta.url), 'utf8');
+  const adminRoute = readFileSync(new URL('../app/api/admin/personal-admins/route.ts', import.meta.url), 'utf8');
+  const migration = readFileSync(new URL('../supabase/migrations/202610280001_automatic_personal_admin_activation.sql', import.meta.url), 'utf8');
+  const managementPage = readFileSync(new URL('../app/admin/personal-admins/page.tsx', import.meta.url), 'utf8');
   const statuses = load('src/lib/personalAdminStatus.ts', {});
-  assert.match(route, /rpc\("approve_personal_admin_profile"/);
-  assert.match(route, /approved\.status !== "approved"/);
+  assert.match(registrationRoute, /rpc\("register_active_personal_admin_profile"/);
+  assert.match(registrationRoute, /p_user_id: user\.id/);
+  assert.match(adminRoute, /Only suspension or rejection can be set manually/);
+  assert.doesNotMatch(adminRoute, /approve_personal_admin_profile/);
+  assert.match(managementPage, /active automatically/);
+  assert.match(managementPage, /Audit activity/);
+  assert.doesNotMatch(managementPage, /Approve once/);
+  assert.match(migration, /alter column status set default 'approved'/);
+  assert.match(migration, /register_active_personal_admin_profile/);
+  assert.match(migration, /personal_admin_auto_approved/);
+  assert.match(migration, /where status = 'pending_approval'/);
   assert.match(migration, /update public\.personal_admin_profiles/);
   assert.match(migration, /insert into public\.personal_admin_audit_log/);
   assert.equal(statuses.personalAdminStatusLabel('pending_approval'), 'Pending approval');

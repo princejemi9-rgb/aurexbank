@@ -16,21 +16,24 @@ function registrationDetails(user: SupabaseRouteUser) {
   return fullName && phone ? { fullName, phone } : null;
 }
 
-async function createPendingProfile(db: SupabaseClient, user: SupabaseRouteUser, fullName: string, phone: string) {
+async function createActiveProfile(db: SupabaseClient, user: SupabaseRouteUser, fullName: string, phone: string) {
   const existing = await approvedPersonalAdmin(db, user.id);
   if (existing) return { profile: existing as PersonalAdminProfile, error: null };
   if (!user.email) return { profile: null, error: "Your account does not have an email address." };
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const referralCode = code();
-    const { data, error } = await db.from("personal_admin_profiles")
-      .insert({ user_id: user.id, full_name: fullName, email: user.email.toLowerCase(), phone, referral_code: referralCode })
-      .select("user_id,status,referral_code,full_name,email,phone,permissions").maybeSingle();
+    const { data, error } = await db.rpc("register_active_personal_admin_profile", {
+      p_user_id: user.id,
+      p_full_name: fullName,
+      p_email: user.email,
+      p_phone: phone,
+      p_referral_code: referralCode,
+    });
     if (!error && data) {
-      await db.from("personal_admin_audit_log").insert({ actor_id: user.id, personal_admin_id: user.id, action: "personal_admin_registered" });
       return { profile: data as PersonalAdminProfile, error: null };
     }
-    if (!error || !/unique/i.test(error.message)) return { profile: null, error: error?.message || "Unable to create the Personal Admin request." };
+    if (!error || !/unique/i.test(error.message)) return { profile: null, error: error?.message || "Unable to activate the Personal Admin registration." };
     const concurrentlyCreated = await approvedPersonalAdmin(db, user.id);
     if (concurrentlyCreated) return { profile: concurrentlyCreated as PersonalAdminProfile, error: null };
   }
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
   if (!profile) {
     const details = registrationDetails(user);
     if (details) {
-      const created = await createPendingProfile(db, user, details.fullName, details.phone);
+      const created = await createActiveProfile(db, user, details.fullName, details.phone);
       if (created.error) return NextResponse.json({ ok: false, error: created.error }, { status: 400 });
       profile = created.profile;
     }
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
   const fullName = typeof body?.fullName === "string" ? body.fullName.trim().slice(0, 120) : "";
   const phone = typeof body?.phone === "string" ? body.phone.trim().slice(0, 40) : "";
   if (!fullName || !phone) return NextResponse.json({ ok: false, error: "Full name and phone are required." }, { status: 400 });
-  const created = await createPendingProfile(db, user, fullName, phone);
+  const created = await createActiveProfile(db, user, fullName, phone);
   if (created.error) return NextResponse.json({ ok: false, error: created.error }, { status: 409 });
   return NextResponse.json({ ok: true, personalAdmin: created.profile });
 }

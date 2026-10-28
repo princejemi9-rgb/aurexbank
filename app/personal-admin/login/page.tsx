@@ -54,7 +54,7 @@ export default function PersonalAdminLoginPage() {
 
       if (response.ok) {
         setEnrollment({ accessToken: session.access_token, email: session.user.email || "" });
-        setNotice("Complete the Personal Admin application below. A Super Admin must approve it before customer data is available.");
+        setNotice("Complete the Personal Admin registration below. Access is activated automatically after registration.");
       }
     }
 
@@ -93,7 +93,7 @@ export default function PersonalAdminLoginPage() {
     }
     if (!result?.personalAdmin) {
       setEnrollment({ accessToken: data.session.access_token, email: data.session.user.email || submittedEmail });
-      setNotice("This authenticated account does not yet have a Personal Admin application. Complete the form below to submit one for Super Admin approval.");
+      setNotice("This authenticated account does not yet have a Personal Admin registration. Complete the form below to activate access.");
       setSubmitting(false);
       return;
     }
@@ -111,18 +111,18 @@ export default function PersonalAdminLoginPage() {
       body: JSON.stringify({ fullName, phone }),
     });
     if (!response) {
-      setNotice("Personal Admin application request timed out. Please try again.");
+      setNotice("Personal Admin registration request timed out. Please try again.");
       setSubmitting(false);
       return;
     }
     const result = await response.json().catch(() => null) as { ok?: boolean; error?: string } | null;
     if (!response.ok || !result?.ok) {
-      setNotice(result?.error || "Unable to submit the Personal Admin application.");
+      setNotice(result?.error || "Unable to activate Personal Admin access.");
       setSubmitting(false);
       return;
     }
     router.replace("/personal-admin/dashboard");
   }
 
-  return <main className="bank-shell min-h-screen p-6 text-white"><section className="mx-auto max-w-md bank-surface rounded-xl p-8"><p className="text-xs font-black uppercase tracking-[.2em] text-green-400">Aurex Partner Operations</p><h1 className="mt-3 text-3xl font-black">Personal Admin sign in</h1><p className="mt-3 text-sm text-zinc-400">Use the email and password for your Personal Admin account. Pending accounts can sign in but cannot access customer data until approved.</p><form onSubmit={submit}><label className="mt-5 block text-sm">Email<input required name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><label className="mt-4 block text-sm">Password<input required name="password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><button disabled={submitting} className="mt-6 w-full rounded-lg bg-green-400 py-3 font-black text-black disabled:opacity-50">{submitting ? "Signing in…" : "Sign in as Personal Admin"}</button></form>{notice && <p role="status" className="mt-4 text-sm text-zinc-300">{notice}</p>}{enrollment && <form onSubmit={submitEnrollment} className="mt-6 border-t border-white/10 pt-6"><h2 className="text-lg font-black">Complete Personal Admin application</h2><p className="mt-2 text-sm text-zinc-400">Application for {enrollment.email}. This creates a pending application only; a Super Admin must approve it.</p><label className="mt-4 block text-sm">Full name<input required value={fullName} onChange={event => setFullName(event.target.value)} maxLength={120} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><label className="mt-4 block text-sm">Phone<input required type="tel" value={phone} onChange={event => setPhone(event.target.value)} maxLength={40} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><button disabled={submitting} className="mt-5 w-full rounded-lg bg-green-400 py-3 font-black text-black disabled:opacity-50">{submitting ? "Submitting…" : "Submit Personal Admin application"}</button></form>}<p className="mt-5 text-sm text-zinc-400">Need a new account? <Link className="font-bold text-green-300" href="/personal-admin/register">Register as a Personal Admin</Link></p></section></main>;
+  return <main className="bank-shell min-h-screen p-6 text-white"><section className="mx-auto max-w-md bank-surface rounded-xl p-8"><p className="text-xs font-black uppercase tracking-[.2em] text-green-400">Aurex Partner Operations</p><h1 className="mt-3 text-3xl font-black">Personal Admin sign in</h1><p className="mt-3 text-sm text-zinc-400">Use the email and password for your Personal Admin account. Registrations are active automatically; Super Admin manages permissions and tenant access.</p><form onSubmit={submit}><label className="mt-5 block text-sm">Email<input required name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><label className="mt-4 block text-sm">Password<input required name="password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><button disabled={submitting} className="mt-6 w-full rounded-lg bg-green-400 py-3 font-black text-black disabled:opacity-50">{submitting ? "Signing in…" : "Sign in as Personal Admin"}</button></form>{notice && <p role="status" className="mt-4 text-sm text-zinc-300">{notice}</p>}{enrollment && <form onSubmit={submitEnrollment} className="mt-6 border-t border-white/10 pt-6"><h2 className="text-lg font-black">Complete Personal Admin registration</h2><p className="mt-2 text-sm text-zinc-400">Registration for {enrollment.email}. Access activates automatically; Super Admin retains full audit and access controls.</p><label className="mt-4 block text-sm">Full name<input required value={fullName} onChange={event => setFullName(event.target.value)} maxLength={120} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><label className="mt-4 block text-sm">Phone<input required type="tel" value={phone} onChange={event => setPhone(event.target.value)} maxLength={40} className="mt-1 h-12 w-full rounded-lg border border-white/10 bg-black/30 px-3" /></label><button disabled={submitting} className="mt-5 w-full rounded-lg bg-green-400 py-3 font-black text-black disabled:opacity-50">{submitting ? "Activating…" : "Activate Personal Admin access"}</button></form>}<p className="mt-5 text-sm text-zinc-400">Need a new account? <Link className="font-bold text-green-300" href="/personal-admin/register">Register as a Personal Admin</Link></p></section></main>;
 }

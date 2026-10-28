@@ -415,6 +415,9 @@ test('passcode verification is required only for transfers and is bound to the a
   assert.match(transferRoute, /readSecuritySession\(request\.cookies\.get\(SECURITY_SESSION_COOKIE\)\?\.value\)/);
   assert.match(transferRoute, /securitySession\.userId !== user\.id/);
   assert.match(signIn, /router\.replace\("\/dashboard"\)/);
+  assert.match(signIn, /new FormData\(e\.currentTarget as HTMLFormElement\)/);
+  assert.match(signIn, /name="email"/);
+  assert.match(signIn, /name="password"/);
   assert.match(verify, /new URLSearchParams\(window\.location\.search\)\.get\("next"\) === "\/send"/);
   assert.match(verify, /window\.location\.replace\(next\)/);
 });

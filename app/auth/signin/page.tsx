@@ -178,6 +178,12 @@ export default function SignInPage() {
     setLoading(true);
     setError("");
 
+    // Chrome and password managers can populate controls without updating
+    // React state. Authenticate the values actually submitted by the form.
+    const values = new FormData(e.currentTarget as HTMLFormElement);
+    const submittedEmail = String(values.get("email") || email).trim();
+    const submittedPassword = String(values.get("password") || password);
+
     // Check if Supabase client is configured
     if (!isSupabaseConfigured) {
       console.error(
@@ -190,7 +196,7 @@ export default function SignInPage() {
       return;
     }
 
-    if (!email || !password) {
+    if (!submittedEmail || !submittedPassword) {
       setError("Please enter both email and password");
       setLoading(false);
       return;
@@ -200,20 +206,16 @@ export default function SignInPage() {
       // --------------------------------------------------
       // PRIMARY: Use API route (server-side Supabase auth)
       // --------------------------------------------------
-      console.log("[AUTH CLIENT] Calling POST /api/auth/signin with email:", email);
       const response = await fetch("/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: submittedEmail, password: submittedPassword }),
       });
 
       const result = (await response.json().catch(() => null)) as
         | SignInResponse
         | null;
-
-      console.log("[AUTH CLIENT] API response status:", response.status);
-      console.log("[AUTH CLIENT] API result:", result);
 
       // If API route failed (not ok or no result)
       if (!response.ok || !result?.ok) {
@@ -232,8 +234,8 @@ export default function SignInPage() {
 
           const { data, error: signInError } =
             await supabase.auth.signInWithPassword({
-              email,
-              password,
+              email: submittedEmail,
+              password: submittedPassword,
             });
 
           if (signInError) {
@@ -380,6 +382,7 @@ export default function SignInPage() {
                 <div>
                   <label className="text-sm text-zinc-400 font-medium">Email Address</label>
                   <input
+                    name="email"
                     type="email"
                     required
                     value={email}
@@ -399,6 +402,7 @@ export default function SignInPage() {
                     </Link>
                   </div>
                   <input
+                      name="password"
                     type="password"
                     required
                     value={password}

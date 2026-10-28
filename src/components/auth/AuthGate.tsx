@@ -55,26 +55,32 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [personalAdmin, setPersonalAdmin] = useState<{ status?: string } | null>(null);
   const presenceInFlightRef = useRef(false);
   const securityRequestRef = useRef(0);
-  const initialSecurityCheckRef = useRef(true);
 
   useEffect(() => {
     let mounted = true;
 
     async function syncSecurityState(session: Session | null) {
       const requestId = ++securityRequestRef.current;
-      const isInitialCheck = initialSecurityCheckRef.current;
       setHasSession(Boolean(session));
 
       if (!session?.access_token) {
         if (mounted && requestId === securityRequestRef.current) {
+          setPersonalAdmin(null);
           setSecurityVerified(false);
-          if (isInitialCheck) {
-            initialSecurityCheckRef.current = false;
-            setSecurityLoading(false);
-            setLoading(false);
-          }
+          setSecurityLoading(false);
+          setLoading(false);
         }
         return;
+      }
+
+      // Do not apply customer-passcode routing while the authenticated role is
+      // still unknown. A Personal Admin login and its role lookup complete in
+      // separate asynchronous steps.
+      if (mounted && requestId === securityRequestRef.current) {
+        setPersonalAdmin(null);
+        setSecurityVerified(null);
+        setSecurityLoading(true);
+        setLoading(true);
       }
 
       // Personal Admins are a separate, approved operational role. They do not
@@ -84,13 +90,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       }).catch(() => null);
       const personalData = await personalResponse?.json().catch(() => null) as { personalAdmin?: { status?: string } | null } | null;
       if (personalData?.personalAdmin) {
-        setPersonalAdmin(personalData.personalAdmin);
         if (mounted && requestId === securityRequestRef.current) {
+          setPersonalAdmin(personalData.personalAdmin);
           setSecurityVerified(true);
-          if (isInitialCheck) { initialSecurityCheckRef.current = false; setSecurityLoading(false); setLoading(false); }
+          setSecurityLoading(false);
+          setLoading(false);
         }
         return;
       }
+      if (!mounted || requestId !== securityRequestRef.current) return;
       setPersonalAdmin(null);
 
       // Retry first-time profile setup after email confirmation or a previous network failure.
@@ -101,7 +109,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
         }).catch(() => null);
       }
-      if (isInitialCheck) setSecurityLoading(true);
       const response = await fetch("/api/auth/security-status", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         credentials: "include",
@@ -110,11 +117,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
       if (mounted && requestId === securityRequestRef.current) {
         setSecurityVerified(status?.verified === true);
-        if (isInitialCheck) {
-          initialSecurityCheckRef.current = false;
-          setSecurityLoading(false);
-          setLoading(false);
-        }
+        setSecurityLoading(false);
+        setLoading(false);
       }
     }
 
@@ -147,6 +151,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
+
+    // The public homepage remains available to every visitor, including an
+    // authenticated Personal Admin. Other customer-only routes stay protected.
+    if (pathname === "/") return;
 
     if (personalAdmin) {
       if (pathname === "/personal-admin/register" || pathname === "/personal-admin/login") { router.replace("/personal-admin/dashboard"); return; }

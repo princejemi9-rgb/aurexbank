@@ -374,6 +374,21 @@ test('Personal Admin sign-in uses its own form and validates the portal role', (
   assert.doesNotMatch(page, /href="\/auth\/signin"/);
 });
 
+test('Personal Admin role lookup settles before customer passcode routing can run', () => {
+  const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
+  assert.match(authGate, /setSecurityVerified\(null\);/);
+  assert.match(authGate, /setSecurityLoading\(true\);/);
+  assert.match(authGate, /const personalResponse = await fetch\("\/api\/personal-admin"/);
+  assert.match(authGate, /setPersonalAdmin\(personalData\.personalAdmin\);[\s\S]*?setSecurityVerified\(true\);[\s\S]*?setSecurityLoading\(false\);/);
+  assert.match(authGate, /if \(loading \|\| securityLoading \|\| securityVerified === null\) return;/);
+});
+
+test('an authenticated Personal Admin may open the public homepage but not customer routes', () => {
+  const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
+  assert.match(authGate, /if \(pathname === "\/"\) return;/);
+  assert.match(authGate, /if \(!pathname\.startsWith\("\/personal-admin"\)\) \{ router\.replace\("\/personal-admin\/dashboard"\); \}/);
+});
+
 test('Personal Admin portfolio routes require explicit customer-management permission', async () => {
   const db = { from: () => { throw new Error('portfolio query must not run'); } };
   const mocks = {

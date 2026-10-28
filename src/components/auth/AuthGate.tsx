@@ -8,6 +8,7 @@ import SkeletonAuth from "./SkeletonAuth";
 
 const SESSION_TIMEOUT_MS = 8000;
 const PRESENCE_TIMEOUT_MS = 8000;
+const ROLE_LOOKUP_TIMEOUT_MS = 8000;
 
 const PUBLIC_ROUTES = [
   "/",
@@ -42,6 +43,19 @@ async function getSessionSafely(): Promise<Session | null> {
     return null;
   } finally {
     if (timeoutId) window.clearTimeout(timeoutId);
+  }
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), ROLE_LOOKUP_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 
@@ -85,9 +99,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
       // Personal Admins are a separate, approved operational role. They do not
       // use a customer-issued security passcode, and never enter customer UI.
-      const personalResponse = await fetch("/api/personal-admin", {
+      const personalResponse = await fetchWithTimeout("/api/personal-admin", {
         headers: { Authorization: `Bearer ${session.access_token}` },
-      }).catch(() => null);
+      });
       const personalData = await personalResponse?.json().catch(() => null) as { personalAdmin?: { status?: string } | null } | null;
       if (personalData?.personalAdmin) {
         if (mounted && requestId === securityRequestRef.current) {
@@ -99,6 +113,17 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         return;
       }
       if (!mounted || requestId !== securityRequestRef.current) return;
+
+      // A role request that cannot complete must never hold the application on
+      // its loading shell. Leave the dedicated Personal Admin entry route
+      // visible so the user can retry, rather than guessing a customer role.
+      if (!personalResponse?.ok) {
+        setPersonalAdmin(null);
+        setSecurityVerified(false);
+        setSecurityLoading(false);
+        setLoading(false);
+        return;
+      }
       setPersonalAdmin(null);
 
       // Retry first-time profile setup after email confirmation or a previous network failure.
@@ -109,10 +134,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
         }).catch(() => null);
       }
-      const response = await fetch("/api/auth/security-status", {
+      const response = await fetchWithTimeout("/api/auth/security-status", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         credentials: "include",
-      }).catch(() => null);
+      });
       const status = (await response?.json().catch(() => null)) as { verified?: boolean } | null;
 
       if (mounted && requestId === securityRequestRef.current) {

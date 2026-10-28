@@ -369,7 +369,9 @@ test('Personal Admin entry routes are public while operational access remains ro
 test('Personal Admin sign-in uses its own form and lets an existing authenticated account explicitly submit a pending application', () => {
   const page = readFileSync(new URL('../app/personal-admin/login/page.tsx', import.meta.url), 'utf8');
   assert.match(page, /signInWithPassword/);
-  assert.match(page, /fetch\("\/api\/personal-admin"/);
+  assert.match(page, /personalAdminRequest/);
+  assert.match(page, /ACCESS_CHECK_TIMEOUT_MS = 8000/);
+  assert.match(page, /Personal Admin access check timed out/);
   assert.match(page, /Sign in as Personal Admin/);
   assert.match(page, /Complete Personal Admin application/);
   assert.match(page, /Submit Personal Admin application/);
@@ -382,7 +384,9 @@ test('Personal Admin role lookup settles before transfer-only passcode routing c
   const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
   assert.match(authGate, /setSecurityVerified\(null\);/);
   assert.match(authGate, /setSecurityLoading\(true\);/);
-  assert.match(authGate, /const personalResponse = await fetch\("\/api\/personal-admin"/);
+  assert.match(authGate, /ROLE_LOOKUP_TIMEOUT_MS = 8000/);
+  assert.match(authGate, /const personalResponse = await fetchWithTimeout\("\/api\/personal-admin"/);
+  assert.match(authGate, /if \(!personalResponse\?\.ok\) \{/);
   assert.match(authGate, /setPersonalAdmin\(personalData\.personalAdmin\);[\s\S]*?setSecurityVerified\(true\);[\s\S]*?setSecurityLoading\(false\);/);
   assert.match(authGate, /pathname === "\/send" && !securityVerified/);
   assert.doesNotMatch(authGate, /if \(!securityVerified\) \{\s*router\.replace\("\/security\/verify"/);

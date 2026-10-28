@@ -6,6 +6,25 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../src/lib/supabase";
 
 type Enrollment = { accessToken: string; email: string };
+const ACCESS_CHECK_TIMEOUT_MS = 8000;
+
+async function personalAdminRequest(accessToken: string, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), ACCESS_CHECK_TIMEOUT_MS);
+  const headers = new Headers(init?.headers);
+  headers.set("Authorization", `Bearer ${accessToken}`);
+  try {
+    return await fetch("/api/personal-admin", {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 export default function PersonalAdminLoginPage() {
   const router = useRouter();
@@ -28,9 +47,12 @@ export default function PersonalAdminLoginPage() {
       return;
     }
 
-    const response = await fetch("/api/personal-admin", {
-      headers: { Authorization: `Bearer ${data.session.access_token}` },
-    });
+    const response = await personalAdminRequest(data.session.access_token);
+    if (!response) {
+      setNotice("Personal Admin access check timed out. Please try again.");
+      setSubmitting(false);
+      return;
+    }
     const result = await response.json().catch(() => null) as { personalAdmin?: unknown; error?: string } | null;
     if (!response.ok) {
       await supabase.auth.signOut();
@@ -52,11 +74,16 @@ export default function PersonalAdminLoginPage() {
     if (!enrollment || submitting) return;
     setNotice("");
     setSubmitting(true);
-    const response = await fetch("/api/personal-admin", {
+    const response = await personalAdminRequest(enrollment.accessToken, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${enrollment.accessToken}` },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fullName, phone }),
     });
+    if (!response) {
+      setNotice("Personal Admin application request timed out. Please try again.");
+      setSubmitting(false);
+      return;
+    }
     const result = await response.json().catch(() => null) as { ok?: boolean; error?: string } | null;
     if (!response.ok || !result?.ok) {
       setNotice(result?.error || "Unable to submit the Personal Admin application.");

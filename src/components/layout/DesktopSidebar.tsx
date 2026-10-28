@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import AurexBrand from "../brand/AurexBrand";
+import SignOutButton from "../auth/SignOutButton";
 import AppIcon from "../ui/AppIcon";
 import { useAdminStatus } from "../../context/AdminStatusContext";
 
@@ -133,6 +134,7 @@ export default function DesktopSidebar() {
               </div>
             </div>
           </div>
+          <SignOutButton className="mt-3" />
         </div>
       </div>
     </aside>

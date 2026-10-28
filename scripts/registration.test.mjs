@@ -413,3 +413,23 @@ test('Personal Admin approval requires an atomic verified write and statuses are
   assert.equal(statuses.personalAdminStatusLabel('pending_approval'), 'Pending approval');
   assert.doesNotMatch(statuses.personalAdminStatusMessage('pending_approval'), /pending_approval/);
 });
+
+test('shared sign out clears only account session state and returns every role to the public homepage', () => {
+  const signOut = readFileSync(new URL('../src/components/auth/SignOutButton.tsx', import.meta.url), 'utf8');
+  const sessionCache = readFileSync(new URL('../src/lib/sessionLogout.ts', import.meta.url), 'utf8');
+  const personalAdminPortal = readFileSync(new URL('../src/components/personal-admin/PersonalAdminPortal.tsx', import.meta.url), 'utf8');
+  const desktopSidebar = readFileSync(new URL('../src/components/layout/DesktopSidebar.tsx', import.meta.url), 'utf8');
+  const bottomNav = readFileSync(new URL('../src/components/navigation/BottomNav.tsx', import.meta.url), 'utf8');
+  assert.match(signOut, /supabase\.auth\.signOut\(\)/);
+  assert.match(signOut, /action: "clear"/);
+  assert.match(signOut, /if \(!sessionClear\.ok\)/);
+  assert.match(signOut, /window\.location\.replace\("\/"\)/);
+  assert.match(signOut, /disabled=\{busy\}/);
+  assert.match(signOut, /role="alert"/);
+  assert.match(sessionCache, /clearCachedAdminStatus\(\)/);
+  assert.match(sessionCache, /aurexbank-kyc-/);
+  assert.doesNotMatch(sessionCache, /localStorage\.clear\(\)/);
+  for (const source of [personalAdminPortal, desktopSidebar, bottomNav]) {
+    assert.match(source, /SignOutButton/);
+  }
+});

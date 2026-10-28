@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 import AppIcon from "../ui/AppIcon";
+import SignOutButton from "../auth/SignOutButton";
 import { useAdminStatus } from "../../context/AdminStatusContext";
 
 function subscribePortalTarget() {
@@ -117,6 +118,9 @@ export default function BottomNav() {
                   </Link>
                 );
               })}
+            </div>
+            <div className="border-t border-white/[0.08] p-3">
+              <SignOutButton />
             </div>
           </div>
         </div>

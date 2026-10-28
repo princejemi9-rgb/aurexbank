@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "../../src/context/ThemeContext";
-import { supabase } from "../../src/lib/supabase";
 import DesktopSidebar from "../../src/components/layout/DesktopSidebar";
 import BottomNav from "../../src/components/navigation/BottomNav";
 import AppIcon from "../../src/components/ui/AppIcon";
+import SignOutButton from "../../src/components/auth/SignOutButton";
 
 type ToggleProps = {
   enabled: boolean;
@@ -93,17 +93,6 @@ export default function SettingsPage() {
       localStorage.setItem("aurexbank-email-alerts", emailAlerts.toString());
     }
   }, [emailAlerts]);
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ action: "clear" }),
-    });
-    await supabase.auth.signOut();
-    window.location.replace("/login");
-  };
 
   const handleDeactivate = () => {
     // Navigate to deactivate page
@@ -276,12 +265,7 @@ export default function SettingsPage() {
                 <h2 className="mt-2 text-3xl font-black tracking-tight">Account Actions</h2>
 
                 <div className="mt-6 space-y-3">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full rounded-lg bg-red-500 py-4 text-sm font-black transition-all hover:bg-red-400"
-                  >
-                    Logout Account
-                  </button>
+                  <SignOutButton label="Sign Out" />
                   <button
                     onClick={handleDeactivate}
                     className="w-full rounded-lg border border-red-400/15 bg-black/25 py-4 text-sm font-black transition-all hover:bg-black/40"

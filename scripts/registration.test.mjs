@@ -384,6 +384,12 @@ test('Personal Admin role lookup settles before transfer-only passcode routing c
   assert.doesNotMatch(authGate, /if \(!securityVerified\) \{\s*router\.replace\("\/security\/verify"/);
 });
 
+test('an unrecognised session stays on the dedicated Personal Admin form instead of entering customer login', () => {
+  const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
+  assert.match(authGate, /pathname === "\/personal-admin\/login" \|\| pathname === "\/personal-admin\/register"\) return;/);
+  assert.match(authGate, /if \(isPublic && pathname !== "\/dashboard"\) \{/);
+});
+
 test('passcode verification is required only for transfers and is bound to the authenticated user', () => {
   const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
   const transferRoute = readFileSync(new URL('../app/api/transfers/route.ts', import.meta.url), 'utf8');

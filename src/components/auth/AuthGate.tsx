@@ -162,6 +162,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // The dedicated Personal Admin form verifies this role before it chooses a
+    // destination. Do not briefly send an unrecognised session to the customer
+    // dashboard while that form is reporting a failed role lookup.
+    if (pathname === "/personal-admin/login" || pathname === "/personal-admin/register") return;
+
     // A security passcode is a step-up check for sending money, not a
     // requirement for reading the normal dashboard. The transfer endpoint
     // repeats this check server-side before it can debit an account.

@@ -428,6 +428,8 @@ test('shared sign out clears only account session state and returns every role t
   assert.match(signOut, /role="alert"/);
   assert.match(sessionCache, /clearCachedAdminStatus\(\)/);
   assert.match(sessionCache, /aurexbank-kyc-/);
+  assert.match(sessionCache, /aurex-bill-pay/);
+  assert.match(sessionCache, /aurexbank:transfer-verification-requests/);
   assert.doesNotMatch(sessionCache, /localStorage\.clear\(\)/);
   for (const source of [personalAdminPortal, desktopSidebar, bottomNav]) {
     assert.match(source, /SignOutButton/);

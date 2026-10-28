@@ -1,6 +1,11 @@
 import { clearCachedAdminStatus } from "./isAdmin";
 import { supabaseAuthStorageKey } from "./supabase";
 
+const ACCOUNT_CACHE_KEYS = new Set([
+  "aurex-bill-pay",
+  "aurexbank:transfer-verification-requests",
+]);
+
 /** Remove only state that can identify or authorize the signed-out account. */
 export function clearCurrentAccountCache(userId?: string) {
   clearCachedAdminStatus();
@@ -24,7 +29,7 @@ export function clearCurrentAccountCache(userId?: string) {
     );
     const isSupabaseSession = key === supabaseAuthStorageKey;
 
-    if (belongsToAccount || isSupabaseSession) {
+    if (belongsToAccount || isSupabaseSession || ACCOUNT_CACHE_KEYS.has(key)) {
       window.localStorage.removeItem(key);
     }
   }

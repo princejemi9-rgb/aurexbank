@@ -462,6 +462,73 @@ test('Personal Admin portfolio routes require explicit customer-management permi
   }
 });
 
+test('Personal Admin customer creation sends a secure invitation then atomically creates the assigned account', async () => {
+  const calls = [];
+  const db = {
+    auth: { admin: {
+      inviteUserByEmail: async (...args) => { calls.push(['invite', ...args]); return { data: { user: { id: 'customer-1' } }, error: null }; },
+      deleteUser: async (...args) => { calls.push(['delete', ...args]); return { error: null }; },
+    } },
+    rpc: async (...args) => { calls.push(['rpc', ...args]); return { data: { referral_code: 'PA-EXAMPLE' }, error: null }; },
+  };
+  const route = load('app/api/personal-admin/customers/route.ts', {
+    'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
+    '../../../../src/lib/server/tenantAccess': {
+      serviceClient: () => db, requestUser: async () => ({ id: 'admin-1' }),
+      approvedPersonalAdmin: async () => ({ status: 'approved', referral_code: 'PA-EXAMPLE', permissions: { manage_customers: true } }),
+    },
+  });
+  const response = await route.POST({
+    headers: { get: () => 'Bearer token' }, nextUrl: { origin: 'https://preview.example' },
+    json: async () => ({ fullName: 'New Customer', email: 'customer@example.com', phone: '+234 800 000 0000', country: 'Nigeria', accountType: 'personal', address: '1 Example Street' }),
+  });
+  assert.equal(response.status, 201);
+  assert.equal(response.body.customer.invitationSent, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])), ['invite', 'customer@example.com', {
+    redirectTo: 'https://preview.example/auth/reset-password',
+    data: { full_name: 'New Customer', phone: '+234 800 000 0000', country: 'Nigeria', account_type: 'personal', personal_admin_created: true, referral_code: 'PA-EXAMPLE' },
+  }]);
+  assert.equal(calls[1][0], 'rpc');
+  assert.equal(calls[1][1], 'create_personal_admin_customer_account');
+  assert.equal(calls[1][2].p_personal_admin_id, 'admin-1');
+  assert.equal(calls[1][2].p_customer_id, 'customer-1');
+  assert.equal(calls.some(([name]) => name === 'delete'), false);
+});
+
+test('Personal Admin customer creation rejects unauthorized access and compensates for a failed database transaction', async () => {
+  const deniedRoute = load('app/api/personal-admin/customers/route.ts', {
+    'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
+    '../../../../src/lib/server/tenantAccess': { serviceClient: () => ({}), requestUser: async () => ({ id: 'admin-1' }), approvedPersonalAdmin: async () => ({ status: 'approved', permissions: { manage_customers: false } }) },
+  });
+  const denied = await deniedRoute.POST({ headers: { get: () => 'Bearer token' }, json: async () => ({}) });
+  assert.equal(denied.status, 403);
+  let removed = false;
+  const db = { auth: { admin: { inviteUserByEmail: async () => ({ data: { user: { id: 'customer-1' } }, error: null }), deleteUser: async () => { removed = true; return { error: null }; } } }, rpc: async () => ({ data: null, error: { message: 'transaction failed' } }) };
+  const failedRoute = load('app/api/personal-admin/customers/route.ts', {
+    'next/server': { NextResponse: { json: (body, options = {}) => ({ body, status: options.status || 200 }) } },
+    '../../../../src/lib/server/tenantAccess': { serviceClient: () => db, requestUser: async () => ({ id: 'admin-1' }), approvedPersonalAdmin: async () => ({ status: 'approved', referral_code: 'PA-EXAMPLE', permissions: { manage_customers: true } }) },
+  });
+  const failed = await failedRoute.POST({ headers: { get: () => 'Bearer token' }, nextUrl: { origin: 'https://preview.example' }, json: async () => ({ fullName: 'New Customer', email: 'customer@example.com', phone: '+234 800 000 0000', country: 'Nigeria', accountType: 'personal' }) });
+  assert.equal(failed.status, 503);
+  assert.equal(removed, true);
+});
+
+test('customer invitation schema preserves tenant isolation and auditability, and password setup accepts invite links', () => {
+  const migration = readFileSync(new URL('../supabase/migrations/202610280002_personal_admin_customer_creation.sql', import.meta.url), 'utf8');
+  const customerRoute = readFileSync(new URL('../app/api/personal-admin/customers/route.ts', import.meta.url), 'utf8');
+  const resetPassword = readFileSync(new URL('../app/auth/reset-password/page.tsx', import.meta.url), 'utf8');
+  const newCustomer = readFileSync(new URL('../src/components/personal-admin/NewCustomer.tsx', import.meta.url), 'utf8');
+  assert.match(migration, /create table if not exists public\.personal_admin_customer_details/);
+  assert.match(migration, /create_personal_admin_customer_account/);
+  assert.match(migration, /customer_personal_admin_assignments/);
+  assert.match(migration, /personal_admin_customer_invited/);
+  assert.match(migration, /grant execute.*create_personal_admin_customer_account.*service_role/s);
+  assert.match(customerRoute, /inviteUserByEmail/);
+  assert.match(customerRoute, /deleteUser\(customerId\)/);
+  assert.match(resetPassword, /type === "recovery" \|\| type === "invite"/);
+  assert.match(newCustomer, /never receive or handle customer credentials/);
+});
+
 test('Super Admin permission editor includes an explicit financial-adjustment control', () => {
   const page = readFileSync(new URL('../app/admin/personal-admins/page.tsx', import.meta.url), 'utf8');
   const route = readFileSync(new URL('../app/api/admin/personal-admins/route.ts', import.meta.url), 'utf8');

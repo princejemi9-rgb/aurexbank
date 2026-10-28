@@ -19,3 +19,44 @@ export async function GET(request: NextRequest) {
   const profileByEmail = new Map((profiles || []).map(profile => [String(profile.username).toLowerCase(), profile]));
   return NextResponse.json({ ok: true, customers: (assignments || []).map(item => { const customer = byId.get(item.customer_id); const email = customer?.email || ""; const profile = profileByEmail.get(email.toLowerCase()); return { id: item.customer_id, email, fullName: String(customer?.user_metadata?.full_name || email || "Customer"), assignedAt: item.assigned_at, referralCode: item.referral_code, balance: Number(profile?.balance || 0), currency: profile?.currency || "USD", accountStatus: profile?.account_status || "active" }; }) });
 }
+
+type CreateCustomerBody = { fullName?: unknown; email?: unknown; phone?: unknown; country?: unknown; accountType?: unknown; address?: unknown };
+
+function text(value: unknown, max: number) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
+
+export async function POST(request: NextRequest) {
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
+  const db = serviceClient(); const user = await requestUser(token);
+  if (!db || !user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const admin = await approvedPersonalAdmin(db, user.id);
+  if (admin?.status !== "approved" || admin.permissions?.manage_customers !== true) return NextResponse.json({ ok: false, error: "Customer-management permission required" }, { status: 403 });
+  const body = await request.json().catch(() => null) as CreateCustomerBody | null;
+  const fullName = text(body?.fullName, 120); const email = text(body?.email, 254).toLowerCase();
+  const phone = text(body?.phone, 40); const country = text(body?.country, 80);
+  const accountType = text(body?.accountType, 20).toLowerCase() || "personal"; const address = text(body?.address, 500);
+  if (fullName.length < 2 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !phone || !country || !["personal", "business"].includes(accountType)) {
+    return NextResponse.json({ ok: false, error: "Enter a full name, valid email, phone, country, and account type." }, { status: 400 });
+  }
+
+  const origin = request.nextUrl.origin;
+  const { data: invitation, error: inviteError } = await db.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${origin}/auth/reset-password`,
+    data: { full_name: fullName, phone, country, account_type: accountType, personal_admin_created: true, referral_code: admin.referral_code },
+  });
+  const customerId = invitation.user?.id;
+  if (inviteError || !customerId) {
+    const message = inviteError?.message || "Unable to send the customer invitation.";
+    return NextResponse.json({ ok: false, error: /already|registered|exists/i.test(message) ? "An account already exists for this email address." : message }, { status: 409 });
+  }
+  const { data: created, error: createError } = await db.rpc("create_personal_admin_customer_account", {
+    p_personal_admin_id: user.id, p_customer_id: customerId, p_email: email, p_full_name: fullName,
+    p_phone: phone, p_country: country, p_account_type: accountType, p_address: address,
+  });
+  if (createError) {
+    // The invitation created in this request has no valid banking profile. Remove
+    // only that new auth user so a retry cannot create an orphaned account.
+    await db.auth.admin.deleteUser(customerId).catch(() => null);
+    return NextResponse.json({ ok: false, error: createError.message || "Unable to create the customer account." }, { status: 503 });
+  }
+  return NextResponse.json({ ok: true, customer: { id: customerId, email, invitationSent: true, ...created } }, { status: 201 });
+}

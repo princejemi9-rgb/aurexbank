@@ -33,7 +33,7 @@ export default function ResetPasswordPage() {
       const refreshToken = params.get("refresh_token");
       const type = params.get("type");
 
-      if (accessToken && refreshToken && type === "recovery") {
+      if (accessToken && refreshToken && (type === "recovery" || type === "invite")) {
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
               <p className="text-green-400 text-xs uppercase tracking-[0.3em] font-semibold">Secure Access Portal</p>
               <h2 className="mt-6 text-6xl font-black leading-[0.95] tracking-tight lg:text-7xl">Create A New Password</h2>
               <p className="mt-8 max-w-2xl text-lg leading-relaxed text-zinc-400">
-                Choose a strong password to protect your Aurex Bank account. This will replace your old login password.
+                Choose a strong password to protect your Aurex Bank account. This securely completes an invitation or replaces your old login password.
               </p>
             </div>
           </div>

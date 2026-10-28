@@ -375,6 +375,9 @@ test('Personal Admin sign-in uses its own form and lets an existing authenticate
   assert.match(page, /Sign in as Personal Admin/);
   assert.match(page, /Complete Personal Admin application/);
   assert.match(page, /Submit Personal Admin application/);
+  assert.match(page, /restorePersonalAdminFlow/);
+  assert.match(page, /Complete the Personal Admin application below/);
+  assert.match(page, /router\.replace\("\/personal-admin\/dashboard"\)/);
   assert.match(page, /method: "POST"/);
   assert.doesNotMatch(page, /if \(!response\.ok \|\| !result\?\.personalAdmin\) \{\s*await supabase\.auth\.signOut/);
   assert.doesNotMatch(page, /href="\/auth\/signin"/);

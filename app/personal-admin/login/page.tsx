@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../src/lib/supabase";
 
@@ -35,6 +35,32 @@ export default function PersonalAdminLoginPage() {
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restorePersonalAdminFlow() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !active) return;
+
+      const response = await personalAdminRequest(session.access_token);
+      if (!active || !response) return;
+      const result = await response.json().catch(() => null) as { personalAdmin?: unknown } | null;
+
+      if (result?.personalAdmin) {
+        router.replace("/personal-admin/dashboard");
+        return;
+      }
+
+      if (response.ok) {
+        setEnrollment({ accessToken: session.access_token, email: session.user.email || "" });
+        setNotice("Complete the Personal Admin application below. A Super Admin must approve it before customer data is available.");
+      }
+    }
+
+    void restorePersonalAdminFlow();
+    return () => { active = false; };
+  }, [router]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

@@ -271,6 +271,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   // in-progress passcode entry.
   if (pathname === "/security/verify") return <>{children}</>;
 
+  // The Personal Admin form performs its own role lookup after authentication.
+  // Do not unmount it for the global auth refresh: doing so loses the form's
+  // successful sign-in result and makes the page appear to ignore Submit.
+  if (pathname === "/personal-admin/login" || pathname === "/personal-admin/register") {
+    return <>{children}</>;
+  }
+
   if (loading || securityLoading || (hasSession && securityVerified === null)) {
     // show subtle skeleton to avoid flashing protected pages while auth resolves
     return <SkeletonAuth />;
@@ -279,7 +286,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   // An authenticated account may need to complete its Personal Admin
   // application here. Keep this public entry form rendered while its role is
   // unresolved instead of returning an empty page.
-  if (isPublic && (!hasSession || pathname === "/personal-admin/login" || pathname === "/personal-admin/register")) {
+  if (isPublic && !hasSession) {
     return <>{children}</>;
   }
 

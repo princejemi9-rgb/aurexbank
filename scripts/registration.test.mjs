@@ -612,3 +612,23 @@ test('Personal Admin lifecycle controls remain tenant scoped, auditable, and rea
   assert.match(manager, /\/auth\/forgot-password/);
   assert.match(portal, /\/personal-admin\/customers\/\$\{customer\.id\}/);
 });
+
+test('customer transaction requests are tenant scoped, auditable, and do not move balances on approval', () => {
+  const migration = readFileSync(new URL('../supabase/migrations/202610280005_personal_admin_transaction_requests.sql', import.meta.url), 'utf8');
+  const customerRoute = readFileSync(new URL('../app/api/transaction-requests/route.ts', import.meta.url), 'utf8');
+  const adminRoute = readFileSync(new URL('../app/api/personal-admin/transaction-requests/route.ts', import.meta.url), 'utf8');
+  const customerUi = readFileSync(new URL('../src/components/transactions/CustomerRequests.tsx', import.meta.url), 'utf8');
+  const adminUi = readFileSync(new URL('../src/components/personal-admin/TransactionRequestManager.tsx', import.meta.url), 'utf8');
+  assert.match(migration, /personal_admin_transaction_requests/);
+  assert.match(migration, /request_type in \('transfer_review', 'balance_inquiry', 'account_service'\)/);
+  assert.match(migration, /review_personal_admin_transaction_request/);
+  assert.match(migration, /Only pending requests can be reviewed/);
+  assert.doesNotMatch(migration, /update public\.profiles set balance/);
+  assert.match(customerRoute, /submit_customer_personal_admin_request/);
+  assert.match(adminRoute, /approvedPersonalAdmin/);
+  assert.match(adminRoute, /review_personal_admin_transaction_request/);
+  assert.match(customerUi, /Submit for Personal Admin review/);
+  assert.match(adminUi, /Approve/);
+  assert.match(adminUi, /Reject/);
+  assert.match(adminUi, /Escalate/);
+});

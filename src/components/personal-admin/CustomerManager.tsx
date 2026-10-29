@@ -42,7 +42,10 @@ export default function CustomerManager({ customerId }: { customerId: string }) 
     setActivity(result.activity || []);
   }, [authorization, customerId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   if (conversationId) {
     const { data: conversation } = await current.db.from("support_conversations").select("id,customer_id,subject,status,last_message_at,customer_language").eq("id", conversationId).maybeSingle();
     if (!conversation || !await assigned(current, conversation.customer_id)) return NextResponse.json({ ok: false, error: "Conversation not found" }, { status: 404 });
-    const { data, error } = await current.db.from("support_messages").select("id,conversation_id,sender_id,sender_role,original_text,original_language,created_at,support_message_translations(*)").eq("conversation_id", conversationId).order("created_at");
+    const { data, error } = await current.db.from("support_messages").select("id,conversation_id,sender_id,sender_role,original_text,original_language,created_at,support_message_translations(*),support_attachments(*)").eq("conversation_id", conversationId).order("created_at");
     return error ? NextResponse.json({ ok: false, error: error.message }, { status: 500 }) : NextResponse.json({ ok: true, conversation, messages: data || [] });
   }
   const { data: assignments, error: assignmentError } = await current.db.from("customer_personal_admin_assignments").select("customer_id").eq("personal_admin_id", current.user.id);

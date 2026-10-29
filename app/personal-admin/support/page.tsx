@@ -1,1 +1,2 @@
-import Operations from "../../../src/components/personal-admin/PersonalAdminOperations"; export default function Page(){return <Operations feature="support"/>}
+import SupportDesk from "../../../src/components/personal-admin/SupportDesk";
+export default function Page() { return <SupportDesk />; }

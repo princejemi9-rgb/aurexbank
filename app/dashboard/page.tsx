@@ -53,7 +53,6 @@ export default function DashboardPage() {
         <div className="app-content desktop-page-content">
           <div className="app-inner">
             <Header />
-            <AccountOverview />
 
             <div className="mt-6 grid min-w-0 items-start gap-5 xl:gap-6 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
               <div className="space-y-6 min-w-0">
@@ -68,6 +67,8 @@ export default function DashboardPage() {
                 <AIInsights />
               </div>
             </div>
+
+            <AccountOverview />
 
             <div className="mt-6 grid min-w-0 items-stretch gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-6">
               <div className="flex min-w-0 flex-col gap-6 [&>*:last-child]:flex-1">

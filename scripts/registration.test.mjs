@@ -440,7 +440,15 @@ test('transfer execution rejects a missing or another user’s passcode session'
 test('an authenticated Personal Admin may open the public homepage but not customer routes', () => {
   const authGate = readFileSync(new URL('../src/components/auth/AuthGate.tsx', import.meta.url), 'utf8');
   assert.match(authGate, /if \(pathname === "\/"\) return;/);
+  assert.match(authGate, /pathname === "\/auth\/signin" \|\| pathname === "\/login"/);
   assert.match(authGate, /if \(!pathname\.startsWith\("\/personal-admin"\)\) \{ router\.replace\("\/personal-admin\/dashboard"\); \}/);
+});
+
+test('customer sign-in remains available for account switching and dashboard actions precede the essentials summary', () => {
+  const signIn = readFileSync(new URL('../app/auth/signin/page.tsx', import.meta.url), 'utf8');
+  const dashboard = readFileSync(new URL('../app/dashboard/page.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(signIn, /const checkSession/);
+  assert.ok(dashboard.lastIndexOf('<QuickActions />') < dashboard.lastIndexOf('<AccountOverview />'));
 });
 
 test('Personal Admin portfolio routes require explicit customer-management permission', async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -148,27 +148,6 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-
-  useEffect(() => {
-    let mounted = true;
-    const checkSession = async () => {
-      if (!isSupabaseConfigured) return;
-
-      const { data } = await supabase.auth.getSession().catch(() => ({
-        data: { session: null },
-      }));
-      if (!mounted) return;
-      if (data.session) {
-        router.replace("/dashboard");
-      }
-    };
-
-    checkSession();
-
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();

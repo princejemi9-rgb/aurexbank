@@ -194,6 +194,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     // authenticated Personal Admin. Other customer-only routes stay protected.
     if (pathname === "/") return;
 
+    // Customer sign-in is an explicit account-switch route. Keep it available
+    // even when this browser still has a Personal Admin (or another customer)
+    // session, so the submitted credentials—not stale local storage—choose
+    // the next account.
+    if (pathname === "/auth/signin" || pathname === "/login") return;
+
     if (personalAdmin) {
       if (pathname === "/personal-admin/register" || pathname === "/personal-admin/login") { router.replace("/personal-admin/dashboard"); return; }
       if (!pathname.startsWith("/personal-admin")) { router.replace("/personal-admin/dashboard"); }

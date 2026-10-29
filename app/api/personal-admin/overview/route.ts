@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const { data: assignments, error } = await db.from("customer_personal_admin_assignments").select("customer_id").eq("personal_admin_id", user.id);
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   const ids = (assignments || []).map(item => item.customer_id);
-  if (!ids.length) return NextResponse.json({ ok: true, metrics: { assignedCustomers: 0, activeCustomers: 0, suspendedCustomers: 0, portfolioBalance: 0, pendingRequests: 0, openSupport: 0, adjustments: 0 }, activity: [] });
+  if (!ids.length) return NextResponse.json({ ok: true, permissions: admin.permissions || {}, metrics: { assignedCustomers: 0, activeCustomers: 0, suspendedCustomers: 0, portfolioBalance: 0, pendingRequests: 0, openSupport: 0, adjustments: 0 }, activity: [] });
   const users = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (users.error) return NextResponse.json({ ok: false, error: users.error.message }, { status: 500 });
   const emails = users.data.users.filter(item => ids.includes(item.id)).map(item => item.email).filter((email): email is string => Boolean(email));
@@ -24,5 +24,5 @@ export async function GET(request: NextRequest) {
   const queryError = profiles.error || requests.error || support.error || adjustments.error || activity.error;
   if (queryError) return NextResponse.json({ ok: false, error: queryError.message }, { status: 500 });
   const rows = profiles.data || [];
-  return NextResponse.json({ ok: true, metrics: { assignedCustomers: ids.length, activeCustomers: rows.filter(row => row.account_status === "active").length, suspendedCustomers: rows.filter(row => row.account_status === "suspended").length, portfolioBalance: rows.reduce((total, row) => total + Number(row.balance || 0), 0), pendingRequests: requests.count || 0, openSupport: support.count || 0, adjustments: adjustments.count || 0 }, activity: activity.data || [] });
+  return NextResponse.json({ ok: true, permissions: admin.permissions || {}, metrics: { assignedCustomers: ids.length, activeCustomers: rows.filter(row => row.account_status === "active").length, suspendedCustomers: rows.filter(row => row.account_status === "suspended").length, portfolioBalance: rows.reduce((total, row) => total + Number(row.balance || 0), 0), pendingRequests: requests.count || 0, openSupport: support.count || 0, adjustments: adjustments.count || 0 }, activity: activity.data || [] });
 }

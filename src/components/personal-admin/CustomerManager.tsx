@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- customer avatars use the configured Supabase Storage URL at runtime. */
 
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";

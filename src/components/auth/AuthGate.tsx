@@ -17,6 +17,7 @@ const PUBLIC_ROUTES = [
   "/auth/signup",
   "/auth/forgot-password",
   "/auth/reset-password",
+  "/auth/change-initial-password",
   "/security/verify",
   "/personal-admin",
   "/personal-admin/register",
@@ -66,6 +67,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [hasSession, setHasSession] = useState(false);
   const [securityVerified, setSecurityVerified] = useState<boolean | null>(null);
   const [securityLoading, setSecurityLoading] = useState(true);
+  const [initialPasswordRequired, setInitialPasswordRequired] = useState<boolean | null>(null);
   const [personalAdmin, setPersonalAdmin] = useState<{ status?: string } | null>(null);
   const presenceInFlightRef = useRef(false);
   const securityRequestRef = useRef(0);
@@ -81,6 +83,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         if (mounted && requestId === securityRequestRef.current) {
           setPersonalAdmin(null);
           setSecurityVerified(false);
+          setInitialPasswordRequired(false);
           setSecurityLoading(false);
           setLoading(false);
         }
@@ -93,6 +96,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       if (mounted && requestId === securityRequestRef.current) {
         setPersonalAdmin(null);
         setSecurityVerified(null);
+        setInitialPasswordRequired(null);
         setSecurityLoading(true);
         setLoading(true);
       }
@@ -107,6 +111,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         if (mounted && requestId === securityRequestRef.current) {
           setPersonalAdmin(personalData.personalAdmin);
           setSecurityVerified(true);
+          setInitialPasswordRequired(false);
           setSecurityLoading(false);
           setLoading(false);
         }
@@ -120,11 +125,19 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       if (!personalResponse?.ok) {
         setPersonalAdmin(null);
         setSecurityVerified(false);
+        setInitialPasswordRequired(false);
         setSecurityLoading(false);
         setLoading(false);
         return;
       }
       setPersonalAdmin(null);
+
+      const initialPasswordResponse = await fetchWithTimeout("/api/auth/initial-password-status", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const initialPasswordData = (await initialPasswordResponse?.json().catch(() => null)) as { required?: boolean } | null;
+      if (!mounted || requestId !== securityRequestRef.current) return;
+      setInitialPasswordRequired(initialPasswordData?.required === true);
 
       // Retry first-time profile setup after email confirmation or a previous network failure.
       if (!session.user.user_metadata?.onboarded_at) {
@@ -167,7 +180,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (loading || securityLoading || securityVerified === null) return;
+    if (loading || securityLoading || securityVerified === null || initialPasswordRequired === null) return;
 
     const isPublic = isPublicRoute(pathname);
 
@@ -192,6 +205,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     // dashboard while that form is reporting a failed role lookup.
     if (pathname === "/personal-admin/login" || pathname === "/personal-admin/register") return;
 
+    if (initialPasswordRequired) {
+      if (pathname !== "/auth/change-initial-password") router.replace("/auth/change-initial-password");
+      return;
+    }
+    if (pathname === "/auth/change-initial-password") { router.replace("/dashboard"); return; }
+
     // A security passcode is a step-up check for sending money, not a
     // requirement for reading the normal dashboard. The transfer endpoint
     // repeats this check server-side before it can debit an account.
@@ -203,7 +222,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (isPublic && pathname !== "/dashboard") {
       router.replace("/dashboard");
     }
-  }, [hasSession, loading, pathname, personalAdmin, router, securityLoading, securityVerified]);
+  }, [hasSession, initialPasswordRequired, loading, pathname, personalAdmin, router, securityLoading, securityVerified]);
 
   useEffect(() => {
     if (loading || !hasSession) return;
@@ -278,7 +297,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (loading || securityLoading || (hasSession && securityVerified === null)) {
+  if (loading || securityLoading || (hasSession && (securityVerified === null || initialPasswordRequired === null))) {
     // show subtle skeleton to avoid flashing protected pages while auth resolves
     return <SkeletonAuth />;
   }

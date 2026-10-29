@@ -7,9 +7,13 @@ export async function GET(request: NextRequest) {
   if (!db || !user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   const admin = await approvedPersonalAdmin(db, user.id);
   if (admin?.status !== "approved" || admin.permissions?.manage_reports !== true) return NextResponse.json({ ok: false, error: "Report permission required" }, { status: 403 });
+  const from = request.nextUrl.searchParams.get("from") || ""; const to = request.nextUrl.searchParams.get("to") || ""; const action = request.nextUrl.searchParams.get("action") || "";
+  if ((from && Number.isNaN(Date.parse(from))) || (to && Number.isNaN(Date.parse(to))) || (from && to && from > to) || action.length > 120) return NextResponse.json({ ok: false, error: "Invalid report filters." }, { status: 400 });
+  let auditQuery = db.from("personal_admin_audit_log").select("id,action,target_user_id,metadata,created_at").eq("personal_admin_id", user.id).order("created_at", { ascending: false }).limit(500);
+  if (from) auditQuery = auditQuery.gte("created_at", `${from}T00:00:00.000Z`); if (to) auditQuery = auditQuery.lte("created_at", `${to}T23:59:59.999Z`); if (action) auditQuery = auditQuery.eq("action", action);
   const [assignments, audit, adjustments] = await Promise.all([
     db.from("customer_personal_admin_assignments").select("customer_id").eq("personal_admin_id", user.id),
-    db.from("personal_admin_audit_log").select("id,action,target_user_id,metadata,created_at").eq("personal_admin_id", user.id).order("created_at", { ascending: false }).limit(100),
+    auditQuery,
     db.from("personal_admin_financial_adjustments").select("id,customer_id,amount,currency,reason,created_at").eq("personal_admin_id", user.id).order("created_at", { ascending: false }).limit(100),
   ]);
   if (assignments.error || audit.error || adjustments.error) return NextResponse.json({ ok: false, error: "Portfolio report is temporarily unavailable." }, { status: 503 });

@@ -1,1 +1,2 @@
-import Portal from "../../../src/components/personal-admin/PersonalAdminPortal"; export default function Page(){return <Portal page="dashboard"/>}
+import PersonalAdminOverview from "../../../src/components/personal-admin/PersonalAdminOverview";
+export default function Page() { return <PersonalAdminOverview />; }

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ cus
   const [notes, verification, documents] = await Promise.all([
     current.db.from("personal_admin_customer_notes").select("id,note,created_at").eq("customer_id", customerId).eq("personal_admin_id", current.user.id).order("created_at", { ascending: false }).limit(100),
     current.db.from("personal_admin_customer_verifications").select("status,review_note,reviewed_at,updated_at").eq("customer_id", customerId).eq("personal_admin_id", current.user.id).maybeSingle(),
-    current.db.from("personal_admin_customer_documents").select("id,document_type,file_name,content_type,byte_size,created_at").eq("customer_id", customerId).eq("personal_admin_id", current.user.id).order("created_at", { ascending: false }).limit(100),
+    current.db.from("personal_admin_customer_documents").select("id,document_type,file_name,content_type,byte_size,created_at,expires_at").eq("customer_id", customerId).eq("personal_admin_id", current.user.id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
   ]);
   const error = notes.error || verification.error || documents.error; if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, notes: notes.data || [], verification: verification.data || { status: "pending", review_note: "" }, documents: documents.data || [] });

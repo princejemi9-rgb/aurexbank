@@ -632,3 +632,21 @@ test('customer transaction requests are tenant scoped, auditable, and do not mov
   assert.match(adminUi, /Reject/);
   assert.match(adminUi, /Escalate/);
 });
+
+test('Personal Admin virtual-card and OTP controls remain assigned-customer scoped and do not expose stored codes', () => {
+  const cardRoute = readFileSync(new URL('../app/api/personal-admin/customers/[customerId]/card/route.ts', import.meta.url), 'utf8');
+  const otpRoute = readFileSync(new URL('../app/api/personal-admin/customers/[customerId]/otp/route.ts', import.meta.url), 'utf8');
+  const verifyRoute = readFileSync(new URL('../app/api/otp/route.ts', import.meta.url), 'utf8');
+  const migration = readFileSync(new URL('../supabase/migrations/202610280006_personal_admin_otp_challenges.sql', import.meta.url), 'utf8');
+  assert.match(cardRoute, /Customer is outside your portfolio/);
+  assert.match(cardRoute, /personal_admin_virtual_card_/);
+  assert.doesNotMatch(cardRoute, /card_number|cvv|pin/i);
+  assert.match(otpRoute, /randomInt\(100000, 1_000_000\)/);
+  assert.match(otpRoute, /createHash\("sha256"\)/);
+  assert.match(otpRoute, /Cache-Control.*no-store/);
+  assert.match(verifyRoute, /verify_customer_personal_admin_otp/);
+  assert.match(migration, /code_hash text not null/);
+  assert.match(migration, /attempts integer not null default 0/);
+  assert.match(migration, /now\(\) \+ interval '10 minutes'/);
+  assert.match(migration, /attempts \+ 1 >= max_attempts/);
+});

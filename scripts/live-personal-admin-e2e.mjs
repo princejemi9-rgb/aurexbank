@@ -26,6 +26,13 @@ try {
   const customer = await api("/api/personal-admin/customers", paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fullName: "E2E Customer", email: customerEmail, phone: "+15550000002", country: "United States", accountType: "personal", address: "1 Test Street", initialPassword: password }) });
   customerId = customer.customer.id; customerToken = await signIn(customerEmail); console.log("✓ Customer creation and normal login");
 
+  if (process.argv.includes("--controls")) {
+    await api(`/api/personal-admin/customers/${customerId}/card`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "issue" }) });
+    const otp = await api(`/api/personal-admin/customers/${customerId}/otp`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: "account_recovery" }) }); assert(/^\d{6}$/.test(otp.code), "OTP was not issued."); console.log("✓ Virtual card and one-time passcode");
+    const overview = await api("/api/personal-admin/overview", paToken), report = await api("/api/personal-admin/reports", paToken), list = await api("/api/personal-admin/customers", paToken); assert(overview.metrics.assignedCustomers >= 1 && report.metrics.assignedCustomers >= 1 && list.customers.some(row => row.id === customerId), "Portfolio overview, reports, or customer list failed."); console.log("✓ Overview, reporting, and portfolio data"); console.log("LIVE PERSONAL ADMIN CONTROLS: PASS");
+  }
+
+  if (!process.argv.includes("--controls")) {
   const started = await api("/api/support/chat", customerToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject: "E2E support", message: "Customer support test", language: "en" }) });
   const inbox = await api("/api/personal-admin/support", paToken); assert(inbox.conversations.some(row => row.id === started.conversationId), "Assigned Personal Admin cannot see customer chat.");
   await api("/api/personal-admin/support", paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ conversationId: started.conversationId, message: "Personal Admin reply test" }) });
@@ -48,4 +55,5 @@ try {
 
   const overview = await api("/api/personal-admin/overview", paToken), report = await api("/api/personal-admin/reports", paToken), list = await api("/api/personal-admin/customers", paToken); assert(overview.metrics.assignedCustomers >= 1 && report.metrics.assignedCustomers >= 1 && list.customers.some(row => row.id === customerId), "Portfolio overview, reports, or customer list failed."); console.log("✓ Overview, reporting, referral/customer portfolio data");
   console.log("LIVE PERSONAL ADMIN E2E: PASS");
+  }
 } finally { await cleanup(); }

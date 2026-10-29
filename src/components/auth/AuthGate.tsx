@@ -285,6 +285,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   const isPublic = isPublicRoute(pathname);
 
+  // Public entry pages must never depend on browser storage, Supabase, or a
+  // role lookup before they can render. A stalled client-side auth request
+  // previously left first-time visitors on the black loading shell forever.
+  // The routing effect above still redirects authenticated users where that
+  // is appropriate once the background check has completed.
+  if (isPublic) return <>{children}</>;
+
   // This is an intentional public transition route. Keeping it mounted while
   // session status resolves prevents a background auth event from clearing an
   // in-progress passcode entry.

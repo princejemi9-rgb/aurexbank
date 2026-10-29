@@ -590,3 +590,25 @@ test('shared sign out clears only account session state and returns every role t
     assert.match(source, /SignOutButton/);
   }
 });
+
+test('Personal Admin lifecycle controls remain tenant scoped, auditable, and reachable from customer operations', () => {
+  const migration = readFileSync(new URL('../supabase/migrations/202610280004_personal_admin_customer_lifecycle.sql', import.meta.url), 'utf8');
+  const customerRoute = readFileSync(new URL('../app/api/personal-admin/customers/[customerId]/route.ts', import.meta.url), 'utf8');
+  const avatarRoute = readFileSync(new URL('../app/api/personal-admin/customers/[customerId]/avatar/route.ts', import.meta.url), 'utf8');
+  const manager = readFileSync(new URL('../src/components/personal-admin/CustomerManager.tsx', import.meta.url), 'utf8');
+  const portal = readFileSync(new URL('../src/components/personal-admin/PersonalAdminPortal.tsx', import.meta.url), 'utf8');
+  assert.match(migration, /personal_admin_customer_activity/);
+  assert.match(migration, /update_personal_admin_customer_lifecycle/);
+  assert.match(migration, /Customer is outside this Personal Admin portfolio/);
+  assert.match(migration, /personal_admin_customer_lifecycle_updated/);
+  assert.match(customerRoute, /approvedPersonalAdmin/);
+  assert.match(customerRoute, /\.eq\("personal_admin_id", user\.id\)/);
+  assert.match(customerRoute, /update_personal_admin_customer_lifecycle/);
+  assert.match(avatarRoute, /Customer is outside your portfolio/);
+  assert.match(avatarRoute, /MAX_FILE_SIZE/);
+  assert.match(avatarRoute, /personal_admin_customer_avatar_updated/);
+  assert.match(manager, /Save customer changes/);
+  assert.match(manager, /Upload photo/);
+  assert.match(manager, /\/auth\/forgot-password/);
+  assert.match(portal, /\/personal-admin\/customers\/\$\{customer\.id\}/);
+});

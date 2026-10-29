@@ -70,16 +70,10 @@ export async function POST(request: NextRequest) {
   if (supabaseUrl) {
     console.log("[AUTH API] Supabase URL prefix:", supabaseUrl.substring(0, 20) + "...");
   }
-  if (supabaseAnonKey) {
-    console.log("[AUTH API] Supabase key prefix:", supabaseAnonKey.substring(0, 10) + "...");
-  }
   console.log("[AUTH API] NODE_ENV:", process.env.NODE_ENV);
 
   if (supabaseUrl) {
     console.log("[AUTH API] Supabase URL prefix:", supabaseUrl.substring(0, 20) + "...");
-  }
-  if (supabaseAnonKey) {
-    console.log("[AUTH API] Anon key prefix:", supabaseAnonKey.substring(0, 10) + "...");
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {

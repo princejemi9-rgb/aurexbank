@@ -13,6 +13,7 @@ export default function NewCustomer() {
   const [accessError, setAccessError] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [createdCustomerId, setCreatedCustomerId] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { void (async () => {
@@ -28,7 +29,7 @@ export default function NewCustomer() {
   const update = <K extends keyof Form>(key: K, value: Form[K]) => setForm(current => ({ ...current, [key]: value }));
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (busy) return;
-    setBusy(true); setError(""); setSuccess("");
+    setBusy(true); setError(""); setSuccess(""); setCreatedCustomerId("");
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setError("Your session has expired. Please sign in again."); setBusy(false); return; }
     const response = await fetch("/api/personal-admin/customers", {
@@ -36,7 +37,7 @@ export default function NewCustomer() {
     }).catch(() => null);
     const result = await response?.json().catch(() => null);
     if (!response?.ok || !result?.ok) setError(result?.error || "Unable to create the customer invitation. Please try again.");
-    else { setSuccess(`Customer account created for ${result.customer.email}. Share the initial password securely one time; the customer must replace it at first sign-in.`); setForm(initialForm); }
+    else { setSuccess(`Customer account created for ${result.customer.email}. They can sign in immediately at the normal Aurex Bank sign-in page using the initial password, then must replace it.`); setCreatedCustomerId(result.customer.id || ""); setForm(initialForm); }
     setBusy(false);
   };
 
@@ -54,7 +55,7 @@ export default function NewCustomer() {
         <label className="grid gap-2 text-sm font-bold">Account type<select value={form.accountType} onChange={event => update("accountType", event.target.value as Form["accountType"])} className="rounded-lg border border-white/10 bg-black/20 p-3 font-normal outline-none focus:border-green-400"><option className="text-black" value="personal">Personal</option><option className="text-black" value="business">Business</option></select></label>
         <label className="grid gap-2 text-sm font-bold sm:col-span-2">Address <span className="font-normal text-zinc-500">(optional)</span><textarea value={form.address} onChange={event => update("address", event.target.value)} maxLength={500} autoComplete="street-address" rows={3} className="resize-y rounded-lg border border-white/10 bg-black/20 p-3 font-normal outline-none focus:border-green-400" /></label>
         {error && <p role="alert" className="rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-100 sm:col-span-2">{error}</p>}
-        {success && <p role="status" className="rounded-lg border border-green-400/30 bg-green-400/10 p-3 text-sm text-green-100 sm:col-span-2">{success}</p>}
+        {success && <div role="status" className="rounded-lg border border-green-400/30 bg-green-400/10 p-3 text-sm text-green-100 sm:col-span-2"><p>{success}</p>{createdCustomerId && <Link href={`/personal-admin/customers/${createdCustomerId}`} className="mt-3 inline-block font-black text-green-300 underline">Manage this customer account</Link>}</div>}
         <button disabled={busy} className="rounded-lg bg-green-400 px-5 py-3 font-black text-black disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2">{busy ? "Creating customer account…" : "Create customer account"}</button>
       </form>}
     </section>

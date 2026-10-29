@@ -21,7 +21,14 @@ export async function GET(request: NextRequest, context: { params: Promise<{ cus
     result.db!.auth.admin.getUserById(customerId),
   ]);
   if (!auth.data.user || !details.data || !profile.data) return NextResponse.json({ ok: false, error: "Customer not found" }, { status: 404 });
-  return NextResponse.json({ ok: true, customer: { id: customerId, email: auth.data.user.email, ...details.data, ...profile.data }, activity: activity.data || [] });
+  const metadata = auth.data.user.user_metadata && typeof auth.data.user.user_metadata === "object"
+    ? auth.data.user.user_metadata as Record<string, unknown>
+    : {};
+  return NextResponse.json({ ok: true, customer: {
+    id: customerId, email: auth.data.user.email, ...details.data, ...profile.data,
+    cardStatus: typeof metadata.card_status === "string" ? metadata.card_status : "not_issued",
+    cardVersion: Number(metadata.card_display_version || 0),
+  }, activity: activity.data || [] });
 }
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ customerId: string }> }) {

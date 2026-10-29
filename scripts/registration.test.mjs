@@ -548,12 +548,15 @@ test('Super Admin permission editor includes an explicit financial-adjustment co
 
 test('Personal Admin registrations activate atomically and remain fully auditable to Super Admin', () => {
   const registrationRoute = readFileSync(new URL('../app/api/personal-admin/route.ts', import.meta.url), 'utf8');
+  const tenantAccess = readFileSync(new URL('../src/lib/server/tenantAccess.ts', import.meta.url), 'utf8');
   const adminRoute = readFileSync(new URL('../app/api/admin/personal-admins/route.ts', import.meta.url), 'utf8');
   const migration = readFileSync(new URL('../supabase/migrations/202610280001_automatic_personal_admin_activation.sql', import.meta.url), 'utf8');
   const managementPage = readFileSync(new URL('../app/admin/personal-admins/page.tsx', import.meta.url), 'utf8');
   const statuses = load('src/lib/personalAdminStatus.ts', {});
   assert.match(registrationRoute, /rpc\("register_active_personal_admin_profile"/);
   assert.match(registrationRoute, /p_user_id: user\.id/);
+  assert.doesNotMatch(registrationRoute, /function registrationDetails/);
+  assert.match(tenantAccess, /\.eq\("status", "approved"\)/);
   assert.match(adminRoute, /Only suspension or rejection can be set manually/);
   assert.doesNotMatch(adminRoute, /approve_personal_admin_profile/);
   assert.match(managementPage, /active automatically/);

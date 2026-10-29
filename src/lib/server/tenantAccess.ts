@@ -21,6 +21,6 @@ export async function requestUser(token: string) {
 }
 
 export async function approvedPersonalAdmin(db: SupabaseClient, userId: string) {
-  const { data } = await db.from("personal_admin_profiles").select("user_id,status,referral_code,full_name,email,phone,permissions").eq("user_id", userId).maybeSingle();
+  const { data } = await db.from("personal_admin_profiles").select("user_id,status,referral_code,full_name,email,phone,permissions").eq("user_id", userId).eq("status", "approved").maybeSingle();
   return data as { user_id: string; status: string; referral_code: string; full_name: string; email: string; phone: string; permissions: Record<string, boolean> } | null;
 }

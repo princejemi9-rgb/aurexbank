@@ -553,6 +553,7 @@ test('Personal Admin customer creation supports an auditable opening balance and
   const portal = readFileSync(new URL('../src/components/personal-admin/PersonalAdminPortal.tsx', import.meta.url), 'utf8');
   const liveTest = readFileSync(new URL('../scripts/live-personal-admin-e2e.mjs', import.meta.url), 'utf8');
   const migration = readFileSync(new URL('../supabase/migrations/202610300001_personal_admin_opening_balance.sql', import.meta.url), 'utf8');
+  const precisionMigration = readFileSync(new URL('../supabase/migrations/202610300002_profiles_balance_precision.sql', import.meta.url), 'utf8');
   assert.match(customerRoute, /p_opening_balance: openingBalance/);
   assert.match(customerRoute, /openingBalance > 100000/);
   assert.match(customerForm, /Opening balance/);
@@ -561,6 +562,7 @@ test('Personal Admin customer creation supports an auditable opening balance and
   assert.match(migration, /p_opening_balance numeric default 0/);
   assert.match(migration, /balance, currency, account_status\) values \(p_customer_id, v_email, v_opening_balance/);
   assert.match(migration, /opening_balance/);
+  assert.match(precisionMigration, /balance type numeric\(18,2\)/);
   assert.match(liveTest, /openingBalance = 1234\.56/);
   assert.match(liveTest, /Opening balance was not persisted/);
 });

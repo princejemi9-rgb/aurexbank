@@ -448,6 +448,8 @@ test('customer sign-in remains available for account switching and dashboard act
   const signIn = readFileSync(new URL('../app/auth/signin/page.tsx', import.meta.url), 'utf8');
   const dashboard = readFileSync(new URL('../app/dashboard/page.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(signIn, /const checkSession/);
+  assert.match(signIn, /supabase\.auth\.signOut\(\)/);
+  assert.match(signIn, /action: "clear"/);
   assert.ok(dashboard.lastIndexOf('<QuickActions />') < dashboard.lastIndexOf('<AccountOverview />'));
 });
 

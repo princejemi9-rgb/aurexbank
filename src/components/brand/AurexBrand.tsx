@@ -69,7 +69,7 @@ export default function AurexBrand({
     <div className={`flex items-center gap-4 ${className}`}>
       <AurexMark className={markClassName} label={branding.bankName} />
       <div className="min-w-0">
-        <h1 className={`truncate font-black tracking-tight text-white ${titleClassName}`}>
+        <h1 className={`break-words font-black leading-tight tracking-tight text-white ${titleClassName}`}>
           {branding.bankName}
         </h1>
         {showTagline && (

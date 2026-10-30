@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -146,13 +146,34 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [switchReady, setSwitchReady] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    // This route is deliberately an account-switch entry point. Clear a
+    // previously persisted role session before rendering the normal customer
+    // form so a Personal Admin session from the same browser cannot win the
+    // routing race.
+    let active = true;
+    void Promise.all([
+      supabase.auth.signOut(),
+      fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "clear" }),
+      }).catch(() => null),
+    ]).finally(() => {
+      if (active) setSwitchReady(true);
+    });
+    return () => { active = false; };
+  }, []);
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
 
-    if (loading) return;
+    if (loading || !switchReady) return;
 
     setLoading(true);
     setError("");
@@ -397,10 +418,10 @@ export default function SignInPage() {
                 )}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !switchReady}
                   className="h-12 w-full rounded-lg bg-green-400 text-base font-black text-black transition-all hover:bg-green-300 disabled:opacity-50 sm:h-14 sm:text-lg"
                 >
-                  {loading ? "Signing In..." : "Access Aurex Bank"}
+                  {loading ? "Signing In..." : switchReady ? "Access Aurex Bank" : "Preparing secure sign in..."}
                 </button>
               </form>
               <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4">

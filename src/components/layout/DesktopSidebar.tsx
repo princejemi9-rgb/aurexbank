@@ -83,7 +83,7 @@ export default function DesktopSidebar() {
       <div className="desktop-sidebar-header shrink-0">
         <div className="desktop-sidebar-brand-card rounded-lg border border-white/[0.07] bg-white/[0.035] shadow-[0_18px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
           <AurexBrand
-            className="gap-3"
+            className="w-full gap-3"
             markClassName="desktop-sidebar-brand-mark rounded-lg"
             titleClassName="desktop-sidebar-brand-title"
             taglineClassName="text-[11px]"

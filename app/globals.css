@@ -14,7 +14,7 @@
   --brand-text: #f5fff8;
   --brand-border: #214b32;
   --brand-card-gradient: linear-gradient(145deg,#020403,#063d24,#050606);
-  --desktop-sidebar-width: clamp(14rem, 19vw, 18rem);
+  --desktop-sidebar-width: clamp(15rem, 19vw, 18rem);
 }
 
 @theme inline {

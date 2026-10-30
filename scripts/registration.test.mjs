@@ -547,6 +547,21 @@ test('Personal Admin-created customers are confirmed for sign-in but must replac
   assert.match(newCustomer, /Initial password/);
 });
 
+test('Personal Admin customer creation supports an auditable opening balance and visible balance refresh', () => {
+  const customerRoute = readFileSync(new URL('../app/api/personal-admin/customers/route.ts', import.meta.url), 'utf8');
+  const customerForm = readFileSync(new URL('../src/components/personal-admin/NewCustomer.tsx', import.meta.url), 'utf8');
+  const portal = readFileSync(new URL('../src/components/personal-admin/PersonalAdminPortal.tsx', import.meta.url), 'utf8');
+  const migration = readFileSync(new URL('../supabase/migrations/202610300001_personal_admin_opening_balance.sql', import.meta.url), 'utf8');
+  assert.match(customerRoute, /p_opening_balance: openingBalance/);
+  assert.match(customerRoute, /openingBalance > 100000/);
+  assert.match(customerForm, /Opening balance/);
+  assert.match(customerForm, /openingBalance: "0"/);
+  assert.match(portal, /Balance adjustment saved, refreshed/);
+  assert.match(migration, /p_opening_balance numeric default 0/);
+  assert.match(migration, /balance, currency, account_status\) values \(p_customer_id, v_email, v_opening_balance/);
+  assert.match(migration, /opening_balance/);
+});
+
 test('Super Admin permission editor includes an explicit financial-adjustment control', () => {
   const page = readFileSync(new URL('../app/admin/personal-admins/page.tsx', import.meta.url), 'utf8');
   const route = readFileSync(new URL('../app/api/admin/personal-admins/route.ts', import.meta.url), 'utf8');

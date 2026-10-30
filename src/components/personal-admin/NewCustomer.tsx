@@ -5,8 +5,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import SignOutButton from "../auth/SignOutButton";
 
-type Form = { fullName: string; email: string; phone: string; initialPassword: string; country: string; accountType: "personal" | "business"; address: string };
-const initialForm: Form = { fullName: "", email: "", phone: "", initialPassword: "", country: "", accountType: "personal", address: "" };
+type Form = { fullName: string; email: string; phone: string; initialPassword: string; country: string; accountType: "personal" | "business"; address: string; openingBalance: string };
+const initialForm: Form = { fullName: "", email: "", phone: "", initialPassword: "", country: "", accountType: "personal", address: "", openingBalance: "0" };
 
 export default function NewCustomer() {
   const [form, setForm] = useState<Form>(initialForm);
@@ -53,6 +53,7 @@ export default function NewCustomer() {
         <label className="grid gap-2 text-sm font-bold">Initial password<input required type="password" value={form.initialPassword} onChange={event => update("initialPassword", event.target.value)} minLength={10} autoComplete="new-password" className="rounded-lg border border-white/10 bg-black/20 p-3 font-normal outline-none focus:border-green-400" /><span className="font-normal text-zinc-500">10+ characters, uppercase, lowercase, and a number.</span></label>
         <label className="grid gap-2 text-sm font-bold">Country<input required value={form.country} onChange={event => update("country", event.target.value)} maxLength={80} autoComplete="country-name" className="rounded-lg border border-white/10 bg-black/20 p-3 font-normal outline-none focus:border-green-400" /></label>
         <label className="grid gap-2 text-sm font-bold">Account type<select value={form.accountType} onChange={event => update("accountType", event.target.value as Form["accountType"])} className="rounded-lg border border-white/10 bg-black/20 p-3 font-normal outline-none focus:border-green-400"><option className="text-black" value="personal">Personal</option><option className="text-black" value="business">Business</option></select></label>
+        <label className="grid gap-2 text-sm font-bold">Opening balance<input required type="number" min="0" max="100000" step="0.01" inputMode="decimal" value={form.openingBalance} onChange={event => update("openingBalance", event.target.value)} className="rounded-lg border border-white/10 bg-black/20 p-3 font-normal outline-none focus:border-green-400" /><span className="font-normal text-zinc-500">USD 0–100,000. Recorded in the customer and audit history.</span></label>
         <label className="grid gap-2 text-sm font-bold sm:col-span-2">Address <span className="font-normal text-zinc-500">(optional)</span><textarea value={form.address} onChange={event => update("address", event.target.value)} maxLength={500} autoComplete="street-address" rows={3} className="resize-y rounded-lg border border-white/10 bg-black/20 p-3 font-normal outline-none focus:border-green-400" /></label>
         {error && <p role="alert" className="rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-100 sm:col-span-2">{error}</p>}
         {success && <div role="status" className="rounded-lg border border-green-400/30 bg-green-400/10 p-3 text-sm text-green-100 sm:col-span-2"><p>{success}</p>{createdCustomerId && <Link href={`/personal-admin/customers/${createdCustomerId}`} className="mt-3 inline-block font-black text-green-300 underline">Manage this customer account</Link>}</div>}

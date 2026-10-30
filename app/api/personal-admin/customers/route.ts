@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ ok: true, customers: (assignments || []).map(item => { const customer = byId.get(item.customer_id); const email = customer?.email || ""; const profile = profileByEmail.get(email.toLowerCase()); return { id: item.customer_id, email, fullName: String(customer?.user_metadata?.full_name || email || "Customer"), assignedAt: item.assigned_at, referralCode: item.referral_code, balance: Number(profile?.balance || 0), currency: profile?.currency || "USD", accountStatus: profile?.account_status || "active" }; }) });
 }
 
-type CreateCustomerBody = { fullName?: unknown; email?: unknown; phone?: unknown; initialPassword?: unknown; country?: unknown; accountType?: unknown; address?: unknown };
+type CreateCustomerBody = { fullName?: unknown; email?: unknown; phone?: unknown; initialPassword?: unknown; country?: unknown; accountType?: unknown; address?: unknown; openingBalance?: unknown };
 
 function text(value: unknown, max: number) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
 
@@ -35,10 +35,12 @@ export async function POST(request: NextRequest) {
   const initialPassword = text(body?.initialPassword, 256);
   const phone = text(body?.phone, 40); const country = text(body?.country, 80);
   const accountType = text(body?.accountType, 20).toLowerCase() || "personal"; const address = text(body?.address, 500);
+  const openingBalance = typeof body?.openingBalance === "number" ? body.openingBalance : Number(body?.openingBalance || 0);
   if (fullName.length < 2 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !phone || !country || !["personal", "business"].includes(accountType)) {
     return NextResponse.json({ ok: false, error: "Enter a full name, valid email, phone, country, and account type." }, { status: 400 });
   }
   if (initialPassword.length < 10 || !/[A-Z]/.test(initialPassword) || !/[a-z]/.test(initialPassword) || !/\d/.test(initialPassword)) return NextResponse.json({ ok: false, error: "The initial password must be at least 10 characters and include uppercase, lowercase, and a number." }, { status: 400 });
+  if (!Number.isFinite(openingBalance) || openingBalance < 0 || openingBalance > 100000) return NextResponse.json({ ok: false, error: "Opening balance must be between 0 and 100,000." }, { status: 400 });
 
   const [firstName, ...lastNameParts] = fullName.split(/\s+/);
   const { data: createdUser, error: createUserError } = await db.auth.admin.createUser({
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
   const { data: created, error: createError } = await db.rpc("create_personal_admin_customer_account", {
     p_personal_admin_id: user.id, p_customer_id: customerId, p_email: email, p_full_name: fullName,
-    p_phone: phone, p_country: country, p_account_type: accountType, p_address: address,
+    p_phone: phone, p_country: country, p_account_type: accountType, p_address: address, p_opening_balance: openingBalance,
   });
   if (createError) {
     // The auth user created in this request has no valid banking profile. Remove

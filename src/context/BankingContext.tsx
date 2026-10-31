@@ -831,6 +831,17 @@ export function BankingProvider({ children }: { children: React.ReactNode }) {
       mapped.push(...(data ?? []).map(item => mapHistoryRecord(item, username)));
       if (!data || data.length < 500) break;
     }
+    const { data: virtualTransfers } = await supabase
+      .from("virtual_transfers")
+      .select("id,sender_id,recipient_id,amount,memo,status,created_at,completed_at")
+      .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    mapped.push(...(virtualTransfers ?? []).map((item) => {
+      const sent = item.sender_id === user.id;
+      const completedAt = typeof item.completed_at === "string" ? item.completed_at : item.created_at;
+      return { id: `virtual-${String(item.id)}`, name: sent ? "Aurex internal transfer" : "Aurex internal transfer received", type: "Internal transfer", amount: (sent ? -1 : 1) * Math.abs(Number(item.amount) || 0), status: String(item.status || "completed"), createdAt: typeof item.created_at === "string" ? item.created_at : undefined, effectiveAt: typeof completedAt === "string" ? completedAt : undefined, time: formatRemoteAlertTime(typeof completedAt === "string" ? completedAt : undefined), method: "Aurex virtual ledger", category: "Internal transfer" } satisfies BankTransaction;
+    }));
     const {
       data: { session: historySession },
     } = await supabase.auth.getSession();

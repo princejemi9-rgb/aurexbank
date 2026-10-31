@@ -4,7 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 const env = Object.fromEntries(fs.readFileSync(".env.local", "utf8").split(/\r?\n/).map(line => line.match(/^([^#=]+)=(.*)$/)).filter(Boolean).map(([, key, value]) => [key, value.replace(/^['"]|['"]$/g, "")]));
 const url = env.NEXT_PUBLIC_SUPABASE_URL, anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY, service = env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !anon || !service) throw new Error("Required Supabase test configuration is missing.");
-const app = "https://aurexbank.vercel.app";
+const app = process.env.STAGING_APP_URL || env.STAGING_APP_URL || "";
+if (!app || !/^https:\/\//.test(app)) throw new Error("Set STAGING_APP_URL to the non-production Preview/staging deployment before running this test.");
+if (/^https:\/\/(www\.)?aurexbank\.vercel\.app\/?$/i.test(app)) throw new Error("Refusing to run against the production deployment.");
 const admin = createClient(url, service, { auth: { autoRefreshToken: false, persistSession: false } });
 const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const paEmail = `pa-e2e-${suffix}@example.test`, customerEmail = `customer-e2e-${suffix}@example.test`, password = `AurexTest${Math.random().toString(36).slice(2, 10)}9`;
@@ -34,7 +36,7 @@ try {
 
   if (process.argv.includes("--controls")) {
     await api(`/api/personal-admin/customers/${customerId}/card`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "issue" }) });
-    const otp = await api(`/api/personal-admin/customers/${customerId}/otp`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: "account_recovery" }) }); assert(/^\d{6}$/.test(otp.code), "OTP was not issued."); console.log("✓ Virtual card and one-time passcode");
+    const otp = await api(`/api/personal-admin/customers/${customerId}/otp`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: "account_recovery" }) }); assert(otp.challengeId && !Object.hasOwn(otp, "code"), "OTP must be delivered through the verified channel without exposing a code to the Personal Admin."); console.log("✓ Virtual card and secure OTP request");
     const overview = await api("/api/personal-admin/overview", paToken), report = await api("/api/personal-admin/reports", paToken), list = await api("/api/personal-admin/customers", paToken); assert(overview.metrics.assignedCustomers >= 1 && report.metrics.assignedCustomers >= 1 && list.customers.some(row => row.id === customerId), "Portfolio overview, reports, or customer list failed."); console.log("✓ Overview, reporting, and portfolio data"); console.log("LIVE PERSONAL ADMIN CONTROLS: PASS");
   }
 
@@ -57,7 +59,7 @@ try {
   const pending = await api("/api/personal-admin/transaction-requests", paToken); assert(pending.requests.some(row => row.id === request.request.id), "Personal Admin cannot see customer request."); await api("/api/personal-admin/transaction-requests", paToken, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: request.request.id, status: "approved", reviewNote: "E2E approved" }) }); console.log("✓ Customer requests and review");
 
   await api(`/api/personal-admin/customers/${customerId}/card`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "issue" }) });
-  const otp = await api(`/api/personal-admin/customers/${customerId}/otp`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: "account_recovery" }) }); assert(/^\d{6}$/.test(otp.code), "OTP was not issued."); console.log("✓ Virtual card and one-time passcode");
+  const otp = await api(`/api/personal-admin/customers/${customerId}/otp`, paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose: "account_recovery" }) }); assert(otp.challengeId && !Object.hasOwn(otp, "code"), "OTP must be delivered through the verified channel without exposing a code to the Personal Admin."); console.log("✓ Virtual card and secure OTP request");
 
   const overview = await api("/api/personal-admin/overview", paToken), report = await api("/api/personal-admin/reports", paToken), list = await api("/api/personal-admin/customers", paToken); assert(overview.metrics.assignedCustomers >= 1 && report.metrics.assignedCustomers >= 1 && list.customers.some(row => row.id === customerId), "Portfolio overview, reports, or customer list failed."); console.log("✓ Overview, reporting, referral/customer portfolio data");
   console.log("LIVE PERSONAL ADMIN E2E: PASS");

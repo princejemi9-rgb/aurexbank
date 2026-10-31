@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { requestUser, serviceClient } from "../../../../../../../src/lib/server/tenantAccess";
+import { requestUser, serviceClient } from "../../../../../../src/lib/server/tenantAccess";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ challengeId: string }> }) {
   const db = serviceClient(); const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || ""; const user = await requestUser(token);

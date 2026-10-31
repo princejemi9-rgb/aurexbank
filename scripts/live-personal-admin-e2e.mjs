@@ -22,7 +22,7 @@ try {
   const createdPa = await admin.auth.admin.createUser({ email: paEmail, password, email_confirm: true, user_metadata: { personal_admin_registration: true, full_name: "E2E Personal Admin", phone: "+15550000001" } });
   assert(createdPa.data.user?.id, `Personal Admin creation failed: ${createdPa.error?.message || "unknown"}`); paId = createdPa.data.user.id; paToken = await signIn(paEmail);
   await api("/api/personal-admin", paToken, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fullName: "E2E Personal Admin", phone: "+15550000001" }) });
-  const profile = await api("/api/personal-admin", paToken); assert(profile.personalAdmin?.status === "approved", "Personal Admin did not activate.");
+  const profile = await api("/api/personal-admin", paToken); assert(profile.personalAdmin?.status === "approved", `Personal Admin did not activate (returned status: ${profile.personalAdmin?.status || "no profile"}).`);
   await admin.from("personal_admin_profiles").update({ permissions: { manage_customers: true, manage_support: true, manage_reports: true, manage_financial_adjustments: true } }).eq("user_id", paId);
   console.log("✓ Personal Admin registration and login");
 

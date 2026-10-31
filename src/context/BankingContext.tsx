@@ -77,6 +77,7 @@ type TransferInput = {
   wireCountry?: string;
   wireCurrency?: string;
   transferPurpose?: string;
+  challengeId?: string;
 };
 
 type AdminMetricsInput = {

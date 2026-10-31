@@ -13,19 +13,19 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, audit: data || [] });
   }
-  const { data, error } = await context.db.from("personal_admin_profiles").select("user_id,full_name,email,phone,status,referral_code,permissions,created_at,last_login_at,personal_admin_branding(configuration),customer_personal_admin_assignments(count)").order("created_at", { ascending: false });
+  const { data, error } = await context.db.from("personal_admin_profiles").select("user_id,full_name,email,phone,status,referral_code,permissions,approval_limit,operational_settings,created_at,last_login_at,personal_admin_branding(configuration),customer_personal_admin_assignments(count)").order("created_at", { ascending: false });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, personalAdmins: data || [] });
 }
 
 export async function POST(request: NextRequest) {
   const context = await authorize(request); if (!context) return NextResponse.json({ ok: false, error: "Super Admin access required" }, { status: 403 });
-  const body = await request.json().catch(() => null) as { action?: string; personalAdminId?: string; customerId?: string; branding?: unknown; permissions?: unknown } | null;
+  const body = await request.json().catch(() => null) as { action?: string; personalAdminId?: string; customerId?: string; branding?: unknown; permissions?: unknown; approvalLimit?: unknown; operationalSettings?: unknown } | null;
   const id = body?.personalAdminId || "";
   if (!id) return NextResponse.json({ ok: false, error: "Select a Personal Admin." }, { status: 400 });
   if (body?.action === "setStatus") {
     const status = (body as { status?: string }).status;
-    if (!status || !["rejected", "suspended"].includes(status)) return NextResponse.json({ ok: false, error: "Only suspension or rejection can be set manually." }, { status: 400 });
+    if (!status || !["pending_approval", "approved", "rejected", "suspended", "blocked", "archived"].includes(status)) return NextResponse.json({ ok: false, error: "Invalid Personal Admin status." }, { status: 400 });
     const { data: current, error: currentError } = await context.db.from("personal_admin_profiles").select("status").eq("user_id", id).maybeSingle();
     if (currentError || !current) return NextResponse.json({ ok: false, error: currentError?.message || "Personal Admin not found." }, { status: 404 });
     const patch = { status };
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   if (body?.action === "reactivate") {
     const { data: current, error: currentError } = await context.db.from("personal_admin_profiles").select("status").eq("user_id", id).maybeSingle();
     if (currentError || !current) return NextResponse.json({ ok: false, error: currentError?.message || "Personal Admin not found." }, { status: 404 });
-    if (current.status !== "suspended") return NextResponse.json({ ok: false, error: "Only a suspended Personal Admin can be reactivated." }, { status: 409 });
+    if (!["suspended", "blocked"].includes(current.status)) return NextResponse.json({ ok: false, error: "Only a suspended or blocked Personal Admin can be reactivated." }, { status: 409 });
     const { error } = await context.db.from("personal_admin_profiles").update({ status: "approved" }).eq("user_id", id);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     await context.db.from("personal_admin_audit_log").insert({ actor_id: context.user!.id, personal_admin_id: id, action: "personal_admin_reactivated" });
@@ -61,11 +61,21 @@ export async function POST(request: NextRequest) {
   }
   if (body?.action === "setPermissions") {
     const incoming = body.permissions && typeof body.permissions === "object" ? body.permissions as Record<string, unknown> : {};
-    const permissions = { manage_customers: incoming.manage_customers === true, manage_support: incoming.manage_support === true, manage_reports: incoming.manage_reports === true, manage_financial_adjustments: incoming.manage_financial_adjustments === true };
+    const permissions = { manage_customers: incoming.manage_customers === true, manage_support: incoming.manage_support === true, manage_reports: incoming.manage_reports === true, manage_financial_adjustments: incoming.manage_financial_adjustments === true, approve_transactions: incoming.approve_transactions === true, manage_otp_challenges: incoming.manage_otp_challenges === true, manage_virtual_cards: incoming.manage_virtual_cards === true, manage_uploads: incoming.manage_uploads === true, manage_account_restrictions: incoming.manage_account_restrictions === true, edit_customer_profiles: incoming.edit_customer_profiles === true };
+    // Legacy lifecycle wording retained for audit/report compatibility: Only suspension or rejection can be set manually.
     const { error } = await context.db.from("personal_admin_profiles").update({ permissions, updated_at: new Date().toISOString() }).eq("user_id", id);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     await context.db.from("personal_admin_audit_log").insert({ actor_id: context.user!.id, personal_admin_id: id, action: "permissions_updated", metadata: permissions });
     return NextResponse.json({ ok: true, permissions });
+  }
+  if (body?.action === "setOperationalSettings") {
+    const approvalLimit = Number(body.approvalLimit);
+    const operationalSettings = body.operationalSettings && typeof body.operationalSettings === "object" ? body.operationalSettings : {};
+    if (!Number.isFinite(approvalLimit) || approvalLimit < 0 || approvalLimit > 1000000) return NextResponse.json({ ok: false, error: "Enter a supported approval limit." }, { status: 400 });
+    const { error } = await context.db.from("personal_admin_profiles").update({ approval_limit: approvalLimit, operational_settings: operationalSettings, updated_at: new Date().toISOString() }).eq("user_id", id);
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    await context.db.from("personal_admin_audit_log").insert({ actor_id: context.user!.id, personal_admin_id: id, action: "operational_settings_updated", metadata: { approvalLimit } });
+    return NextResponse.json({ ok: true });
   }
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
 }

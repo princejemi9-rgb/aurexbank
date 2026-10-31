@@ -4,7 +4,7 @@ import type { NextResponse } from "next/server";
 export const SECURITY_SESSION_COOKIE = "aurex_security_verified";
 const MAX_AGE_SECONDS = 60 * 60 * 8;
 
-type SecuritySession = { userId: string; revision: string; exp: number };
+type SecuritySession = { userId: string; revision: string; iat: number; exp: number };
 
 function secret() {
   return process.env.AUREX_SECURITY_SESSION_SECRET || "";
@@ -21,6 +21,7 @@ export function createSecuritySession(userId: string, revision: string) {
     JSON.stringify({
       userId,
       revision,
+      iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS,
     })
   ).toString("base64url");

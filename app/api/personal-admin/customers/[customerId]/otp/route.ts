@@ -15,8 +15,18 @@ async function context(request: NextRequest, customerId: string) {
 export async function GET(request: NextRequest, contextValue: { params: Promise<{ customerId: string }> }) {
   const { customerId } = await contextValue.params; const current = await context(request, customerId);
   if (!current) return NextResponse.json({ ok: false, error: "OTP-challenge permission and assigned customer access are required" }, { status: 403 });
-  const { data, error } = await current.db.from("personal_admin_otp_challenges").select("id,purpose,status,attempts,max_attempts,expires_at,created_at,verified_at").eq("customer_id", customerId).order("created_at", { ascending: false }).limit(25);
-  return error ? NextResponse.json({ ok: false, error: error.message }, { status: 500 }) : NextResponse.json({ ok: true, challenges: data || [] });
+  const [adminChallenges, transferChallenges] = await Promise.all([
+    current.db.from("personal_admin_otp_challenges").select("id,purpose,status,attempts,max_attempts,expires_at,created_at,verified_at").eq("customer_id", customerId).order("created_at", { ascending: false }).limit(25),
+    current.db.from("transfer_authorization_challenges").select("id,status,attempts,max_attempts,expires_at,created_at,verified_at").eq("sender_id", customerId).order("created_at", { ascending: false }).limit(25),
+  ]);
+  if (adminChallenges.error || transferChallenges.error) return NextResponse.json({ ok: false, error: adminChallenges.error?.message || transferChallenges.error?.message || "Unable to load OTP challenges." }, { status: 500 });
+  // Deliberately return lifecycle metadata only. Neither the code nor its hash
+  // is available to a Personal Admin, including for a customer transfer OTP.
+  const challenges = [
+    ...(adminChallenges.data || []).map((challenge) => ({ ...challenge, kind: "personal_admin" as const })),
+    ...(transferChallenges.data || []).map((challenge) => ({ ...challenge, kind: "transfer" as const, purpose: "transfer_confirmation" })),
+  ].sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
+  return NextResponse.json({ ok: true, challenges }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ customerId: string }> }) {
@@ -48,10 +58,14 @@ export async function DELETE(request: NextRequest, contextValue: { params: Promi
   const { customerId } = await contextValue.params; const current = await context(request, customerId);
   if (!current) return NextResponse.json({ ok: false, error: "OTP-challenge permission and assigned customer access are required" }, { status: 403 });
   const challengeId = request.nextUrl.searchParams.get("challengeId") || "";
+  const kind = request.nextUrl.searchParams.get("kind") || "personal_admin";
   if (!challengeId) return NextResponse.json({ ok: false, error: "Select an OTP challenge to revoke." }, { status: 400 });
-  const { data, error } = await current.db.from("personal_admin_otp_challenges").update({ status: "cancelled" }).eq("id", challengeId).eq("customer_id", customerId).eq("status", "open").select("id").maybeSingle();
+  if (kind !== "personal_admin" && kind !== "transfer") return NextResponse.json({ ok: false, error: "Unknown OTP challenge type." }, { status: 400 });
+  const table = kind === "transfer" ? "transfer_authorization_challenges" : "personal_admin_otp_challenges";
+  const customerColumn = kind === "transfer" ? "sender_id" : "customer_id";
+  const { data, error } = await current.db.from(table).update({ status: "cancelled" }).eq("id", challengeId).eq(customerColumn, customerId).eq("status", "open").select("id").maybeSingle();
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ ok: false, error: "Only an active assigned-customer OTP challenge can be revoked." }, { status: 409 });
-  await current.db.from("personal_admin_audit_log").insert({ actor_id: current.user.id, personal_admin_id: current.user.id, target_user_id: customerId, action: "personal_admin_otp_revoked", metadata: { challenge_id: challengeId } });
+  await current.db.from("personal_admin_audit_log").insert({ actor_id: current.user.id, personal_admin_id: current.user.id, target_user_id: customerId, action: "personal_admin_otp_revoked", metadata: { challenge_id: challengeId, kind } });
   return NextResponse.json({ ok: true });
 }

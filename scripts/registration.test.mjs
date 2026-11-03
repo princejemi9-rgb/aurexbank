@@ -699,4 +699,7 @@ test('secure transfer supports amounts above 100,000 while preserving server-sid
   assert.match(adminOtp, /export async function GET/);
   assert.match(adminOtp, /export async function DELETE/);
   assert.match(adminOtp, /manage_otp_challenges/);
+  assert.match(adminOtp, /transfer_authorization_challenges/);
+  assert.match(adminOtp, /kind === "transfer"/);
+  assert.match(adminOtp, /code nor its hash/);
 });

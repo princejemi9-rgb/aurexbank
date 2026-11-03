@@ -26,6 +26,5 @@ export async function POST(request: NextRequest) {
   const { data, error } = await db.rpc("process_verified_virtual_transfer", { p_sender_id: user.id, p_challenge_id: challengeId, p_idempotency_key: reference });
   if (error || !data) return NextResponse.json({ ok: false, error: error?.message || "Transfer processing failed." }, { status: 400 });
   const transfer = Array.isArray(data) ? data[0] : data;
-  await Promise.allSettled([db.from("notifications").insert([{ username: user.email || user.id, message: `Internal transfer completed: ${transfer.currency} ${transfer.amount}. Receipt ${transfer.id}.` }])]);
   return NextResponse.json({ ok: true, transactionId: transfer.id, transferAmount: Number(transfer.amount), totalDebit: Number(transfer.amount), receipt: { id: transfer.id, status: transfer.status, completedAt: transfer.completed_at } }, { headers: { "Cache-Control": "no-store" } });
 }

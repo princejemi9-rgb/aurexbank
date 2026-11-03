@@ -683,3 +683,20 @@ test('Personal Admin virtual-card and OTP controls remain assigned-customer scop
   assert.match(migration, /now\(\) \+ interval '10 minutes'/);
   assert.match(migration, /attempts \+ 1 >= max_attempts/);
 });
+
+test('secure transfer supports amounts above 100,000 while preserving server-side limits and OTP controls', () => {
+  const challengeRoute = readFileSync(new URL('../app/api/transfers/challenge/route.ts', import.meta.url), 'utf8');
+  const verifyRoute = readFileSync(new URL('../app/api/transfers/challenge/[challengeId]/verify/route.ts', import.meta.url), 'utf8');
+  const reviewMigration = readFileSync(new URL('../supabase/migrations/202611030001_transfer_review_requests.sql', import.meta.url), 'utf8');
+  const adminOtp = readFileSync(new URL('../app/api/personal-admin/customers/[customerId]/otp/route.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(challengeRoute, /amount\s*>\s*100000/);
+  assert.match(challengeRoute, /AUREX_INTERNAL_TRANSFER_MAX_AMOUNT/);
+  assert.match(challengeRoute, /transfer_review_requests/);
+  assert.match(challengeRoute, /randomInt\(100000, 1_000_000\)/);
+  assert.match(challengeRoute, /OTP delivery is not configured/);
+  assert.match(verifyRoute, /verify_transfer_authorization_challenge/);
+  assert.match(reviewMigration, /numeric\(18,2\)/);
+  assert.match(adminOtp, /export async function GET/);
+  assert.match(adminOtp, /export async function DELETE/);
+  assert.match(adminOtp, /manage_otp_challenges/);
+});

@@ -689,11 +689,12 @@ test('secure transfer supports amounts above 100,000 while preserving server-sid
   const verifyRoute = readFileSync(new URL('../app/api/transfers/challenge/[challengeId]/verify/route.ts', import.meta.url), 'utf8');
   const reviewMigration = readFileSync(new URL('../supabase/migrations/202611030001_transfer_review_requests.sql', import.meta.url), 'utf8');
   const adminOtp = readFileSync(new URL('../app/api/personal-admin/customers/[customerId]/otp/route.ts', import.meta.url), 'utf8');
+  const otpDelivery = readFileSync(new URL('../src/lib/server/otpDelivery.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(challengeRoute, /amount\s*>\s*100000/);
   assert.match(challengeRoute, /AUREX_INTERNAL_TRANSFER_MAX_AMOUNT/);
   assert.match(challengeRoute, /transfer_review_requests/);
   assert.match(challengeRoute, /randomInt\(100000, 1_000_000\)/);
-  assert.match(challengeRoute, /OTP delivery is not configured/);
+  assert.match(challengeRoute, /deliverOtp/);
   assert.match(verifyRoute, /verify_transfer_authorization_challenge/);
   assert.match(reviewMigration, /numeric\(18,2\)/);
   assert.match(adminOtp, /export async function GET/);
@@ -702,4 +703,7 @@ test('secure transfer supports amounts above 100,000 while preserving server-sid
   assert.match(adminOtp, /transfer_authorization_challenges/);
   assert.match(adminOtp, /kind === "transfer"/);
   assert.match(adminOtp, /code nor its hash/);
+  assert.match(otpDelivery, /https:\/\/api\.resend\.com\/emails/);
+  assert.match(otpDelivery, /RESEND_API_KEY/);
+  assert.match(otpDelivery, /OTP delivery is not configured/);
 });

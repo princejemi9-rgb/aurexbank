@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { approvedPersonalAdmin, requestUser, serviceClient } from "../../../../../../src/lib/server/tenantAccess";
+import { deliverOtp } from "../../../../../../src/lib/server/otpDelivery";
 
 async function context(request: NextRequest, customerId: string) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
@@ -43,15 +44,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ cu
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
   // A Personal Admin may administer the challenge, never see or select its secret.
   // Delivery is delegated to the configured verified-channel provider.
-  const endpoint = process.env.AUREX_OTP_DELIVERY_WEBHOOK;
-  const secret = process.env.AUREX_OTP_DELIVERY_WEBHOOK_SECRET;
-  if (!endpoint || !secret) {
+  const { data: customer } = await db.auth.admin.getUserById(customerId);
+  try {
+    const delivery = await deliverOtp({ purpose, customerId, email: customer.user?.email, challengeId: data.id, code, expiresAt: data.expires_at });
+    return NextResponse.json({ ok: true, challengeId: data.id, expiresAt: data.expires_at, delivery }, { headers: { "Cache-Control": "no-store" } });
+  } catch (deliveryError) {
     await db.from("personal_admin_otp_challenges").update({ status: "cancelled" }).eq("id", data.id);
-    return NextResponse.json({ ok: false, error: "OTP delivery is not configured." }, { status: 503 });
+    return NextResponse.json({ ok: false, error: deliveryError instanceof Error ? deliveryError.message : "OTP delivery failed." }, { status: 503 });
   }
-  const delivery = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` }, body: JSON.stringify({ purpose, customerId, challengeId: data.id, code, expiresAt: data.expires_at }), cache: "no-store" }).catch(() => null);
-  if (!delivery?.ok) { await db.from("personal_admin_otp_challenges").update({ status: "cancelled" }).eq("id", data.id); return NextResponse.json({ ok: false, error: "OTP delivery failed." }, { status: 503 }); }
-  return NextResponse.json({ ok: true, challengeId: data.id, expiresAt: data.expires_at, delivery: "verified_channel" }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function DELETE(request: NextRequest, contextValue: { params: Promise<{ customerId: string }> }) {

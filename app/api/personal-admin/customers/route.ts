@@ -40,7 +40,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Enter a full name, valid email, phone, country, and account type." }, { status: 400 });
   }
   if (initialPassword.length < 10 || !/[A-Z]/.test(initialPassword) || !/[a-z]/.test(initialPassword) || !/\d/.test(initialPassword)) return NextResponse.json({ ok: false, error: "The initial password must be at least 10 characters and include uppercase, lowercase, and a number." }, { status: 400 });
-  if (!Number.isFinite(openingBalance) || openingBalance < 0 || openingBalance > 100000) return NextResponse.json({ ok: false, error: "Opening balance must be between 0 and 100,000." }, { status: 400 });
+  if (!Number.isFinite(openingBalance) || openingBalance < 0 || !Number.isSafeInteger(Math.round(openingBalance * 100))) return NextResponse.json({ ok: false, error: "Enter a valid non-negative opening balance with no more than two decimal places." }, { status: 400 });
+  const approvalLimit = Number(admin.approval_limit || 0);
+  if (openingBalance > 0 && (admin.permissions?.manage_financial_adjustments !== true || !Number.isFinite(approvalLimit) || openingBalance > approvalLimit)) {
+    return NextResponse.json({ ok: false, error: "This opening balance exceeds your financial authorization. Ask a Super Admin to grant financial-adjustment permission or raise your approval limit." }, { status: 403 });
+  }
 
   const [firstName, ...lastNameParts] = fullName.split(/\s+/);
   const { data: createdUser, error: createUserError } = await db.auth.admin.createUser({

@@ -564,7 +564,7 @@ test('Personal Admin customer creation supports an auditable opening balance and
   assert.match(migration, /balance, currency, account_status\) values \(p_customer_id, v_email, v_opening_balance/);
   assert.match(migration, /opening_balance/);
   assert.match(precisionMigration, /balance type numeric\(18,2\)/);
-  assert.match(liveTest, /openingBalance = 1234\.56/);
+  assert.match(liveTest, /openingBalance = 100001\.25/);
   assert.match(liveTest, /Opening balance was not persisted/);
 });
 

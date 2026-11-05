@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../src/lib/supabase";
 
 type Enrollment = { accessToken: string; email: string };
+type SignInResponse = { ok?: boolean; error?: string; errorType?: string | null; session?: { access_token?: string; refresh_token?: string } };
 const ACCESS_CHECK_TIMEOUT_MS = 8000;
 
 async function personalAdminRequest(accessToken: string, init?: RequestInit) {
@@ -71,14 +72,43 @@ export default function PersonalAdminLoginPage() {
     const values = new FormData(event.currentTarget as HTMLFormElement);
     const submittedEmail = String(values.get("email") || email).trim();
     const submittedPassword = String(values.get("password") || password);
-    const { data, error } = await supabase.auth.signInWithPassword({ email: submittedEmail, password: submittedPassword });
-    if (error || !data.session) {
-      setNotice(error?.message || "Unable to sign in.");
+    // Match the customer sign-in route: server-side authentication is more
+    // reliable in browsers where extensions or privacy settings block the
+    // direct browser-to-Supabase password exchange.
+    const signInResponse = await fetch("/api/auth/signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email: submittedEmail, password: submittedPassword }),
+    }).catch(() => null);
+    const signIn = await signInResponse?.json().catch(() => null) as SignInResponse | null;
+    let accessToken = signIn?.session?.access_token || "";
+    let sessionUserEmail = submittedEmail;
+    if (signInResponse?.ok && signIn?.ok && accessToken && signIn.session?.refresh_token) {
+      const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: signIn.session.refresh_token });
+      if (error || !data.session) {
+        setNotice(error?.message || "Unable to establish the browser session.");
+        setSubmitting(false);
+        return;
+      }
+      sessionUserEmail = data.session.user.email || submittedEmail;
+    } else if (signInResponse && signInResponse.status < 500) {
+      setNotice(signIn?.error || "Invalid email or password.");
       setSubmitting(false);
       return;
+    } else {
+      // Retain the direct path only as a fallback for a server-side outage.
+      const { data, error } = await supabase.auth.signInWithPassword({ email: submittedEmail, password: submittedPassword });
+      if (error || !data.session) {
+        setNotice(error?.message || signIn?.error || "Unable to sign in.");
+        setSubmitting(false);
+        return;
+      }
+      accessToken = data.session.access_token;
+      sessionUserEmail = data.session.user.email || submittedEmail;
     }
 
-    const response = await personalAdminRequest(data.session.access_token);
+    const response = await personalAdminRequest(accessToken);
     if (!response) {
       setNotice("Personal Admin access check timed out. Please try again.");
       setSubmitting(false);
@@ -92,7 +122,7 @@ export default function PersonalAdminLoginPage() {
       return;
     }
     if (!result?.personalAdmin) {
-      setEnrollment({ accessToken: data.session.access_token, email: data.session.user.email || submittedEmail });
+      setEnrollment({ accessToken, email: sessionUserEmail });
       setNotice("This authenticated account does not yet have a Personal Admin registration. Complete the form below to activate access.");
       setSubmitting(false);
       return;

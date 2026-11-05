@@ -369,6 +369,8 @@ test('Personal Admin entry routes are public while operational access remains ro
 test('Personal Admin sign-in uses its own form and lets an existing authenticated account activate a registration', () => {
   const page = readFileSync(new URL('../app/personal-admin/login/page.tsx', import.meta.url), 'utf8');
   assert.match(page, /signInWithPassword/);
+  assert.match(page, /\/api\/auth\/signin/);
+  assert.match(page, /supabase\.auth\.setSession/);
   assert.match(page, /personalAdminRequest/);
   assert.match(page, /ACCESS_CHECK_TIMEOUT_MS = 8000/);
   assert.match(page, /new FormData\(event\.currentTarget as HTMLFormElement\)/);

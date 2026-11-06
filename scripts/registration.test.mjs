@@ -492,7 +492,7 @@ test('Personal Admin customer creation creates a confirmed Auth account then ato
   });
   const response = await route.POST({
     headers: { get: () => 'Bearer token' },
-    json: async () => ({ fullName: 'New Customer', email: 'customer@example.com', phone: '+234 800 000 0000', initialPassword: 'InitialPass1', country: 'Nigeria', accountType: 'personal', address: '1 Example Street' }),
+    json: async () => ({ fullName: 'New Customer', email: 'customer@example.com', phone: '+234 800 000 0000', initialPassword: 'InitialPass1', country: 'Nigeria', accountType: 'personal', address: '1 Example Street', openingBalance: 30000000.25 }),
   });
   assert.equal(response.status, 201);
   assert.equal(response.body.customer.initialPasswordChangeRequired, true);
@@ -504,6 +504,7 @@ test('Personal Admin customer creation creates a confirmed Auth account then ato
   assert.equal(calls[1][1], 'create_personal_admin_customer_account');
   assert.equal(calls[1][2].p_personal_admin_id, 'admin-1');
   assert.equal(calls[1][2].p_customer_id, 'customer-1');
+  assert.equal(calls[1][2].p_opening_balance, 30000000.25);
   assert.equal(calls.some(([name]) => name === 'delete'), false);
 });
 
@@ -556,8 +557,10 @@ test('Personal Admin customer creation supports an auditable opening balance and
   const liveTest = readFileSync(new URL('../scripts/live-personal-admin-e2e.mjs', import.meta.url), 'utf8');
   const migration = readFileSync(new URL('../supabase/migrations/202610300001_personal_admin_opening_balance.sql', import.meta.url), 'utf8');
   const precisionMigration = readFileSync(new URL('../supabase/migrations/202610300002_profiles_balance_precision.sql', import.meta.url), 'utf8');
+  const noLimitMigration = readFileSync(new URL('../supabase/migrations/202611060001_remove_personal_admin_opening_balance_limit.sql', import.meta.url), 'utf8');
   assert.match(customerRoute, /p_opening_balance: openingBalance/);
-  assert.match(customerRoute, /approvalLimit/);
+  assert.doesNotMatch(customerRoute, /approvalLimit/);
+  assert.doesNotMatch(customerRoute, /exceeds your financial authorization/);
   assert.doesNotMatch(customerRoute, /openingBalance > 100000/);
   assert.match(customerForm, /Opening balance/);
   assert.match(customerForm, /openingBalance: "0"/);
@@ -566,7 +569,8 @@ test('Personal Admin customer creation supports an auditable opening balance and
   assert.match(migration, /balance, currency, account_status\) values \(p_customer_id, v_email, v_opening_balance/);
   assert.match(migration, /opening_balance/);
   assert.match(precisionMigration, /balance type numeric\(18,2\)/);
-  assert.match(liveTest, /openingBalance = 100001\.25/);
+  assert.doesNotMatch(noLimitMigration, /approval_limit|manage_financial_adjustments/);
+  assert.match(liveTest, /openingBalance = 30000000\.25/);
   assert.match(liveTest, /Opening balance was not persisted/);
 });
 
